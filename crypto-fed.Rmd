@@ -1,0 +1,792 @@
+---
+title: "Reproducibility"
+author: "Armin Rauschenberger"
+date: "`r Sys.Date()`"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+header-includes:
+  - \usepackage{longtable}
+  - \usepackage{placeins}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#utils::install.packages(c("readxl","nlme","emmeans","xtable"))
+```
+
+# Data
+
+This chunk reads the clinical data, the laboratory data, and the randomisation list.
+
+```{r read_data}
+rm(list=ls())
+
+#--- clinical data ---
+
+# variable domains: https://en.wikipedia.org/wiki/SDTM
+folder <- "I:/Projects folder/CCMS/Crypto-HIV/DNDi-5FC-02-CM (fed study)/4 - Data Management/7-Data transfers/Export files/24032023"
+file <- dir(folder)
+clindata <- list()
+for(i in seq_along(file)){
+  clindata[[i]] <- as.data.frame(readxl::read_xlsx(path=file.path(folder,file[i])))
+  #alternative: xlsx::read.xlsx(path=file.path(folder,files[i]))
+}
+
+names(clindata) <- sapply(file,function(x) strsplit(x,split="_")[[1]][1])
+names(clindata)[grepl(pattern="MH",x=file) & !grepl(pattern="V2",x=file)] <- "MH_old"
+names(clindata)[grepl(pattern="MH.*V2",x=file)] <- "MH"
+
+#create variable for randomisation identifier (RID)
+for(i in seq_along(clindata)){
+  ids <- strsplit(x=clindata[[i]]$USUBJID,split="/")
+  clindata[[i]]$RID <- as.numeric(sapply(ids,function(x) ifelse(length(x)==1,NA,x[[2]])))
+}
+
+#--- randomisation list ---
+
+folder <- "I:/Projects folder/CCMS/Crypto-HIV/DNDi-5FC-02-CM (fed study)/9 - Final analysis/Data"
+file <- "RandomizationList.xlsx"
+randata <- as.data.frame(readxl::read_xlsx(path=file.path(folder,file)))
+colnames(randata)[colnames(randata)=="seqence"] <- "sequence"
+randata$seq <- ifelse(randata$sequence==1,"seq 1 (AB)",ifelse(randata$sequence==2,"seq 2 (BA)",NA))
+colnames(randata)[colnames(randata)=="Subject_ID"] <- "RID"
+
+#--- laboratory data ---
+
+folder <- "I:/Projects folder/CCMS/Crypto-HIV/DNDi-5FC-02-CM (fed study)/4 - Data Management/7-Data transfers/Import files/15032023_Pharmetheus/0131FRM18_DNDi-5FC-02-CM_PK_20230315/0131FRM18_DNDi-5FC-02-CM_PK_20230315"
+file <- c("0131FRM18_5-fluorouracil_20230313.csv","0131FRM18_Flucytosine_20230314.csv")
+labdata <- list()
+for(i in seq_along(file)){
+  labdata[[i]] <- utils::read.csv(file=file.path(folder,file[i]),header=T,sep=",",fileEncoding="latin1")
+  colnames(labdata[[i]])[colnames(labdata[[i]])=="SUBJECTID"] <- "RID"
+}
+names(labdata) <- c("fluorouracil","flucytosine")
+
+for(i in 1:2){
+  for(k in c("seq 1 (AB)","seq 2 (BA)")){
+    ids <- randata$RID[randata$seq==k]
+    labdata[[i]]$seq[labdata[[i]]$RID %in% ids] <- k
+  }
+  labdata[[i]]$treat[labdata[[i]]$PERIOD==1 & labdata[[i]]$seq=="seq 1 (AB)"] <- "A"
+  labdata[[i]]$treat[labdata[[i]]$PERIOD==1 & labdata[[i]]$seq=="seq 2 (BA)"] <- "B"
+  labdata[[i]]$treat[labdata[[i]]$PERIOD==2 & labdata[[i]]$seq=="seq 1 (AB)"] <- "B"
+  labdata[[i]]$treat[labdata[[i]]$PERIOD==2 & labdata[[i]]$seq=="seq 2 (BA)"] <- "A"
+}
+
+if(FALSE){
+# variable search
+pattern <- "SOC"
+names <- sapply(clindata,colnames)
+id <- which(grepl(pattern=pattern,x=tolower(unlist(names))))
+unlist(names)[id]
+
+sapply(clindata,function(x) any(grepl(pattern=pattern,tolower(unlist(x)))))
+}
+```
+
+
+# descriptive statistics
+
+This chunk defines functions.
+
+```{r define_functions,results="asis"}
+#--- functions for descriptive statistics ---
+
+descnum <- function(x,digits=2){
+  out <- c(mean=round(mean(x,na.rm=TRUE),digits=digits),
+           median=round(median(x,na.rm=TRUE),digits=digits),
+           range=paste0(round(min(x,na.rm=TRUE),digits=digits)," - ",round(max(x,na.rm=TRUE),digits=digits)),
+           n=as.integer(sum(!is.na(x))))
+  return(out)
+}
+
+desccat <- function(x,digits=2){
+  count <- table(x)
+  prop <- round(100*count/sum(count),digits=digits)
+  out <- paste0(count," (",prop,"%)")
+  names(out) <- names(count)
+  out <- c(out,n=sum(!is.na(x)))
+  return(out)
+}
+
+descPK <- function(x,digits=2){
+  x <- x[!is.na(x)]
+  if(any(x<=0)){stop("negative value")}
+  out <- c(ari.mean=round(mean(x),digits=digits),
+           ari.sd=round(sd(x),digits=digits),
+           ari.cv=round(100*sd(x)/mean(x),digits=digits),
+           median=round(median(x),digits=digits),
+           min=round(min(x),digits=digits),
+           max=round(max(x),digits=digits),
+           geo.mean=round(exp(mean(log(x))),digits=digits),
+           geo.sd=round(sqrt(exp(var(log(x)))),digits=digits), # not checked
+           geo.cv=round(100*sqrt(exp(var(log(x)))-1),digits=digits),
+           n=as.integer(length(x)))
+  return(out)
+}
+
+desc4group <- function(x,group,digits=2,PK=FALSE){
+  if(PK){
+    list <- tapply(X=x,INDEX=group,FUN=descPK)
+    list$both <- descPK(x=x[!is.na(group)])
+  } else if(is.numeric(x)){
+    list <- tapply(X=x,INDEX=group,FUN=descnum)
+    list$both <- descnum(x=x[!is.na(group)],digits=digits)
+  } else {
+    x <- as.factor(x)
+    list <- tapply(X=x,INDEX=group,FUN=desccat)
+    list$both <- desccat(x=x[!is.na(group)],digits=digits)
+  }
+  table <- do.call(what="cbind",args=list)
+  return(table)
+}
+
+list2table <- function(x){
+  if(is.null(names(x))){stop("missing slot names")}
+  x <- lapply(x,function(x) if(is.vector(x)){t(as.matrix(x))}else{x})
+  ncol <- sapply(list,ncol)
+  if(length(unique(ncol))!=1){stop("different column numbers")}
+  names <- t(sapply(list,colnames))
+  if(nrow(unique(names))!=1){stop("different column names")}
+  for(i in seq_along(x)){
+    x[[i]] <- cbind(c(names(x)[i],rep("",times=nrow(x[[i]])-1)),rownames(x[[i]]),x[[i]])
+    rownames(x[[i]]) <- NULL
+  }
+  table <- do.call(what="rbind",args=x)
+  colnames(table)[1:2] <- " "
+  return(table)
+}
+
+mytable <- function(x,caption=NULL,long=FALSE){
+  xtable <- xtable::xtable(x=x,caption=caption)
+  hline.after <- unique(c(which(x[,1]!="")-1,nrow(x)))
+  xtable::print.xtable(x=xtable,comment=FALSE,caption.placement="top",include.rownames=FALSE,hline.after=hline.after,table.placement="!h")
+}
+
+mylist <- function(x,digits=2,id="RID",align=NULL,caption=""){
+  for(i in seq_along(rev(id))){
+     x <- x[order(x[[rev(id)[i]]]),]
+  }
+  #x <- x[order(x[[id]]),]
+  quote <- c(FALSE,diff(as.numeric(x[[id[1]]]))==0)
+  hline <- c(diff(as.numeric(x[[id[1]]]))!=0,TRUE)
+  x[[id[1]]][quote] <- "\""
+  xtable <- xtable::xtable(x=x,digits=digits,caption=caption)
+  if(!is.null(align)){
+    xtable::align(xtable) <- align
+  }
+  xtable::print.xtable(xtable,include.rownames=FALSE,comment=FALSE, tabular.environment=ifelse(is.null(align),"tabular","longtable"),floating=is.null(align),caption.placement="top",hline.after=c(0,which(hline)),table.placement="!h")
+}
+
+mylog <- function(x,base=exp(1),cond=TRUE){
+  if(cond){
+    x <- base::log(x,base=base)
+  } else {
+    x
+  }
+  return(x)
+}
+
+#--- functions for estimating pharmacokinetic parameters---
+
+auc <- function(conc,time){
+  n <- length(time)-1
+  part <- rep(NA,times=n)
+  for(i in seq_len(n)){
+    # method "lin up, log down"
+    if(conc[i+1]>=conc[i]){
+      part[i] <- (0.5*(conc[i+1]-conc[i])+conc[i])*(time[i+1]-time[i])
+    } else {
+      part[i] <- (time[i+1]-time[i])*(conc[i]-conc[i+1])/log(conc[i]/conc[i+1])
+    }
+  }
+  return(sum(part))
+}
+
+cmax <- function(conc,time){
+  return(max(conc))
+}
+
+tmax <- function(conc,time){
+  return(time[which.max(conc)])
+}
+
+lambdaZ <- function(conc,time){
+  tmax <- tmax(conc,time)
+  cond <- conc>0 & time>tmax
+  iter <- sum(cond)-2
+  lm <- list()
+  for(i in seq_len(iter)){
+    lm[[i]] <- stats::lm(log(conc[cond])~time[cond])
+    cond[which.max(cond)] <- FALSE
+  }
+  adjr2 <- sapply(lm,function(x) summary(x)$adj.r.squared)
+  which.max <- which.max(adjr2)
+  # prefer longer slope even if slightly lower R2
+  cond <- (adjr2+1e-04)>adjr2[which.max] & seq_along(adjr2) < which.max
+  if(any(cond)){
+    which.max <- which(cond)
+  }
+  slope <- -lm[[which.max]]$coefficients["time[cond]"]
+  return(slope)
+}
+
+aucInf <- function(conc,time){
+  auc <- auc(conc=conc,time=time)
+  lambdaZ <- lambdaZ(conc=conc,time=time)
+  out <- auc + rev(conc[conc!=0])[1]/lambdaZ
+  return(out)
+}
+
+atehl <- function(conc,time){
+  lambdaZ <- lambdaZ(conc=conc,time=time)
+  out <- log(2)/lambdaZ
+  return(out)
+}
+
+fluct <- function(conc,time){
+  (max(conc)-min(conc))/mean(conc)
+}
+
+#--- functions for mixed models ---
+
+names2table <- function(x,ncol=0){
+  # add rownames
+  x <- cbind(rownames(x),x)
+  rownames(x) <- NULL
+  # add colnames
+  x <- rbind(c(colnames(x)),x)
+  colnames(x) <- NULL
+  # add empty columns
+  if(ncol>ncol(x)){
+    extra <- matrix("",nrow=nrow(x),ncol=ncol-ncol(x))
+    x <- cbind(x,extra)
+  }
+  return(x)
+}
+
+lme2latex <- function(lme,caption=NULL){
+  # random effects
+  random <- nlme::VarCorr(lme)[,"Variance"]
+  class(random) <- "numeric"
+  random <- as.matrix(round(random,digits=3))
+  colnames(random) <- "variance"
+  # fixed effects
+  fixed <- summary(lme)$tTable[,c("Value","p-value")]
+  colnames(fixed)[colnames(fixed)=="Value"] <- "estimate"
+  rownames(fixed) <- gsub(pattern="TRUE",replacement="",x=rownames(fixed))
+  fixed <- cbind("estimate"=format(fixed[,"estimate"],digits=1),"p-value"=format(signif(fixed[,"p-value"],digits=2)))
+  # marginal means
+  marginal <- matrix(data=NA,nrow=2,ncol=3,dimnames=list(c("estimate","CI"),c("FALSE","TRUE","ratio")))
+  temp <- summary(emmeans::emmeans(lme,spec=c("treatment"),show.levels=TRUE),level=0.90)
+  for(i in c("FALSE","TRUE")){
+    marginal["estimate",i] <- round(exp(temp$emmean[temp$treatment==i]),digits=2)
+    lower <- round(exp(temp$lower.CL[temp$treatment==i]),digits=2)
+    upper <- round(exp(temp$upper.CL[temp$treatment==i]),digits=2)
+    marginal["CI",i] <- paste0(lower,"-",upper)
+  }
+  # geometric mean ratio
+  coefs <- summary(lme)$tTable
+  ratio <- coefs["treatmentTRUE",c("Value","Std.Error","DF")]
+  ci.logratio <- ratio["Value"]+c(-1,1)*stats::qt(p=0.95,df=ratio["DF"]-1)*ratio["Std.Error"]
+  marginal["estimate","ratio"] <- round(exp(ratio["Value"]),digits=2)
+  marginal["CI","ratio"] <- paste0(round(exp(ci.logratio),digits=2),collapse="-")
+  # combine
+  list <- list()
+  list[[1]] <- rbind("",c("\\textbf{random effects}",rep(x="",times=3)))
+  list[[2]] <- names2table(random,ncol=4)
+  list[[3]] <- rbind("",c("\\textbf{fixed effects}",rep(x="",times=3)))
+  list[[4]] <- names2table(fixed,ncol=4)
+  list[[5]] <- rbind("",c("\\textbf{marginal means}",rep(x="",times=3)))
+  list[[6]] <- names2table(marginal,ncol=4)
+  table <- do.call(what="rbind",args=list)
+  xtable <- xtable::xtable(table,caption=caption)
+  xtable::print.xtable(xtable,sanitize.text.function=identity,comment=FALSE,include.colnames=FALSE,include.rownames=FALSE,caption.placement="top")
+}
+
+#--- find global variables in functions ---
+
+fun <- objects(all.names=TRUE,pattern="\\.")
+for(i in seq_along(fun)){
+  if(fun[i]==".Random.seed"){next}
+  var <- codetools::findGlobals(fun[i],merge=FALSE)$variables
+  if(length(var)>0){
+    stop(paste0("Global variable(s) in function ",fun[i],": ",paste0(var,collapse=", ")))
+  }
+}
+```
+ 
+# Screening
+
+```{r,results="asis"}
+# ISSUE: missing labels for the inclusion/exclusion criteria (reproducing listing 1 "ineligible subjects with reason for ineligibility") -> check protocol
+cond <- (clindata$IE$IECAT=="INCLUSION" & clindata$IE$IESTRESC=="No") | (clindata$IE$IECAT=="EXCLUSION" & clindata$IE$IESTRESC=="Yes")
+mylist(x=clindata$IE[cond,c("SUBJID","IETEST","IESTRESC")],id="SUBJID",caption="Non-included or excluded subjects.")
+```
+
+# Withdrawals
+
+```{r,results="asis"}
+list <- clindata$DS[which(clindata$DS$DSTERM=="DISCONTINUED"),]
+cond <- grepl(pattern="_",x=colnames(list))
+obs <- colnames(list)[cond][which(list[cond]=="Yes")]
+list$obs <- paste(obs,collapse=", ")
+mylist(x=list[,c("RID","obs")],caption="early withdrawals",id="RID")
+```
+
+# Analyses population
+
+```{r,eval=FALSE}
+# TASK: Reproduce table 2 and listing 3.
+```
+
+ 
+# Protocol deviations 
+ 
+```{r desc_deviations,results="asis"}
+#--- protocol deviations ---
+list <- list()
+list$any <- c(tapply(X=randata$RID,INDEX=randata$seq,FUN=function(x) sum(x %in% clindata$DV$RID)),both=sum(randata$RID %in% clindata$DV$RID))
+list$major <- c(tapply(X=randata$RID,INDEX=randata$seq,FUN=function(x) sum(x %in% clindata$DV$RID[clindata$DV$DVCAT=="Major"])),both=sum(randata$RID %in% clindata$DV$RID[clindata$DV$DVCAT=="Major"]))
+table <- list2table(list)
+mytable(table,caption="subjects with protocol deviations")
+
+term <- clindata$DV$DVTERM
+term[grepl(pattern="DELAY.*DIFFICULTY.*BLOOD.*SAMPLING",x=term)] <- "delay blood sampling"
+term[grepl(pattern="EXTRA WATER",x=term)] <- "extra water"
+term[grepl(pattern="DATE OF SAMPLES.*LATE",x=term)] <- "late visit"
+term[grepl(pattern="POST STUDY.*LATE",x=term)] <- "late post study"
+table <- t(table(term))
+mytable(table,caption="protocol deviations")
+
+table <- clindata$DV[,c("RID","VISIT","FORM","DVTERM","DVCAT")]
+table$DVTERM <- tolower(table$DVTERM)
+mylist(table,align="crp{1in}p{1in}p{3in}p{0.5in}",caption="Protocol deviations.")
+```
+
+# Screening characteristics
+
+```{r desc_demographic,results="asis"}
+#--- demographic ---
+numeric <- c("AGE","VSORRES_WEIGHT","VSORRES_HEIGHT","VSORRES_BMI")
+for(i in seq_along(numeric)){
+  class(clindata$DM[[numeric[i]]]) <- "numeric"
+}
+colnames(clindata$DM) <- gsub(pattern="VSORRES_",replacement="",x=colnames(clindata$DM))
+ids <- strsplit(x=clindata$DM$USUBJID,split="/")
+id <- as.numeric(sapply(ids,function(x) ifelse(length(x)==1,NA,x[[2]])))
+group <- randata$seq[id]
+list <- list()
+vars <- toupper(c("age","sex","race","weight","height","BMI"))
+for(i in seq_along(vars)){
+  values <- clindata$DM[[vars[i]]]
+  list[[vars[i]]] <- desc4group(x=values,group=group)
+}
+table <- list2table(list)
+mytable(table,caption="demographics by sequence")
+```
+
+```{r desc_drugs,results='asis',eval=TRUE}
+#--- alcohol/smoker ---
+list <- list()
+class(clindata$SU$SUDOSE) <- "numeric"
+for(k in c("ALCOHOL","SMOKER","OTHER")){
+  sub <- clindata$SU[!is.na(clindata$SU$RID) & clindata$SU$SUTRT==k,]
+  group <- randata$seq[sub$RID]
+  list[[k]] <- desc4group(x=sub$SUOCCUR,group=group)
+  if(k!="OTHER"){
+    list[[paste("IF",k)]] <- desc4group(x=sub$SUDOSE,group=group)
+  }
+}
+table <- list2table(x=list)
+mytable(table,caption="alcohol/smoker by sequence")
+
+for(k in c("ALCOHOL","SMOKER")){
+  table <- clindata$SU[!is.na(clindata$SU$RID) & clindata$SU$SUTRT==k & !is.na(clindata$SU$SUDOSE),c("RID","SUDOSE")]
+  mylist(table,caption=paste("listing",k))
+}
+```
+
+
+```{r desc_medicalhist,results="asis"}
+# ISSUE: For reproducing the listing of medical history (listing 7), I can find the variable "verbatim for disease/procedure" but neither "SOC" nor "preferred term".
+table <- clindata$MH[!is.na(clindata$MH$RID) & !is.na(clindata$MH$MHTERM),c("RID","MHTERM","MHSTDAT","MHENDAT","MHONGO")]
+mylist(table,caption="listing medical history")
+
+cond <- !is.na(clindata$MH$RID) & !is.na(clindata$MH$FEMALE)
+list <- clindata$MH[cond,c("RID","FEMALESTATUS","MHTERM")]
+list$MHTERM[list$MHTERM %in% c("SINUSITIS","HEADACHE","HEADACHES")] <- NA
+list <- unique(list)
+mylist(x=list,caption="contraceptive methods")
+```
+
+
+```{r desc_priormed,results="asis"}
+mylist(x=clindata$PRIORMED[!is.na(clindata$PRIORMED$RID),c("RID","CMTRT","CMSTDAT","CMENDAT","CMONGO","CMDOSFRQ","CMINDC")],caption="Listing of prior medication")
+```
+
+
+```{r desc_vitalsigns,results="asis"}
+class(clindata$VS$VSORRES) <- "numeric"
+list <- list()
+for(k in c("Temperature")){
+  sub <- clindata$VS[clindata$VS$VISIT=="Screening Visit" & clindata$VS$VSTEST==k,]
+  group <- randata$seq[sub$RID]
+  list[[paste(k,"- norm")]] <- desc4group(x=sub$VSSTRESC,group=group)
+  list[[k]] <- desc4group(x=sub$VSORRES,group=group)
+}
+for(k in c("Supine","Standing")){
+  #sub <-  clindata$VS[clindata$VS$VISIT=="Screening Visit" & clindata$VS$VSPOS==k,]
+  #table(sub$SUBJID,sub$VSSTRESC)
+  for(l in c("Systolic Blood Pressure","Diastolic Blood Pressure","Pulse Rate")){
+    sub <-  clindata$VS[clindata$VS$VISIT=="Screening Visit" & clindata$VS$VSPOS==k & clindata$VS$VSTEST==l,]
+    group <- randata$seq[sub$RID]
+    if(l=="Systolic Blood Pressure"){
+      list[[paste0(k,"-norm")]] <- desc4group(x=sub$VSSTRESC,group=group)
+    }
+    list[[paste(k,"-",l)]] <- desc4group(x=sub$VSORRES,group=group)
+  }
+}
+table <- list2table(list)
+mytable(table,caption="vital signs by sequence")
+```
+
+
+```{r desc_leadecg,results="asis"}
+clindata$EG$EGTEST <- gsub(pattern=", Aggregate",x=clindata$EG$EGTEST,replacement="")
+class(clindata$EG$EGORRES) <- "numeric"
+vars <- unique(clindata$EG$EGTEST)
+list <- list()
+for(i in seq_along(vars)){
+  sub <- clindata$EG[clindata$EG$VISIT=="SCREENING" & clindata$EG$EGTEST==vars[i],]
+  if(any(duplicated(sub$EG$RID))){stop("duplicate")}
+  group <- randata$seq[sub$RID]
+  if(i==1){
+    list[["norm"]] <- desc4group(x=sub$EGSTRESC1,group=group)
+  }
+  list[[vars[i]]] <- desc4group(x=sub$EGORRES,group=group)
+}
+table <- list2table(list)
+mytable(table)
+```
+
+
+```{r hematology,results="asis",eval=FALSE}
+# ISSUE: variables not found for screening visit (reproducing Table 12 "hematology" and others) => These laboratory data can be found in the folder transfer datam subfolder import data. In the phase II clinical trial, however, these data will be part of the clinical data.)
+
+clindata$LB$LBCO <- gsub(pattern=" ?-? REPE?AT ?TO?P? CONFIRM AND FOLLO?W TREND ?- CUU?RR?ENT?L?T?Y NCS|FOLLOWED-UP AT POST-STUDY VISIT|\\.",replacement="",x=clindata$LB$LBCO)
+unique(clindata$LB$LBCO)
+vars <- "UWBC" #c("","HEAMOGLOBIN")
+for(i in seq_along(vars)){
+  sub <- clindata$LB[clindata$LB$VISIT=="Screening Visit" & clindata$LB$LBCO==vars[i],]
+}
+```
+
+
+```{r desc_bloodpressure,results="asis"}
+clindata$VS$period[clindata$VS$VISIT=="Treatment Period 1: 30 hrs PD"] <- 1
+clindata$VS$period[clindata$VS$VISIT=="Treatment Period 2: 30 hrs PD"] <- 2
+clindata$VS$seq[clindata$VS$RID %in% randata$RID[randata$seq=="seq 1 (AB)"]] <- "seq 1 (AB)"
+clindata$VS$seq[clindata$VS$RID %in% randata$RID[randata$seq=="seq 2 (BA)"]] <- "seq 2 (BA)"
+clindata$VS$treat[clindata$VS$period==1 & clindata$VS$seq=="seq 1 (AB)"] <- "A"
+clindata$VS$treat[clindata$VS$period==1 & clindata$VS$seq=="seq 2 (BA)"] <- "B"
+clindata$VS$treat[clindata$VS$period==2 & clindata$VS$seq=="seq 1 (AB)"] <- "B"
+clindata$VS$treat[clindata$VS$period==2 & clindata$VS$seq=="seq 2 (BA)"] <- "A"
+
+vars <-  c("Systolic Blood Pressure","Diastolic Blood Pressure","Pulse Rate")
+time <- unique(clindata$VS$FORM[!is.na(clindata$VS$FORM)])
+
+for(i in seq_along(vars)){
+  list <- list()
+  for(j in seq_along(time)){
+     sub <-  clindata$VS[which(clindata$VS$FORM==time[j] & clindata$VS$VSPOS=="Supine" & clindata$VS$VSTEST==vars[i]),]
+     group <- sub$treat
+     list[[paste0(vars[i],"-",time[j])]] <- desc4group(x=sub$VSORRES,group=group)
+  }
+  table <- list2table(list)
+  mytable(table,caption=paste("Supine",vars[i],"by timepoint and treatment"))
+}
+```
+
+This chunk prepares the flucytosine data (to be re-organised).
+
+```{r}
+data <- labdata$flucytosine
+data$SAMPLETIME..HR.[data$SAMPLETIME..HR.=="Pre-dose (0)"] <- 0
+data$CONCENTRATION[data$CONCENTRATION=="BLQ"] <- 0
+data$SAMPLETIME..HR. <- as.numeric(data$SAMPLETIME..HR.)
+data$CONCENTRATION <- as.numeric(data$CONCENTRATION)
+```
+
+# concentration per treatment
+
+```{r meanconc,fig.pos="!h",fig.caption="Mean concentration by treatment."}
+time <- unique(data$SAMPLETIME..HR.)
+mu <- sd <- list(A=rep(NA,times=length(time)),B=rep(NA,times=length(time)))
+for(i in seq_along(time)){
+  for(j in c("A","B")){
+    mu[[j]][i]<- mean(data$CONCENTRATION[data$SAMPLETIME..HR.==time[i] & data$treat==j],na.rm=TRUE)
+    sd[[j]][i]<- sd(data$CONCENTRATION[data$SAMPLETIME..HR.==time[i] & data$treat==j],na.rm=TRUE)
+  }
+}
+
+
+graphics::par(mfrow=c(1,2),mar=c(3.5,3.5,1,1))
+for(cond in c(FALSE,TRUE)){
+  if(cond){
+    ylim <- c(-2,5)
+  } else {
+    ylim <- c(0,60)
+  }
+  graphics::plot(x=time,y=mylog(x=mu$A,cond=cond),type="b",col="blue",ylim=ylim,xlab="",ylab="")
+  graphics::segments(x0=time,y0=mylog(x=mu$A-sd$A,cond=cond),y1=mylog(x=mu$A+sd$A,cond=cond),col="blue")
+  graphics::lines(x=time,y=mylog(x=mu$B,cond=cond),type="b",col="red")
+  graphics::segments(x0=time,y0=mylog(x=mu$B-sd$B,cond=cond),y1=mylog(x=mu$B+sd$B,cond=cond),col="red")
+  graphics::title(xlab="time",ylab=paste("log"[cond],"conc"),line=2.5)
+}
+```
+
+# concentration per subject
+
+```{r plot,fig.pos="!h",fig.cap="Concentration by subject",fig.height=8,out.width="100%"}
+ylim <- range(data$CONCENTRATION,na.rm=TRUE)
+graphics::par(mfrow=c(4,3),mar=c(3.5,3.5,2,1))
+for(i in unique(data$RID)){
+  data_ind <- data[data$RID==i,]
+  sequence <- randata$sequence[randata$RID==i]
+  cond <- (sequence==1 & data_ind$PERIOD==1) | (sequence==2 & data_ind$PERIOD==2)
+  graphics::plot(x=data_ind$SAMPLETIME..HR.[cond],y=data_ind$CONCENTRATION[cond],type="b",col="blue",main=paste0("ind",i),ylim=ylim,ylab="",xlab="")
+  
+  cond <- (sequence==1 & data_ind$PERIOD==2) | (sequence==2 & data_ind$PERIOD==1)
+  graphics::lines(x=data_ind$SAMPLETIME..HR.[cond],y=data_ind$CONCENTRATION[cond],type="b",col="red")
+  graphics::title(xlab="time",ylab="conc",line=2.5)
+}
+```
+
+
+# compute PK parameters
+
+```{r pharmacokinetics,results="asis"}
+if(TRUE){
+  # taking into account difference between planned and actual sampling time
+  head(clindata$PC)
+  planned <- as.POSIXct(clindata$PC$PCTPTREF,format="%H:%M")
+  actual <- as.POSIXct(clindata$PC$PCDTC,format="%H:%M")
+  diff <- difftime(time1=actual,time2=planned,units="hours")
+  data.frame(planned,actual,diff)
+  clindata$PC$period <- gsub(pattern="Treatment Period",replacement="",x=clindata$PC$VISIT)
+  clindata$PC$period <- gsub(pattern=": 30 hrs PD",replacement="",x=clindata$PC$period)
+  clindata$PC$period <- as.numeric(clindata$PC$period)
+  clindata$PC$time <- as.numeric(ifelse(clindata$PC$PC_SAMPLING_TIME=="Pre-dose",0,ifelse(clindata$PC$PC_SAMPLING_TIME=="0,5",0.5,clindata$PC$PC_SAMPLING_TIME)))
+  for(i in seq_along(diff)){
+    if(diff[i]==0){
+      next
+    } else {
+      id <- data$RID==clindata$PC$RID[i] & data$PERIOD==clindata$PC$period[i] & data$SAMPLETIME..HR.==clindata$PC$time[i]
+      if(sum(id)!=1){stop("invalid")}
+      data$SAMPLETIME..HR.[id] <- data$SAMPLETIME..HR.[id] + diff[i]
+    }
+  }
+}
+
+n <- max(data$RID)
+own <- other <- list()
+own[[1]] <- other[[1]] <- own[[2]] <- other[[2]] <- data.frame(cmax=rep(NA,times=n),tmax=NA,auc=NA,lambdaZ=NA,aucInf=NA,atehl=NA,fluct=NA)
+for(i in seq_len(n)){
+  
+  for(j in 1:2){
+  
+  cond <- data$RID==i & data$PERIOD==j
+  conc <- data$CONCENTRATION[cond]
+  time <- data$SAMPLETIME..HR.[cond]
+  
+  #if(i==9){next} # to reproduce the official results
+  if(all(is.na(conc))){next}
+  if(any(diff(time)<=0)){stop()}
+  if(any(conc<0)){stop()}
+  
+  # own functions
+  
+  own[[j]]$cmax[i] <- cmax(conc=conc,time=time)
+  own[[j]]$tmax[i] <- tmax(conc=conc,time=time)
+  own[[j]]$auc[i] <- auc(conc=conc,time=time)
+  own[[j]]$lambdaZ[i] <- lambdaZ(conc=conc,time=time)
+  own[[j]]$aucInf[i] <- aucInf(conc=conc,time=time)
+  own[[j]]$atehl[i] <- atehl(conc=conc,time=time)
+  own[[j]]$fluct[i] <- fluct(conc=conc,time=time)
+  
+  # other functions
+
+  other[[j]]$cmax[i] <- max(conc)
+  other[[j]]$tmax[i] <- time[which.max(conc)]
+  other[[j]]$auc[i] <- NonCompart::AUC(x=time,y=conc,down="Log")[sum(cond),"AUC"]
+  other[[j]]$lambdaZ[i] <- NonCompart::BestSlope(x=time,y=conc)["LAMZ"]
+  other[[j]]$aucInf[i] <- other[[j]]$auc[i] + rev(conc[conc!=0])[1]/other[[j]]$lambdaZ[i]
+  
+  # function with all output:
+  all <- NonCompart::sNCA(x=time,y=conc,down="Log")[c("CMAX","TMAX","AUCLST","LAMZ","AUCIFO","LAMZHL")]
+  other[[j]]$atehl[i] <- all["LAMZHL"]
+  
+   # PK::auc(conc=conc,time=time,design="complete")$est
+   # PKNCA::pk.calc.auc(conc=conc,time=time,auc.type="AUClast",method="lin up/log down")
+   # NonCompart::AUC(x=time,y=conc,down="Log")[sum(cond),"AUC"]
+  
+  }
+}
+
+#round(own[[1]],digits=4)==round(other[[1]],digits=4)
+#round(own[[2]],digits=4)==round(other[[2]],digits=4)
+
+pkdata <- rbind(cbind(subject=seq_len(n),own[[1]],period=1,sequence=randata$sequence),
+cbind(subject=seq_len(n),own[[2]],period=2,sequence=randata$sequence))
+pkdata$treatment <- (pkdata$sequence==1 & pkdata$period==2) | (pkdata$sequence==2 & pkdata$period==1)
+
+# summary by treatment
+vars <- c("cmax","tmax","auc","aucInf","lambdaZ","atehl")
+list <- sapply(vars,function(x) desc4group(x=pkdata[[x]][pkdata$subject!=9],group=pkdata$treatment[pkdata$subject!=9],PK=TRUE),simplify=FALSE)
+table <- list2table(list)
+mytable(table,caption="PK parameters by treatment")
+
+#listing by subject
+mylist(x=pkdata[,c("subject","treatment","period","cmax","tmax","auc","aucInf","lambdaZ","atehl")],id=c("subject","treatment"),caption="Listing of PK parameters by subject.")
+```
+
+\FloatBarrier
+
+# mixed model
+
+```{r mixedmodel,results="asis"}
+vars <- c("cmax","auc","aucInf")
+for(i in seq_along(vars)){
+  lme <- nlme::lme(as.formula(paste0("log(",vars[i],")~sequence+period+treatment")),random=~1|subject,data=pkdata[!is.na(pkdata$cmax),],method="REML")
+  lme2latex(lme,caption=paste0("Mixed model for log(",vars[i],"), with a random intercept on the subject level."))
+}
+```
+
+
+<!--
+# unorganised stuff for mixed models (including estimated marginal means a.k.a. 'least squares means', alternative calculation of geometric mean ratio without mixed models)
+
+```{r,eval=FALSE}
+#--- extract estimated marginal means (SAS: least squares geometric means) ---
+emmeans <- emmeans::emmeans(lme,spec=c("treatment"),show.levels=TRUE)
+mu <- exp(summary(emmeans)$emmean)
+lower <- exp(summary(emmeans,level=0.90)$lower.CL)
+upper <- exp(summary(emmeans,level=0.90)$upper.CL)
+
+#--- reproducing this manually ---
+exp(mean(predict(object=lme,newdata=expand.grid(subject=NA,period=c(1,2),sequence=c(1,2),treatment=FALSE),level=0)))
+exp(mean(predict(object=lme,newdata=expand.grid(subject=NA,period=c(1,2),sequence=c(1,2),treatment=TRUE),level=0)))
+
+#--- calculate geometric mean ratio and CI  ---
+pre <- pkdata$cmax[!pkdata$treatment][order(pkdata$subject[!pkdata$treatment])]
+post <- pkdata$cmax[pkdata$treatment][order(pkdata$subject[pkdata$treatment])]
+
+print.ci <- function(mu,ci,confl,exp=TRUE){
+  if(!exp){stop("not implemented")}
+  paste0(round(exp(mu),digits=2),
+         " [",
+         confl,
+         "% CI: ",
+         round(exp(ci[1]),digits=2),
+         "-",
+         round(exp(ci[2]),digits=2),
+         "]")
+}
+
+geo.mean.ratio <- function(x,y,paired=TRUE,confl=90){
+  quantile <- 0.5 + confl/200
+  if(any(x<0|y<0,na.rm=TRUE)){stop("negative")}
+  if(paired){
+    cond <- !is.na(x) & !is.na(y)
+    x <- x[cond]
+    y <- y[cond]
+    n <- length(x)
+    log.r <- log(y/x)
+    mu <- mean(log.r)
+    se <- sd(log.r)/sqrt(n)
+    ci <- mu+c(-1,1)*stats::qt(p=quantile,df=n-1)*se
+    print.ci(mu=mu,ci=ci,confl=confl)
+  } else {
+    warning("This code is unchecked!")
+    x <- x[!is.na(x)]
+    nx <- length(x)
+    y <- y[!is.na(y)]
+    ny <- length(y)
+    log.x <- log(x)
+    log.y <- log(y)
+    mu <- mean(log.y)-mean(log.x) # =log(exp(mean(log.y))/exp(mean(log.x)))
+    se <- sqrt(sd(log.x)^2/nx+sd(log.y)^2/ny)
+    ci <- mu + c(-1,1)*stats::qt(p=quantile,df=min(nx-1,ny-1))*se
+    print.ci(mu=mu,ci=ci,confl=confl)
+  }
+}
+
+geo.mean.ratio(x=pre,y=post,paired=TRUE)
+# if not matched: geo.mean.ratio(x=pre,y=post,paired=FALSE)
+# NB: The result is slightly different because of adjustment for other variables.
+
+#--- geometric mean ---
+
+geo.mean <- function(x,confl=90){
+  quantile <- 0.5 + confl/200
+  x <- x[!is.na(x)]
+  if(any(x<0)){stop("negative")}
+  n <- length(x)
+  log.x <- log(x)
+  mu <- mean(log.x)
+  se <- sd(log.x)/sqrt(n)
+  ci <- mu+c(-1,1)*stats::qt(p=quantile,df=n-1)*se
+  print.ci(mu=mu,ci=ci,confl=confl)
+}
+
+geo.mean(pre)
+geo.mean(post)
+# NB: The result is slightly different because of adjustment for other variables.
+
+ari.mean <- function(x,confl=90){
+  quantile <- 0.5 + confl/200
+  x <- x[!is.na(x)]
+  n <- length(x)
+  mu <- mean(x)
+  se <- sd(x)/n
+  ci <- mu+c(-1,1)*stats::qt(p=quantile,df=n-1)*se
+  print(ci)
+}
+
+ari.mean.ratio <- function(x,y,paired=TRUE,confl=90){
+  quantile <- 0.5 + confl/200
+  if(paired){
+      cond <- !is.na(x) & !is.na(y)
+      x <- x[cond]
+      y <- y[cond]
+      n <- length(x)
+      r <- y/x
+      mu <- mean(r)
+      se <- sd(r)/sqrt(n)
+      ci <- mu+c(-1,1)*stats::qt(p=quantile,df=n-1)*se
+  } else {
+      warning("This code is unchecked!")
+      x <- x[!is.na(x)]
+      nx <- length(x)
+      y <- y[!is.na(y)]
+      ny <- length(y)
+      mu <- log(mean(y)/mean(x))
+      se <- sqrt(sd(y)^2/ny+sd(x)^2/nx)
+      ci <- exp(mu+c(-1,1)*stats::qt(p=quantile,df=min(nx-1,ny-1))*se)
+  }
+  return(ci)
+}
+
+x <- abs(rnorm(100))+rep(c(0,1),each=50)
+y <- abs(rnorm(100))+rep(c(0.5,1.5),each=50)
+ari.mean.ratio(x=x,y=y,paired=TRUE,confl=95)
+stats::t.test(x=y/x,mu=1)
+
+x <- abs(rnorm(100))
+y <- abs(rnorm(100))
+ari.mean.ratio(x=x,y=y,paired=FALSE,confl=95)
+stats::t.test(x)
+```
+-->
