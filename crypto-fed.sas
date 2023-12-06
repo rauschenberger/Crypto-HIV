@@ -13,6 +13,7 @@ run;
 %let pathRand=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\9 - Final analysis\Data;
 %let pathClin=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Export files\24032023;
 %let pathPhar=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Import files\15032023_Pharmetheus\0131FRM18_DNDi-5FC-02-CM_PK_20230315\0131FRM18_DNDi-5FC-02-CM_PK_20230315;
+%let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS;
 
 /* import randomisation list */ 
 
@@ -114,12 +115,15 @@ run;
 
 /* EXAMPLE FOR TABLE*/
 
+ods rtf file="&pathOut.\demographics.rtf"; /*rtf for word or pdf for markdown*/
+run;
 proc tabulate data=DM out=summary;
    class seq sex race;
    var weight height bmi;
    title 'Demographics - Summary Statistics with tabulate';
    table (weight height bmi)*(mean median std min max n) (sex race)*(n colpctn), seq all='both';
 run;
+ods rtf close;
 
 /* EXAMPLE FOR LISTING */
 
@@ -173,6 +177,7 @@ run;
 
 /* one separate scatterplot for each sample */
 
+
 proc sgpanel data=PK noautolegend;
 	panelby RID/columns=3 rows=4;
 	series x=SAMPLETIME y=CONCENTRATION/group=treat markers;
@@ -192,6 +197,8 @@ data PK_mean;
 	if not missing(SAMPLETIME) and not missing (treat);
 run;
 
+ods pdf file="&pathOut.\mixedmodel.pdf";
+run;
 proc sgplot data=PK_mean;
 	series x=SAMPLETIME y=meanconc / group=treat markers;
     title 'concentration against time by treatment';
@@ -199,6 +206,7 @@ proc sgplot data=PK_mean;
     yaxis label='concentration';
     keylegend / title='treatment';
 run;
+ods pdf close;
 
 
 /*
@@ -226,6 +234,7 @@ proc import datafile="I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed stu
 		dbms=xls;
 run;
 
+
 data PKpars;
  	set PKpars;
 	if PERIOD=1 and seqence=1 then treat='A';
@@ -238,6 +247,8 @@ run;
 
 /* mixed model */
 
+ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
+run;
 proc mixed data=PKpars;
 	Class subjectid seqence period trt;
 	Model logCmax= seqence period trt /ddfm =kr;
@@ -245,7 +256,10 @@ proc mixed data=PKpars;
 	lsmeans trt/cl alpha=0.10;
 	Estimate 'diff B-A' trt -1 1/cl alpha = 0.10;
 	ods select CovParms Tests3 LSMeans Estimates;
+	title 'output from mixed model';
 run; 
+ods pdf close;
+
 
 
 
