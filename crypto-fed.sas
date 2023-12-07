@@ -72,7 +72,7 @@ run;
 /* import and process clinical data */
 
 %macro prepare;
-   %let code = IE AE DM DS DV; /* add other abbreviations */
+   %let code = IE AE DM DS DV SU MH VS; /* add other abbreviations */
    %do i = 1 %to %sysfunc(countw(&code));
       %import(&pathClin,%scan(&code,&i));
 	  %addrid(%scan(&code,&i));
@@ -94,12 +94,31 @@ data &file;
 run;
 %mend asnumeric;
 
+/* ineligibility */
+
+proc print data=IE;
+	where (IECAT='INCLUSION' and IESTRESC='No') or (IECAT='EXCLUSION' and IESTRESC='Yes');
+	var IECAT IETEST IESTRESC;
+	id SUBJID;
+	title 'listing of ineligible samples';
+run;
+
+
+/* protocol deviations */
+
+proc print data=DV noobs nobyline;
+	var seq VISIT FORM DVTERM DVCAT;
+	id RID;
+	by RID;
+	title 'protocol deviations';
+run;
+
+/* demographics */
+
 %asnumeric(DM,vsorres_weight);
 %asnumeric(DM,vsorres_height);
 %asnumeric(DM,vsorres_bmi);
 %asnumeric(DM,age);
-
-/* rename variables */
 
 data DM;
 	set DM;
@@ -108,45 +127,75 @@ data DM;
 	bmi=vsorres_bmi;
 run;
 
-/*
-proc print data=DM(obs=10);
-	title 'demographics - data';
-run;
- */
-
-/* EXAMPLE FOR LISTING */
-
-proc print data=IE;
-	where (IECAT='INCLUSION' and IESTRESC='No') or (IECAT='EXCLUSION' and IESTRESC='Yes');
-	var SUBJID IECAT IETEST IESTRESC;
-	title 'listing of excluded samples';
-run;
-
-
-/* protocol deviations */
-
-proc print data=DV;
-	var RID seq VISIT FORM DVTERM DVCAT;
-	title 'protocol deviations';
-run;
-
-
-/* EXAMPLE FOR TABLE*/
-
 /*ods rtf file="&pathOut.\demographics.rtf";
 run;*/
-proc tabulate data=DM out=summary;
-   class seq sex race;
-   var age weight height bmi;
-   title 'Demographics - Summary Statistics with tabulate';
-   table (age)*(mean median std min max n) (sex race)*(n colpctn) (weight height bmi)*(mean median std min max n), seq all='both';
+proc tabulate data=DM;
+	class seq sex race;
+	var age weight height bmi;
+	table (age)*(mean median std min max n)
+		(sex race)*(n colpctn)
+		(weight height bmi)*(mean median std min max n),
+		seq all='both';
+	title 'Demographics - Summary Statistics with tabulate';
 run;
 /*ods rtf close;*/
 
+/* alcohol and smoking */
+
+%asnumeric(SU,SUDOSE);
+
+proc print data=SU(obs=20);
+run;
+
+%macro tabdrug(type);
+	%put &type;
+	proc tabulate data=SU out=&type;
+		where SUTRT="&type";
+		class seq SUTRT SUOCCUR;
+		var SUDOSE;
+		table (SUOCCUR)*(n)
+			(SUDOSE)*(mean std median min max n),
+			seq all='both';
+		title "&type";
+	run;
+%mend tabdrug;
+
+%tabdrug(ALCOHOL);
+%tabdrug(SMOKER);
+
 /*CONTINUE HERE: COMBINE ROWS, SUCH AS mean (sd) and min-max. */
 
+/* medical history */
+
+proc print data=MH;
+	where not missing(RID);
+	id RID;
+	var seq MHTERM MHSTDAT MHENDAT MHONGO;
+	title 'medical history';
+run;
 
 
+/* vital signs */
+
+%asnumeric(VS,VSORRES);
+
+proc print data=VS(obs=50);
+	title 'vital signs';
+run;
+
+
+%macro vstab(visit,pos,test);
+	proc tabulate data=VS;
+		where VISIT=&visit and VSPOS=&pos and VSTESTCD=&test;
+		class seq VSSTRESC;
+		var VSORRES;
+		table (VSSTRESC)*(N) (VSORRES)*(mean std median min max N), seq all='both';
+		title "&visit &pos &test";
+	run;
+%mend vstab;
+
+%vstab('Screening Visit','','TEMP');
+%vstab('Screening Visit','Supine','SYSBP');
 
 /*--- PHARMACOKINETICS ---*/ 
 
@@ -305,8 +354,3 @@ TO DO LIST:
 - Compute PK parameters in SAS.
 */
 
-
-data demographics;
-	set DM;
-	safetypop = ifn(not missing(RID),1,0);
-run;
