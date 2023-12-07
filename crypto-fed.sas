@@ -72,7 +72,7 @@ run;
 /* import and process clinical data */
 
 %macro prepare;
-   %let code = IE AE DM DS; /* add other abbreviations */
+   %let code = IE AE DM DS DV; /* add other abbreviations */
    %do i = 1 %to %sysfunc(countw(&code));
       %import(&pathClin,%scan(&code,&i));
 	  %addrid(%scan(&code,&i));
@@ -97,6 +97,7 @@ run;
 %asnumeric(DM,vsorres_weight);
 %asnumeric(DM,vsorres_height);
 %asnumeric(DM,vsorres_bmi);
+%asnumeric(DM,age);
 
 /* rename variables */
 
@@ -113,18 +114,6 @@ proc print data=DM(obs=10);
 run;
  */
 
-/* EXAMPLE FOR TABLE*/
-
-ods rtf file="&pathOut.\demographics.rtf"; /*rtf for word or pdf for markdown*/
-run;
-proc tabulate data=DM out=summary;
-   class seq sex race;
-   var weight height bmi;
-   title 'Demographics - Summary Statistics with tabulate';
-   table (weight height bmi)*(mean median std min max n) (sex race)*(n colpctn), seq all='both';
-run;
-ods rtf close;
-
 /* EXAMPLE FOR LISTING */
 
 proc print data=IE;
@@ -132,6 +121,32 @@ proc print data=IE;
 	var SUBJID IECAT IETEST IESTRESC;
 	title 'listing of excluded samples';
 run;
+
+
+/* protocol deviations */
+
+proc print data=DV;
+	var RID seq VISIT FORM DVTERM DVCAT;
+	title 'protocol deviations';
+run;
+
+
+/* EXAMPLE FOR TABLE*/
+
+/*ods rtf file="&pathOut.\demographics.rtf";
+run;*/
+proc tabulate data=DM out=summary;
+   class seq sex race;
+   var age weight height bmi;
+   title 'Demographics - Summary Statistics with tabulate';
+   table (age)*(mean median std min max n) (sex race)*(n colpctn) (weight height bmi)*(mean median std min max n), seq all='both';
+run;
+/*ods rtf close;*/
+
+/*CONTINUE HERE: COMBINE ROWS, SUCH AS mean (sd) and min-max. */
+
+
+
 
 /*--- PHARMACOKINETICS ---*/ 
 
@@ -177,7 +192,6 @@ run;
 
 /* one separate scatterplot for each sample */
 
-
 proc sgpanel data=PK noautolegend;
 	panelby RID/columns=3 rows=4;
 	series x=SAMPLETIME y=CONCENTRATION/group=treat markers;
@@ -197,8 +211,8 @@ data PK_mean;
 	if not missing(SAMPLETIME) and not missing (treat);
 run;
 
-ods pdf file="&pathOut.\mixedmodel.pdf";
-run;
+/*ods pdf file="&pathOut.\mixedmodel.pdf";
+run;*/
 proc sgplot data=PK_mean;
 	series x=SAMPLETIME y=meanconc / group=treat markers;
     title 'concentration against time by treatment';
@@ -206,7 +220,10 @@ proc sgplot data=PK_mean;
     yaxis label='concentration';
     keylegend / title='treatment';
 run;
-ods pdf close;
+/*ods pdf close;*/
+
+
+
 
 
 /*
@@ -226,6 +243,16 @@ X<'x <- rnorm(100)'>
 X<'save(x=x,file="P:\\temporary.RData")'>
 
 Consider running a script (i.e., save code in file, then source this file in R).
+
+
+%let PhoenixPath = "C:\Program Files (x86)\Certara\Phoenix\application";
+%let PhoenixCommand = 
+
+
+X<'"C:\Program Files\R\R-4.3.1\bin\Rscript.exe" C:\Users\arauschenberger\Desktop\Crypto-HIV\trial.R'>
+
+%let RCommand = "C:\Program Files\R\R-4.3.1\bin\Rscript.exe" "C:\Users\arauschenberger\Desktop\Crypto-HIV\trial.R";
+x "&RCommand";
 
 */
 
@@ -247,8 +274,8 @@ run;
 
 /* mixed model */
 
-ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
-run;
+/*ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
+run;*/
 proc mixed data=PKpars;
 	Class subjectid seqence period trt;
 	Model logCmax= seqence period trt /ddfm =kr;
@@ -258,7 +285,7 @@ proc mixed data=PKpars;
 	ods select CovParms Tests3 LSMeans Estimates;
 	title 'output from mixed model';
 run; 
-ods pdf close;
+/*ods pdf close;*/
 
 
 
