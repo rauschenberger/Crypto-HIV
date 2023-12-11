@@ -72,7 +72,7 @@ run;
 /* import and process clinical data */
 
 %macro prepare;
-   %let code = IE AE DM DS DV SU MH VS; /* add other abbreviations */
+   %let code = IE AE DM DS DV SU MH VS EG LB; /* add other abbreviations */
    %do i = 1 %to %sysfunc(countw(&code));
       %import(&pathClin,%scan(&code,&i));
 	  %addrid(%scan(&code,&i));
@@ -127,8 +127,6 @@ data DM;
 	bmi=vsorres_bmi;
 run;
 
-/*ods rtf file="&pathOut.\demographics.rtf";
-run;*/
 proc tabulate data=DM;
 	class seq sex race;
 	var age weight height bmi;
@@ -138,32 +136,19 @@ proc tabulate data=DM;
 		seq all='both';
 	title 'Demographics - Summary Statistics with tabulate';
 run;
-/*ods rtf close;*/
 
 /* alcohol and smoking */
 
 %asnumeric(SU,SUDOSE);
 
-proc print data=SU(obs=20);
+proc tabulate data=SU;
+    class seq SUTRT SUOCCUR;
+    var SUDOSE;
+    table SUTRT * SUOCCUR * n
+          SUTRT * SUDOSE *(mean std median min max n),
+          seq all='both';
+    title "alcohol and smoking";
 run;
-
-%macro tabdrug(type);
-	%put &type;
-	proc tabulate data=SU out=&type;
-		where SUTRT="&type";
-		class seq SUTRT SUOCCUR;
-		var SUDOSE;
-		table (SUOCCUR)*(n)
-			(SUDOSE)*(mean std median min max n),
-			seq all='both';
-		title "&type";
-	run;
-%mend tabdrug;
-
-%tabdrug(ALCOHOL);
-%tabdrug(SMOKER);
-
-/*CONTINUE HERE: COMBINE ROWS, SUCH AS mean (sd) and min-max. */
 
 /* medical history */
 
@@ -174,15 +159,14 @@ proc print data=MH;
 	title 'medical history';
 run;
 
-
 /* vital signs */
 
 %asnumeric(VS,VSORRES);
 
+/*
 proc print data=VS(obs=50);
 	title 'vital signs';
 run;
-
 
 %macro vstab(visit,pos,test);
 	proc tabulate data=VS;
@@ -196,6 +180,121 @@ run;
 
 %vstab('Screening Visit','','TEMP');
 %vstab('Screening Visit','Supine','SYSBP');
+*/
+
+data VS;
+	set VS;
+	if VSPOS in (' ','.') then VSPOS='N/A';
+run;
+
+proc print data=VS;
+run;
+
+proc tabulate data=VS;
+	where VISIT='Screening Visit';
+	class seq VSPOS VSTESTCD VSSTRESC;
+	var VSORRES;
+	table	VSPOS * VSTESTCD * (VSSTRESC)*(N)
+			VSPOS * VSTESTCD * (VSORRES)*(mean std median min max N),
+			seq all='both';
+	title "vital signs";
+run;
+
+
+/* lead ECG */
+
+proc print data=EG(obs=10);
+run;
+
+%asnumeric(EG,EGORRES);
+
+data EG;
+	set EG;
+	measure = cat(EGTEST,'(',EGORRESU,')');
+run;
+
+proc tabulate data=EG;
+	where VISIT="SCREENING";
+	class seq measure EGSTRESC1;
+	var EGORRES;
+	table 	measure * EGSTRESC1 * n
+			measure * EGORRES * (mean std median min max n),
+			seq all='both';
+	title "ECG";
+run;
+
+/* hematology: data formatting will be different in actual clinical trial */
+
+/* supine blood pressure */
+
+data VS;
+	set VS;
+	if VISIT='Treatment Period 1: 30 hrs PD' then period='1';
+	else if VISIT='Treatment Period 2: 30 hrs PD' then period='2';
+	else period = '';
+    if period='1' and seq='1 (AB)' then treat='A';
+	else if period='1' and seq='2 (BA)' then treat='B';
+	else if period='2' and seq='1 (AB)' then treat='B';
+	else if period='2' and seq='2 (BA)' then treat='A';
+	else treat = '';
+run;
+
+proc tabulate data=VS;
+	where VSTEST="Systolic Blood Pressure" and VSPOS='Supine';
+	class VISIT treat FORM;
+	var VSORRES;
+	table 	FORM * VSORRES * (mean std median min max n),
+			treat;
+	title 'systolic';
+run;
+
+
+
+/* Write macro for above snippet and apply to supine systolic blood pressure, supine diastolic blood pressure and supine pulse rate.*/
+
+/* supine systolic blood pressure, supine diastolic blood pressure, supine pulse rate
+
+/* Calculate change with respect to pre-dose visit.*/
+
+
+data temp;
+	set VS;
+	where VSTEST="Systolic Blood Pressure" and VSPOS='Supine' and not missing(RID) and not missing(period);
+run;
+
+data trial;
+	diffA = .;
+  	diffB = .;
+  	do until(last.RID);
+     	set temp;
+     	by RID;
+     	if treat = 'A' then do;
+        	if baseA = . then baseA = VSORRES;
+        	diff = VSORRES - baseA;
+     	end;
+		drop baseA;
+     	else if treat = 'B' then do;
+        	if baseB = . then baseB = VSORRES;
+			diff = VSORRES - baseB;
+    	end;
+		drop baseB;
+ 	output;
+	end;
+run;
+
+proc tabulate data=trial;
+	class VISIT treat FORM;
+	var diff;
+	table 	FORM * diff * (mean std median min max n),
+			treat;
+	title 'systolic';
+run;
+
+
+
+
+
+
 
 /*--- PHARMACOKINETICS ---*/ 
 
