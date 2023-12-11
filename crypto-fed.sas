@@ -225,7 +225,7 @@ run;
 
 /* hematology: data formatting will be different in actual clinical trial */
 
-/* supine blood pressure */
+/* vital signs */
 
 data VS;
 	set VS;
@@ -239,23 +239,24 @@ data VS;
 	else treat = '';
 run;
 
-proc tabulate data=VS;
-	where VSTEST="Systolic Blood Pressure" and VSPOS='Supine';
-	class VISIT treat FORM;
-	var VSORRES;
-	table 	FORM * VSORRES * (mean std median min max n),
+%macro tabval(test);
+	proc tabulate data=VS;
+		where VSPOS='Supine' and VSTEST=&test;
+		class VISIT treat FORM;
+		var VSORRES;
+		table 	FORM * VSORRES * (mean std median min max n),
 			treat;
-	title 'systolic';
-run;
+		title "supine &test - values";
+	run;
+%mend tabval;
 
-
-
-/* Write macro for above snippet and apply to supine systolic blood pressure, supine diastolic blood pressure and supine pulse rate.*/
-
-/* supine systolic blood pressure, supine diastolic blood pressure, supine pulse rate
+%tabval("Systolic Blood Pressure");
+%tabval("Diastolic Blood Pressure");
+%tabval("Pulse Rate");
 
 /* Calculate change with respect to pre-dose visit.*/
 
+/* CONTINUE HERE: WRITE MACRO FOR CHANGE W.R.T. BASELINE */
 
 data temp;
 	set VS;
