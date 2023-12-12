@@ -179,9 +179,6 @@ run;
 
 /* lead ECG */
 
-proc print data=EG(obs=10);
-run;
-
 %asnumeric(EG,EGORRES);
 
 data EG;
@@ -314,7 +311,7 @@ run;
 
 proc print data=wide;
 	id RID;
-	title 'patients with abnormal NCS';
+	title 'patients with abnormal NCS - scheduled visits';
 run;
 
 /* vital signs - unscheduled visits */
@@ -333,7 +330,7 @@ run;
 
 proc print data=wide;
 	id RID;
-	title 'wide';
+	title 'patients with abnormal NCS - unscheduled visits';
 run;
 
 /* vital signs - trajectory */
@@ -391,10 +388,6 @@ run;
 
 %addinf(PK);
 
-proc print data=PK(obs=10);
-	title 'transformed';
-run;
-
 data PK;
 	set PK;
 	if PERIOD=1 and seq='1 (AB)' then treat='A';
@@ -406,13 +399,6 @@ run;
 %asnumeric(PK,SAMPLETIME);
 %asnumeric(PK,CONCENTRATION);
 
-proc print data=pk(obs=100);
-	title 'transformed';
-run;
-
-proc means data=PK;
-run;
-
 /* one separate scatterplot for each sample */
 
 proc sgpanel data=PK noautolegend;
@@ -423,7 +409,7 @@ run;
 
 /* one common scatterplot for all samples */
 
-proc means data=PK;
+proc means data=PK noprint;
 	var CONCENTRATION;
 	class SAMPLETIME treat;
 	output out=PK_mean mean=meanconc;
