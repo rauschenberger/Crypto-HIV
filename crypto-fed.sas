@@ -211,6 +211,43 @@ data VS;
 	else treat = '';
 run;
 
+/*
+ISSUE: ordering levels of categorical variable
+
+proc format;
+	value $timeform
+		'Pre-dose'='1'
+ 		'2 hours post-dose'='2'
+ 		'4 hours post-dose'='3'
+ 		'6 hours post-dose'='4'
+		'48 hours post-dose'='5';
+run;
+
+proc format;
+	value $timeform
+		'1'='Pre-dose'
+ 		'2'='2 hours post-dose'
+ 		'3'='4 hours post-dose'
+ 		'4'='6 hours post-dose'
+		'5'='48 hours post-dose';
+run;
+
+proc print data=VS(obs=30);
+	title 'before formatting';
+run;
+
+data VS;
+	set VS;
+	FORM = put(FORM,timeform.); /* XXX
+	format FORM $timeform.; /* XXX
+run;
+
+proc print data=VS(obs=30);
+	title 'after formatting';
+run;
+
+*/
+
 %macro tabval(test);
 	proc tabulate data=VS;
 		where VSPOS='Supine' and VSTEST=&test;
@@ -314,15 +351,28 @@ proc print data=wide;
 	title 'patients with abnormal NCS - scheduled visits';
 run;
 
+/* vital signs - sample identifiers . */
+
+data temp;	
+	set VS;
+	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM) and VSPOS='Supine';
+run;
+
+proc sql;
+  select distinct RID
+  into :ids_ncs separated by ','
+  from temp;
+quit;
+
+/*%put &ids_ncs;*/
+
 /* vital signs - unscheduled visits */
 
 data long;
 	set VS;
-	if RID in (13,16,18,20);
+	if RID in (&ids_ncs);
 	if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2');
-run;
-
-/* TO DO: Create vector with sample identifiers to avoid hard coding.*/ 
+run; 
 
 proc transpose data=long out=wide;
 	by RID VISIT VSPOS period treat;
@@ -340,21 +390,26 @@ run;
 data temp;
 	set VS;
 	where VSTEST='Systolic Blood Pressure' and VSPOS='Supine';
-	if RID in (13,16,18,20);
+	if RID in (&ids_ncs);
 run;
 
 proc sort data=temp;
-	by VSDTC RID;
+	by VSDTC RID; /* */ 
+run;
+
+data temp;
+	set temp;
+	length time $40;
+	if VISIT in ('Screening Visit','Unscheduled Screening','Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Post Study') then time=VISIT;
+	else time=cats('P',period,'-',FORM);
 run;
 
 /*
-proc print data=temp;
-	title 'temporary';
-run;
+ISSUE: Also fix the ordering issue here.
 */
 
 proc sgplot data=temp;
-	series x=VSDTC y=VSORRES / group=RID markers;
+	series x=time y=VSORRES / group=RID markers; /* compare x=VSDTC and x=time */ 
     title 'value against date';
     xaxis label='time';
     yaxis label='value';
