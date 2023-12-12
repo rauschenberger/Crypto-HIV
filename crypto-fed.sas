@@ -263,7 +263,6 @@ proc tabulate data=temp;
 run;
 %mend;
 
-
 /* vital signs - both */
 
 %tabval("Systolic Blood Pressure");
@@ -277,6 +276,53 @@ run;
 %tabval("Pulse Rate");
 %calcdiff("Pulse Rate");
 %tabdiff("Pulse Rate");
+
+
+/* vital signs - normal/abnormal */
+
+data temp;
+	set VS;
+	where not missing(RID) and not missing(period);
+	keep RID FORM VSSTRESC treat;
+run;
+	
+proc summary data=temp nway;
+	class VSSTRESC RID FORM treat;
+	id RID FORM treat;
+	output out=nodup;
+run;
+
+proc tabulate data=nodup;
+	class treat VSSTRESC RID FORM;
+	table FORM * VSSTRESC * n,
+		  treat;
+	title 'vital signs results';
+run;
+
+/* vital signs - listing abnormal */
+
+data long;
+	set VS;
+	where VSSTRESC='NCS' and not missing(RID) and not missing(period) and VSPOS='Supine';
+	keep RID treat period FORM VSTEST VSPOS VSORRES;
+run;
+
+proc transpose data=long out=wide;
+	by RID treat period FORM VSPOS;
+	id VSTEST;
+	var VSORRES;
+run;
+
+proc print data=wide noobs;
+	title 'patients with abnormal NCS';
+run;
+
+
+
+
+
+/* continue here */
+
 
 
 /*--- PHARMACOKINETICS ---*/ 
@@ -423,8 +469,6 @@ run;
 
 /*
 TO DO LIST:
-
-- Write macro for transforming variables to numerical type if necessary (arguments: code for dataset).
 
 - Write macro for creating table of summary statistics (arguments: code for dataset, variables).
   This macro should identify numerical/categorical variables,
