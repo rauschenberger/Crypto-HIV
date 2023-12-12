@@ -72,7 +72,7 @@ run;
 /* import and process clinical data */
 
 %macro prepare;
-   %let code = IE AE DM DS DV SU MH VS EG LB; /* add other abbreviations */
+   %let code = IE AE DM DS DV SU MH VS EG LB; /* add other abbreviations*/
    %do i = 1 %to %sysfunc(countw(&code));
       %import(&pathClin,%scan(&code,&i));
 	  %addrid(%scan(&code,&i));
@@ -103,7 +103,6 @@ proc print data=IE;
 	title 'listing of ineligible samples';
 run;
 
-
 /* protocol deviations */
 
 proc print data=DV;
@@ -133,7 +132,7 @@ proc tabulate data=DM;
 		(sex race)*(n colpctn)
 		(weight height bmi)*(mean median std min max n),
 		seq all='both';
-	title 'Demographics - Summary Statistics with tabulate';
+	title 'demographics';
 run;
 
 /* alcohol and smoking */
@@ -273,7 +272,6 @@ run;
 %calcdiff("Pulse Rate");
 %tabdiff("Pulse Rate");
 
-
 /* vital signs - normal/abnormal */
 
 data temp;
@@ -294,6 +292,8 @@ proc tabulate data=nodup;
 		  treat;
 	title 'vital signs results';
 run;
+
+/* TO DO: Sort output from tabulate in logical order (from early to late).*/
 
 /* vital signs - listing abnormal */
 
@@ -318,9 +318,11 @@ run;
 
 data long;
 	set VS;
-	if RID in (13,16,18,20); /* ugly hard coding! */ 
+	if RID in (13,16,18,20);
 	if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2');
 run;
+
+/* TO DO: Create vector with sample identifiers to avoid hard coding.*/ 
 
 proc transpose data=long out=wide;
 	by RID VISIT VSPOS period treat;
@@ -338,7 +340,7 @@ run;
 data temp;
 	set VS;
 	where VSTEST='Systolic Blood Pressure' and VSPOS='Supine';
-	if RID in (13,16,18,20); /* ugly hard coding! */ 
+	if RID in (13,16,18,20);
 run;
 
 proc sort data=temp;
@@ -359,6 +361,8 @@ proc sgplot data=temp;
     keylegend / title='RID';
 run;
 
+/* TO DO: create variable for period + time point, use this for figure */ 
+
 /* adverse events */ 
 
 proc print data=AE;
@@ -366,7 +370,6 @@ proc print data=AE;
 	var AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	title 'adverse events';
 run;
-
 
 /*--- PHARMACOKINETICS ---*/ 
 
@@ -466,7 +469,6 @@ proc import datafile="I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed stu
 		dbms=xls;
 run;
 
-
 data PKpars;
  	set PKpars;
 	if PERIOD=1 and seqence=1 then treat='A';
@@ -475,7 +477,6 @@ data PKpars;
 	if PERIOD=2 and seqence=2 then treat='A';
 	logCmax = log(Cmax);
 run;
-
 
 /* mixed model */
 
@@ -491,16 +492,3 @@ proc mixed data=PKpars;
 	title 'output from mixed model';
 run; 
 /*ods pdf close;*/
-
-/*
-TO DO LIST:
-
-- Write macro for creating table of summary statistics (arguments: code for dataset, variables).
-  This macro should identify numerical/categorical variables,
-  if necessary first make a table for each variable,
-  and then combine the different tables.
-
-- Plot PK values.
-
-- Compute PK parameters in SAS.
-*/
