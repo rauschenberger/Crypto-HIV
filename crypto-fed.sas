@@ -212,6 +212,18 @@ data VS;
 run;
 
 /*
+data VS;
+	set VS;
+	where not missing(RID);
+run;
+
+proc sort data=VS;
+	by VSDTC RID;
+run;
+*/
+
+
+/*
 ISSUE: ordering levels of categorical variable
 
 proc format;
@@ -644,3 +656,27 @@ proc mixed data=PKpars;
 	title 'output from mixed model';
 run; 
 /*ods pdf close;*/
+
+
+
+
+
+data YourData;
+  input Individual $ Group $ Measurement;
+  datalines;
+1 C 10
+2 B 15
+3 A 12
+4 A 8
+5 B 18
+6 C 14
+7 A 9
+8 B 20
+9 C 11
+;
+
+proc tabulate data=YourData;
+  class Group / order=data;
+  var Measurement;
+  table Group, mean*Measurement;
+run;
