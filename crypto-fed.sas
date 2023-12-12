@@ -215,6 +215,50 @@ run;
 ISSUE: ordering levels of categorical variable
 
 proc format;
+  value fora
+   1 = 'Pre-dose'
+   2 = '2 hours post-dose'
+   3 = '4 hours post-dose'
+   4 = '6 hours post-dose'
+   5 = '48 hours post-dose'
+   other = ' '
+   ;
+  invalue forb
+   'Pre-dose' 			= 1
+   '2 hours post-dose'  = 2
+   '4 hours post-dose'  = 3
+   '6 hours post-dose'  = 4
+   '48 hours post-dose' = 5
+   other = .
+   ;
+quit;
+
+data VS;
+  	set VS;
+  	extra = input(FORM,forb.);
+  	format extra fora.;
+run;
+
+data VS;
+	set VS;
+	FORM = extra;
+run;
+
+proc format;
+	value timeform
+		1='Pre-dose'
+ 		2='2 hours post-dose'
+ 		3='4 hours post-dose'
+ 		4='6 hours post-dose'
+		5='48 hours post-dose';
+run;
+
+data VS;
+	set VS;
+	format FORM timeform.;
+run;
+
+proc format;
 	value $timeform
 		'Pre-dose'='1'
  		'2 hours post-dose'='2'
@@ -238,14 +282,61 @@ run;
 
 data VS;
 	set VS;
-	FORM = put(FORM,timeform.); /* XXX
-	format FORM $timeform.; /* XXX
+	FORM = put(FORM,timeform.);
+	format FORM $timeform.;
+	format FORM timeform.;
 run;
 
 proc print data=VS(obs=30);
 	title 'after formatting';
 run;
+*/
 
+
+/*
+example from https://stackoverflow.com/questions/41019725/sas-how-to-change-the-order-of-a-categorical-variable:
+
+data have;
+  length names $15;
+  input names $;
+  datalines;
+Bobby
+Anna
+Casper
+Christine
+;;;;
+run;
+
+proc format;
+  value yourformatf
+   1 = 'Bobby'
+   2 = 'Anna'
+   3 = 'Casper'
+   4 = 'Christine'
+   other = ' '
+   ;
+  invalue yourinformati
+   'Bobby' = 1
+   'Anna' = 2
+   'Casper' = 3
+   'Christine' = 4
+   other = .
+   ;
+quit;
+
+proc print data=have;
+	title 'have';
+run;
+
+data want;
+  set have;
+  names_cat = input(names,yourinformati.);
+  format names_cat yourformatf.;
+run;
+
+proc print data=want;
+	title 'want';
+run;
 */
 
 %macro tabval(test);
@@ -394,7 +485,7 @@ data temp;
 run;
 
 proc sort data=temp;
-	by VSDTC RID; /* */ 
+	by VSDTC RID;
 run;
 
 data temp;
@@ -404,19 +495,25 @@ data temp;
 	else time=cats('P',period,'-',FORM);
 run;
 
+data temp;
+  set temp;
+  time1 = tranwrd(time, " hours post-dose", "post");
+  time2 = tranwrd(time1, "Pre-dose", "pre");
+  drop time;
+  rename time2=time;
+run;
+
 /*
 ISSUE: Also fix the ordering issue here.
 */
 
 proc sgplot data=temp;
-	series x=time y=VSORRES / group=RID markers; /* compare x=VSDTC and x=time */ 
+	series x=VSDTC y=VSORRES / group=RID markers datalabel=time; /* compare x=VSDTC and x=time */ 
     title 'value against date';
     xaxis label='time';
     yaxis label='value';
     keylegend / title='RID';
 run;
-
-/* TO DO: create variable for period + time point, use this for figure */ 
 
 /* adverse events */ 
 
