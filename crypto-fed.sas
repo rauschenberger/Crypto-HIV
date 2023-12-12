@@ -163,31 +163,9 @@ run;
 
 %asnumeric(VS,VSORRES);
 
-/*
-proc print data=VS(obs=50);
-	title 'vital signs';
-run;
-
-%macro vstab(visit,pos,test);
-	proc tabulate data=VS;
-		where VISIT=&visit and VSPOS=&pos and VSTESTCD=&test;
-		class seq VSSTRESC;
-		var VSORRES;
-		table (VSSTRESC)*(N) (VSORRES)*(mean std median min max N), seq all='both';
-		title "&visit &pos &test";
-	run;
-%mend vstab;
-
-%vstab('Screening Visit','','TEMP');
-%vstab('Screening Visit','Supine','SYSBP');
-*/
-
 data VS;
 	set VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
-run;
-
-proc print data=VS;
 run;
 
 proc tabulate data=VS;
@@ -199,7 +177,6 @@ proc tabulate data=VS;
 			seq all='both';
 	title "vital signs";
 run;
-
 
 /* lead ECG */
 
@@ -225,7 +202,7 @@ run;
 
 /* hematology: data formatting will be different in actual clinical trial */
 
-/* vital signs */
+/* vital signs - values */
 
 data VS;
 	set VS;
@@ -250,52 +227,56 @@ run;
 	run;
 %mend tabval;
 
-%tabval("Systolic Blood Pressure");
-%tabval("Diastolic Blood Pressure");
-%tabval("Pulse Rate");
+/* vital signs - change */
 
-/* Calculate change with respect to pre-dose visit.*/
+%macro calcdiff(test);
+	data temp;
+		set VS;
+		where VSTEST=&test and VSPOS='Supine' and not missing(RID) and not missing(period);
+	run;
+	data temp;
+  		do until(last.RID);
+     		set temp;
+     		by RID;
+     		if treat = 'A' then do;
+        		if baseA = . then baseA = VSORRES;
+        		diff = VSORRES - baseA;
+     		end;
+			drop baseA;
+     		else if treat = 'B' then do;
+        		if baseB = . then baseB = VSORRES;
+				diff = VSORRES - baseB;
+    		end;
+			drop baseB;
+ 		output;
+		end;
+	run;
+%mend calcdiff;
 
-/* CONTINUE HERE: WRITE MACRO FOR CHANGE W.R.T. BASELINE */
-
-data temp;
-	set VS;
-	where VSTEST="Systolic Blood Pressure" and VSPOS='Supine' and not missing(RID) and not missing(period);
-run;
-
-data trial;
-	diffA = .;
-  	diffB = .;
-  	do until(last.RID);
-     	set temp;
-     	by RID;
-     	if treat = 'A' then do;
-        	if baseA = . then baseA = VSORRES;
-        	diff = VSORRES - baseA;
-     	end;
-		drop baseA;
-     	else if treat = 'B' then do;
-        	if baseB = . then baseB = VSORRES;
-			diff = VSORRES - baseB;
-    	end;
-		drop baseB;
- 	output;
-	end;
-run;
-
-proc tabulate data=trial;
+%macro tabdiff(test);
+proc tabulate data=temp;
 	class VISIT treat FORM;
 	var diff;
 	table 	FORM * diff * (mean std median min max n),
 			treat;
-	title 'systolic';
+	title "supine &test - change";
 run;
+%mend;
 
 
+/* vital signs - both */
 
+%tabval("Systolic Blood Pressure");
+%calcdiff("Systolic Blood Pressure");
+%tabdiff("Systolic Blood Pressure");
 
+%tabval("Diastolic Blood Pressure");
+%calcdiff("Diastolic Blood Pressure");
+%tabdiff("Diastolic Blood Pressure");
 
-
+%tabval("Pulse Rate");
+%calcdiff("Pulse Rate");
+%tabdiff("Pulse Rate");
 
 
 /*--- PHARMACOKINETICS ---*/ 
