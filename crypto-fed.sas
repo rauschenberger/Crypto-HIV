@@ -106,10 +106,9 @@ run;
 
 /* protocol deviations */
 
-proc print data=DV noobs nobyline;
+proc print data=DV;
 	var seq VISIT FORM DVTERM DVCAT;
 	id RID;
-	by RID;
 	title 'protocol deviations';
 run;
 
@@ -313,7 +312,8 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-proc print data=wide noobs;
+proc print data=wide;
+	id RID;
 	title 'patients with abnormal NCS';
 run;
 
@@ -326,13 +326,48 @@ data long;
 run;
 
 proc transpose data=long out=wide;
-	by RID VISIT FORM VSPOS period treat;
+	by RID VISIT VSPOS period treat;
 	id VSTEST;
 	var VSORRES;
 run;
 
-proc print data=wide noobs;
+proc print data=wide;
+	id RID;
 	title 'wide';
+run;
+
+/* vital signs - trajectory */
+
+data temp;
+	set VS;
+	where VSTEST='Systolic Blood Pressure' and VSPOS='Supine';
+	if RID in (13,16,18,20); /* ugly hard coding! */ 
+run;
+
+proc sort data=temp;
+	by VSDTC RID;
+run;
+
+/*
+proc print data=temp;
+	title 'temporary';
+run;
+*/
+
+proc sgplot data=temp;
+	series x=VSDTC y=VSORRES / group=RID markers;
+    title 'value against date';
+    xaxis label='time';
+    yaxis label='value';
+    keylegend / title='RID';
+run;
+
+/* adverse events */ 
+
+proc print data=AE;
+	id RID;
+	var AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
+	title 'adverse events';
 run;
 
 
@@ -410,10 +445,6 @@ proc sgplot data=PK_mean;
 run;
 /*ods pdf close;*/
 
-
-
-
-
 /*
 integration of WinNonLin and SAS:
 
@@ -475,9 +506,6 @@ proc mixed data=PKpars;
 run; 
 /*ods pdf close;*/
 
-
-
-
 /*
 TO DO LIST:
 
@@ -490,4 +518,3 @@ TO DO LIST:
 
 - Compute PK parameters in SAS.
 */
-
