@@ -206,8 +206,8 @@ run;
 
 data VS;
 	set VS;
-	if VISIT='Treatment Period 1: 30 hrs PD' then period='1';
-	else if VISIT='Treatment Period 2: 30 hrs PD' then period='2';
+	if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
+	else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
 	else period = '';
     if period='1' and seq='1 (AB)' then treat='A';
 	else if period='1' and seq='2 (BA)' then treat='B';
@@ -303,7 +303,7 @@ run;
 
 data long;
 	set VS;
-	where VSSTRESC='NCS' and not missing(RID) and not missing(period) and VSPOS='Supine';
+	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM) and VSPOS='Supine';
 	keep RID treat period FORM VSTEST VSPOS VSORRES;
 run;
 
@@ -317,12 +317,23 @@ proc print data=wide noobs;
 	title 'patients with abnormal NCS';
 run;
 
+/* vital signs - unscheduled visits */
 
+data long;
+	set VS;
+	if RID in (13,16,18,20); /* ugly hard coding! */ 
+	if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2');
+run;
 
+proc transpose data=long out=wide;
+	by RID VISIT FORM VSPOS period treat;
+	id VSTEST;
+	var VSORRES;
+run;
 
-
-/* continue here */
-
+proc print data=wide noobs;
+	title 'wide';
+run;
 
 
 /*--- PHARMACOKINETICS ---*/ 
