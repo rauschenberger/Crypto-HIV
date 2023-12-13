@@ -213,10 +213,20 @@ run;
 
 data VS;
 	set VS;
-	where not missing(RID);
+	if VISIT='Screening Visit' then time=-1;
+	else if FORM='Pre-dose' then time=0;
+	else if FORM='2 hours post-dose' then time=1;
+	else if FORM='4 hours post-dose' then time=2;
+	else if FORM='6 hours post-dose' then time=3;
+	else if FORM='48 hours post-dose' then time=4;
+	else if VISIT='Post Study' then time=5;
+	else time=.;
 run;
 
-/* trial end */
+data VS;
+	set VS;
+	where not missing(RID);
+run;
 
 /*
 ISSUE: ordering levels of categorical variable
@@ -691,3 +701,8 @@ proc print data=diff;
 	title 'diff';
 run;
 
+/* TO DO: combine tables, write macro, apply macro*/ 
+
+/* TO DO: solve date/time issue */ 
+
+/* TO DO: Extract output from tabulate */
