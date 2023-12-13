@@ -211,17 +211,12 @@ data VS;
 	else treat = '';
 run;
 
-/*
 data VS;
 	set VS;
 	where not missing(RID);
 run;
 
-proc sort data=VS;
-	by VSDTC RID;
-run;
-*/
-
+/* trial end */
 
 /*
 ISSUE: ordering levels of categorical variable
@@ -652,31 +647,47 @@ proc mixed data=PKpars;
 	Random subjectid(seqence) /type=vc;
 	lsmeans trt/cl alpha=0.10;
 	Estimate 'diff B-A' trt -1 1/cl alpha = 0.10;
-	ods select CovParms Tests3 LSMeans Estimates;
+	ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
 	title 'output from mixed model';
+	ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
 run; 
 /*ods pdf close;*/
 
-
-
-
-
-data YourData;
-  input Individual $ Group $ Measurement;
-  datalines;
-1 C 10
-2 B 15
-3 A 12
-4 A 8
-5 B 18
-6 C 14
-7 A 9
-8 B 20
-9 C 11
-;
-
-proc tabulate data=YourData;
-  class Group / order=data;
-  var Measurement;
-  table Group, mean*Measurement;
+proc print data=random;
+	id CovParm;
+	var Estimate;
+	title 'random';
 run;
+
+proc print data=fixed;
+	id Effect;
+	var FValue ProbF;
+	title 'fixed';
+run;
+
+data means;
+	set means;
+	expEstim=exp(Estimate);
+	expLower=exp(Lower);
+	expUpper=exp(Upper);
+run;
+
+proc print data=means;
+	id trt;
+	var expEstim expLower expUpper;
+	title 'means';
+run;
+
+data diff;
+	set diff;
+	expEstim=exp(Estimate);
+	expLower=exp(Lower);
+	expUpper=exp(Upper);
+run;
+
+proc print data=diff;
+	id Label;
+	var expEstim expLower expUpper;
+	title 'diff';
+run;
+
