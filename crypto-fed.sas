@@ -228,9 +228,11 @@ data VS;
 	where not missing(RID);
 run;
 
+/*
 proc sort data=VS;
 	by=time;
 run;
+*/
 
 /*
 ISSUE: ordering levels of categorical variable
@@ -409,10 +411,6 @@ run;
 
 /* vital signs - both */
 
-proc print data=VS;
-	title 'ordered by time?';
-run;
-
 %tabval("Systolic Blood Pressure");
 %calcdiff("Systolic Blood Pressure");
 %tabdiff("Systolic Blood Pressure");
@@ -436,26 +434,19 @@ run;
 proc summary data=temp nway;
 	class VSSTRESC RID FORM treat time;
 	id RID FORM treat;
-	output out=nodup;
+	output out=temp1;
 run;
 
-/*
-proc sort data=nodup;
-	by=time;
+proc sort data=temp1;
+	by time;
 run;
 
-proc print data=nodup;
-run;
-*/
-
-proc tabulate data=nodup;
+proc tabulate data=temp1;
 	class treat VSSTRESC RID FORM / mlf order=data;
 	table FORM * VSSTRESC * n,
 		  treat;
 	title 'vital signs results';
 run;
-
-/* TO DO: Sort output from tabulate in logical order (from early to late).*/
 
 /* vital signs - listing abnormal */
 
