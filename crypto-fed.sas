@@ -211,6 +211,7 @@ data VS;
 	else treat = '';
 run;
 
+/*
 data VS;
 	set VS;
 	if VISIT='Screening Visit' then time=-1;
@@ -222,15 +223,38 @@ data VS;
 	else if VISIT='Post Study' then time=5;
 	else time=.;
 run;
+*/
 
 data VS;
 	set VS;
-	where not missing(RID);
+	length time $40;
+	if VISIT='Screening Visit' then time='P0';
+	else if FORM='Pre-dose' then time=cat('P',period,'T1');
+	else if FORM='2 hours post-dose' then time=cat('P',period,'T2');
+	else if FORM='4 hours post-dose' then time=cat('P',period,'T3');
+	else if FORM='6 hours post-dose' then time=cat('P',period,'T4');
+	else if FORM='48 hours post-dose' then time=cat('P',period,'T5');
+	else if VISIT='Post Study' then time='P3';
+	else if VISIT='Unscheduled Treatment Period 1' then time='P1X';
+	else if VISIT='Unscheduled Treatment Period 2' then time='P2X';
+	else time=.;
 run;
 
+
 /*
-proc sort data=VS;
-	by=time;
+data VS;
+	set VS;
+	length time $40;
+	if VISIT='Screening Visit' then time='screen';
+	else if FORM='Pre-dose' then time=cat('P',period,'pre');
+	else if FORM='2 hours post-dose' then time=cat('P',period,'H2');
+	else if FORM='4 hours post-dose' then time=cat('P',period,'H4');
+	else if FORM='6 hours post-dose' then time=cat('P',period,'H6');
+	else if FORM='48 hours post-dose' then time=cat('P',period,'H48');
+	else if VISIT='Post Study' then time='post';
+	else if VISIT='Unscheduled Treatment Period 1' then time='P1X';
+	else if VISIT='Unscheduled Treatment Period 2' then time='P2X';
+	else time=.;
 run;
 */
 
@@ -297,23 +321,18 @@ run;
 
 /* vital signs - normal/abnormal */
 
-data temp;
-	set VS;
+proc summary data=VS nway;
 	where not missing(RID) and not missing(period);
-	keep RID FORM VSSTRESC treat time;
-run;
-	
-proc summary data=temp nway;
 	class VSSTRESC RID FORM treat time;
 	id RID FORM treat;
-	output out=temp1;
+	output out=temp;
 run;
 
-proc sort data=temp1;
+proc sort data=temp;
 	by time;
 run;
 
-proc tabulate data=temp1;
+proc tabulate data=temp;
 	class treat VSSTRESC RID FORM / mlf order=data;
 	table FORM * VSSTRESC * n,
 		  treat;
@@ -385,32 +404,34 @@ proc sort data=temp;
 	by VSDTC RID;
 run;
 
+/*
 data temp;
 	set temp;
-	length time $40;
-	if VISIT in ('Screening Visit','Unscheduled Screening','Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Post Study') then time=VISIT;
-	else time=cats('P',period,'-',FORM);
+	length code $40;
+	if VISIT in ('Screening Visit','Unscheduled Screening','Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Post Study') then code=VISIT;
+	else code=cats('P',period,'-',FORM);
 run;
 
 data temp;
   set temp;
-  time1 = tranwrd(time, " hours post-dose", "post");
-  time2 = tranwrd(time1, "Pre-dose", "pre");
-  drop time;
-  rename time2=time;
+  code1 = tranwrd(code, " hours post-dose", "post");
+  code2 = tranwrd(code1, "Pre-dose", "pre");
+  drop code;
+  rename code2=code;
 run;
-
-/*
-ISSUE: Also fix the ordering issue here.
 */
 
 proc sgplot data=temp;
-	series x=VSDTC y=VSORRES / group=RID markers datalabel=time; /* compare x=VSDTC and x=time */ 
+	series x=VSDTC y=VSORRES / group=RID markers datalabel=time; /* compare x=VSDTC and x=code */ 
     title 'value against date';
     xaxis label='time';
     yaxis label='value';
     keylegend / title='RID';
 run;
+
+/*
+ISSUE: Define order of time. Format time object. Write macro for 'systolic' and 'diastolic'
+*/
 
 /* adverse events */ 
 
