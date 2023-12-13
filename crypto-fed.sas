@@ -532,6 +532,8 @@ data PKpars;
 	if PERIOD=2 and seqence=1 then treat='B';
 	if PERIOD=2 and seqence=2 then treat='A';
 	logCmax = log(Cmax);
+	logAUCall = log(AUCall); /* multiple choices - check Anouk's code */
+	logAUCinf = log(AUCINF_obs); /* multiple choices - check Anouk's code */ 
 run;
 
 /* mixed model */
