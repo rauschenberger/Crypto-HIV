@@ -394,43 +394,29 @@ run;
 
 /* vital signs - trajectory */
 
-data temp;
-	set VS;
-	where VSTEST='Systolic Blood Pressure' and VSPOS='Supine';
-	if RID in (&ids_ncs);
-run;
+%macro plotvs(test);
+	data temp;
+		set VS;
+		where VSTEST=&test. and VSPOS='Supine';
+		if RID in (&ids_ncs);
+	run;
+	proc sort data=temp;
+		by VSDTC RID;
+	run;
+	proc sgplot data=temp;
+		series x=VSDTC y=VSORRES / group=RID markers datalabel=time; 
+    	title "Supine &test.";
+    	xaxis label='time';
+    	yaxis label='value';
+   		keylegend / title='RID';
+	run;
+%mend plotvs;
 
-proc sort data=temp;
-	by VSDTC RID;
-run;
-
-/*
-data temp;
-	set temp;
-	length code $40;
-	if VISIT in ('Screening Visit','Unscheduled Screening','Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Post Study') then code=VISIT;
-	else code=cats('P',period,'-',FORM);
-run;
-
-data temp;
-  set temp;
-  code1 = tranwrd(code, " hours post-dose", "post");
-  code2 = tranwrd(code1, "Pre-dose", "pre");
-  drop code;
-  rename code2=code;
-run;
-*/
-
-proc sgplot data=temp;
-	series x=VSDTC y=VSORRES / group=RID markers datalabel=time; /* compare x=VSDTC and x=code */ 
-    title 'value against date';
-    xaxis label='time';
-    yaxis label='value';
-    keylegend / title='RID';
-run;
+%plotvs('Systolic Blood Pressure');
+%plotvs('Diastolic Blood Pressure');
 
 /*
-ISSUE: Define order of time. Format time object. Write macro for 'systolic' and 'diastolic'
+ISSUE: Define order of time. Format time object.
 */
 
 /* adverse events */ 
@@ -602,10 +588,8 @@ proc print data=diff;
 	title 'diff';
 run;
 
-/* TO DO: combine tables, write macro, apply macro*/ 
+/* TO DO: mixed models: combine tables, write macro, apply macro*/ 
 
-/* TO DO: solve date/time issue */ 
+/* TO DO: vital signs: solve date/time issue */ 
 
-/* TO DO: Extract output from tabulate */
-
-/* TO DO: rename time values to A-, A0, A1, A2, A6, A48, B0, B2, B4, B48, B+ or similar*/ 
+/* TO DO: general: Extract output from tabulate */
