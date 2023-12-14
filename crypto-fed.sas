@@ -94,6 +94,29 @@ data &file;
 run;
 %mend asnumeric;
 
+/* withdrawals */
+
+data DS;
+	set DS;
+	if DSTERM='DISCONTINUED' then withdraw='yes';
+	else withdraw='no';
+run;
+
+proc tabulate data=DS;
+	where VISIT='Post Study';
+	class seq withdraw;
+	table withdraw * (n colpctn),
+			seq all='both';
+	title 'early withdrawals';
+run;
+
+proc print data=DS;
+	where DSTERM='DISCONTINUED';
+	var RID seq;
+	title 'lising of withdrawals';
+run;
+
+
 /* ineligibility */
 
 proc print data=IE;
@@ -508,10 +531,8 @@ X<'save(x=x,file="P:\\temporary.RData")'>
 
 Consider running a script (i.e., save code in file, then source this file in R).
 
-
 %let PhoenixPath = "C:\Program Files (x86)\Certara\Phoenix\application";
 %let PhoenixCommand = 
-
 
 X<'"C:\Program Files\R\R-4.3.1\bin\Rscript.exe" C:\Users\arauschenberger\Desktop\Crypto-HIV\trial.R'>
 
@@ -595,3 +616,4 @@ run;
 /* TO DO: vital signs: solve date/time issue */ 
 
 /* TO DO: general: Extract output from tabulate */
+
