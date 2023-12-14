@@ -116,7 +116,6 @@ proc print data=DS;
 	title 'lising of withdrawals';
 run;
 
-
 /* ineligibility */
 
 proc print data=IE;
@@ -559,61 +558,80 @@ run;
 
 /* mixed model */
 
-/*ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
-run;*/
-proc mixed data=PKpars;
-	Class subjectid seqence period trt;
-	Model logCmax= seqence period trt /ddfm =kr;
-	Random subjectid(seqence) /type=vc;
-	lsmeans trt/cl alpha=0.10;
-	Estimate 'diff B-A' trt -1 1/cl alpha = 0.10;
-	ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
-	title 'output from mixed model';
-	ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
-run; 
-/*ods pdf close;*/
+%macro PKmixmod(outcome);
+	proc mixed data=PKpars;
+		Class subjectid seqence period trt;
+		Model &outcome.= seqence period trt /ddfm =kr;
+		Random subjectid(seqence) /type=vc;
+		lsmeans trt/cl alpha=0.10;
+		Estimate 'diff B-A' trt -1 1/cl alpha = 0.10;
+		ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
+		ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
+	run;
+	proc print data=random;
+		id CovParm;
+		var Estimate;
+		title "&outcome.";
+	run;
+	title;
+	proc print data=fixed;
+		id Effect;
+		var FValue ProbF;
+	run;
+	data means;
+		set means;
+		expEstim=exp(Estimate);
+		expLower=exp(Lower);
+		expUpper=exp(Upper);
+	run;
+	proc print data=means;
+		id trt;
+		var expEstim expLower expUpper;
+	run;
+	data diff;
+		set diff;
+		expEstim=exp(Estimate);
+		expLower=exp(Lower);
+		expUpper=exp(Upper);
+	run;
+	proc print data=diff;
+		id Label;
+		var expEstim expLower expUpper;
+	run;
+%mend PKmixmod;
 
-proc print data=random;
-	id CovParm;
-	var Estimate;
-	title 'random';
+%PKmixmod(logCmax);
+%PKmixmod(logAUCall);
+%PKmixmod(logAUCinf);
+
+
+/*
+Saving output to PDF or RTF:
+ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
 run;
+SOME CODE
+ods pdf close;
+*/
 
-proc print data=fixed;
-	id Effect;
-	var FValue ProbF;
-	title 'fixed';
-run;
 
-data means;
-	set means;
-	expEstim=exp(Estimate);
-	expLower=exp(Lower);
-	expUpper=exp(Upper);
-run;
-
-proc print data=means;
-	id trt;
-	var expEstim expLower expUpper;
-	title 'means';
-run;
-
-data diff;
-	set diff;
-	expEstim=exp(Estimate);
-	expLower=exp(Lower);
-	expUpper=exp(Upper);
-run;
-
-proc print data=diff;
-	id Label;
-	var expEstim expLower expUpper;
-	title 'diff';
-run;
-
-/* TO DO: mixed models: combine tables, write macro, apply macro*/ 
+/* TO DO: mixed models: combine tables*/ 
 
 /* TO DO: vital signs: solve date/time issue */ 
 
 /* TO DO: general: Extract output from tabulate */
 
+/*
+TRYING TO REFOMAT OUTPUT FROM TABULATE:
+Use SAS-proc-tabulate for statistical reporting:
+https://support.sas.com/resources/papers/proceedings13/289-2013.pdf
+*/
+
+proc tabulate data=sashelp.class out=temp;
+  var age height weight;
+  class sex;
+  table (height weight)*(mean std) age * median, sex all;
+run;
+
+proc report data=temp;
+	columns Sex;
+run;
