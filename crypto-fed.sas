@@ -162,7 +162,7 @@ run;
 %asnumeric(SU,SUDOSE);
 
 proc tabulate data=SU;
-    class seq SUTRT SUOCCUR;
+    class seq SUTRT SUOCCUR / mlf order=data;
     var SUDOSE;
     table SUTRT * SUOCCUR * n
           SUTRT * SUDOSE *(mean std median min max n),
@@ -196,6 +196,51 @@ proc tabulate data=VS;
 			VSPOS * VSTESTCD * (VSORRES)*(mean std median min max N),
 			seq all='both';
 	title "vital signs";
+run;
+
+/*
+proc print data=VS;
+	var seq VISIT VSDAT VSPOS VSSTRESC VSORRES;
+	id RID;
+	where VISIT in ('Screening Visit','Unscheduled Screening') and VSSTRESC='NCS' and not missing(RID);
+run;
+*/
+
+
+data temp;	
+	set VS;
+	/*keep RID VISIT VSPOS VSTEST VSORRE VSSTRESC;*/
+	where VISIT='Screening Visit' and VSSTRESC='NCS' and not missing(RID);
+run;
+
+proc sql noprint;
+  select distinct RID
+  into :ids_ncs separated by ','
+  from temp;
+quit;
+
+data long;
+	set VS;
+	if RID in (&ids_ncs);
+	if VISIT in ('Screening Visit','Unscheduled Screening');
+run; 
+
+proc sort data=long;
+	by RID VSPOS;
+run;
+
+proc print data=long;
+run;
+
+proc transpose data=long out=wide;
+	by RID VSPOS VISIT;
+	id VSTEST;
+	var VSORRES;
+run;
+
+proc print data=wide;
+	id RID;
+	title 'patients with abnormal NCS - screening visits';
 run;
 
 /* lead ECG */
@@ -283,7 +328,7 @@ run;
 %macro tabval(test);
 	proc tabulate data=VS;
 		where VSPOS='Supine' and VSTEST=&test;
-		class VISIT treat FORM / mlf order=data; /* new: / mlf order=data */
+		class VISIT treat FORM / mlf order=data;
 		var VSORRES;
 		table 	FORM * VSORRES * (mean std median min max n),
 			treat;
@@ -387,7 +432,7 @@ data temp;
 	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM) and VSPOS='Supine';
 run;
 
-proc sql;
+proc sql noprint;
   select distinct RID
   into :ids_ncs separated by ','
   from temp;
@@ -604,6 +649,23 @@ run;
 %PKmixmod(logAUCall);
 %PKmixmod(logAUCinf);
 
+/*
+TO DO:
+- mixed models: combine tables
+
+- vital signs: solve date/time issue
+
+- general: Extract output from tabulate
+*/
+
+/*
+Mann-Whitney U test
+
+proc npar1way data=PKpars wilcoxon;
+	class treat;
+	var Cmax Tmax Lambda_z;
+run;
+*/
 
 /*
 Saving output to PDF or RTF:
@@ -613,25 +675,43 @@ SOME CODE
 ods pdf close;
 */
 
-
-/* TO DO: mixed models: combine tables*/ 
-
-/* TO DO: vital signs: solve date/time issue */ 
-
-/* TO DO: general: Extract output from tabulate */
-
 /*
 TRYING TO REFOMAT OUTPUT FROM TABULATE:
 Use SAS-proc-tabulate for statistical reporting:
 https://support.sas.com/resources/papers/proceedings13/289-2013.pdf
-*/
 
 proc tabulate data=sashelp.class out=temp;
-  var age height weight;
-  class sex;
-  table (height weight)*(mean std) age * median, sex all;
+  	var age height weight;
+  	class sex;
+  	table height='height: mean (std)', (sex all)*(mean='' std='');
+	table height='height: min-max', (sex all)*(min='' max='');
+	table weight='weight: mean (std)', (sex all)*(mean='' std='');
+	table weight='weight: min-max', (sex all)*(min='' max='');
+run;
+*/
+
+
+
+
+proc print data=sashelp.class(obs=10); 
 run;
 
-proc report data=temp;
-	columns Sex;
+proc format; 
+value color low-80='LIGR' 
+80-130='white' 
+130-high='LIGR'; 
+run; 
+
+proc report data=sashelp.class nowd; 
+columns Name Sex Age Height Weight; 
+define weight/style={background=color.}; 
 run;
+
+Temperature (C) 35.5 – 37.5
+Supine Systolic Blood pressure (mmHg) 90 – 140
+Supine Diastolic Blood pressure (mmHg) 45 – 90
+Supine Pulse Rate (bpm) 40 – 100
+Standing Systolic Blood pressure (mmHg) 85 – 150
+Standing Diastolic Blood pressure (mmHg) 50 – 95
+Standing Pulse Rate (bpm) 40 – 100
+
