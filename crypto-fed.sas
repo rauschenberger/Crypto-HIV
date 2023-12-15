@@ -284,11 +284,14 @@ proc tabulate data=EG;
 	title "ECG";
 run;
 
+/* ECG - listing */ 
 
 proc tabulate data=EG;
 	class VISIT;
 	table VISIT;
 run;
+
+
 
 proc print data=EG;
 	where VISIT in ('SCREENING','Unscheduled Screening') and EGSTRESC1="Abnormal, NCS" and not missing(RID);
@@ -494,6 +497,7 @@ run;
 
 proc print data=wide;
 	id RID;
+	var VISIT period treat VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;
 	title 'patients with abnormal NCS - unscheduled visits';
 run;
 
@@ -790,4 +794,43 @@ proc tabulate data=sashelp.class out=temp;
           ,
            (sex all);
 run;
+*/
+
+
+
+/* 
+
+macro - listing abnormal
+
+CONTINUE HERE!
+
+data temp;	
+	set VS;
+	where VSSTRESC='NCS' and not missing(RID);
+run;
+
+proc sql noprint;
+  select distinct RID
+  into :ids_ncs separated by ','
+  from temp;
+quit;
+
+data long;
+	set VS;
+	if RID in (&ids_ncs);
+	if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2');
+run; 
+
+proc transpose data=long out=wide;
+	by RID VISIT VSPOS period treat;
+	id VSTEST;
+	var VSORRES;
+run;
+
+proc print data=wide;
+	id RID;
+	var VISIT period treat VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;
+	title 'patients with abnormal NCS - unscheduled visits';
+run;
+
 */
