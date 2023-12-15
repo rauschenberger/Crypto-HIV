@@ -198,18 +198,10 @@ proc tabulate data=VS;
 	title "vital signs";
 run;
 
-/*
-proc print data=VS;
-	var seq VISIT VSDAT VSPOS VSSTRESC VSORRES;
-	id RID;
-	where VISIT in ('Screening Visit','Unscheduled Screening') and VSSTRESC='NCS' and not missing(RID);
-run;
-*/
-
+/* vital signs - listing */ 
 
 data temp;	
 	set VS;
-	/*keep RID VISIT VSPOS VSTEST VSORRE VSSTRESC;*/
 	where VISIT='Screening Visit' and VSSTRESC='NCS' and not missing(RID);
 run;
 
@@ -229,9 +221,6 @@ proc sort data=long;
 	by RID VSPOS;
 run;
 
-proc print data=long;
-run;
-
 proc transpose data=long out=wide;
 	by RID VSPOS VISIT;
 	id VSTEST;
@@ -242,6 +231,39 @@ proc print data=wide;
 	id RID;
 	title 'patients with abnormal NCS - screening visits';
 run;
+
+proc format; 
+	value 	temp 	low-35.5='LIGR' 
+					35.5-37.5='white' 
+					37.5-high='LIGR';
+	value	supsys 	low-90='LIGR'
+					90-140='white'
+					140-high='LIGR';
+	value	supdia 	low-45='LIGR'
+					45-90='white'
+					90-high='LIGR';
+	value	suppul 	low-40='LIGR'
+					40-100='white'
+					100-high='LIGR';
+	value	stasys 	low-85='LIGR'
+					85-150='white'
+					150-high='LIGR';
+	value	stadia 	low-50='LIGR'
+					50-95='white'
+					95-high='LIGR';
+	value	stapul 	low-40='LIGR'
+					40-100='white'
+					100-high='LIGR';
+run; 
+
+/*
+proc report data=wide nowd; 
+	id RID;
+define height/style={background=height.};
+define weight/style={background=weight.};
+run;
+*/
+
 
 /* lead ECG */
 
@@ -261,6 +283,21 @@ proc tabulate data=EG;
 			seq all='both';
 	title "ECG";
 run;
+
+
+proc tabulate data=EG;
+	class VISIT;
+	table VISIT;
+run;
+
+proc print data=EG;
+	where VISIT in ('SCREENING','Unscheduled Screening') and EGSTRESC1="Abnormal, NCS" and not missing(RID);
+	id RID;
+	var seq VISIT EGTEST EGORRES EGORRESU;
+	title "ECG - listing";
+run;
+
+/* CONTINUE HERE: First extract identifiers, then show results for both visits.*/
 
 /* hematology: data formatting will be different in actual clinical trial */
 
@@ -411,17 +448,18 @@ run;
 data long;
 	set VS;
 	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM) and VSPOS='Supine';
-	keep RID treat period FORM VSTEST VSPOS VSORRES;
+	keep VISIT RID treat period FORM VSTEST VSPOS VSORRES;
 run;
 
 proc transpose data=long out=wide;
-	by RID treat period FORM VSPOS;
+	by RID treat period FORM VSPOS VISIT;
 	id VSTEST;
 	var VSORRES;
 run;
 
 proc print data=wide;
 	id RID;
+	var VISIT period treat VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;
 	title 'patients with abnormal NCS - scheduled visits';
 run;
 
@@ -429,7 +467,7 @@ run;
 
 data temp;	
 	set VS;
-	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM) and VSPOS='Supine';
+	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM);
 run;
 
 proc sql noprint;
@@ -692,26 +730,64 @@ run;
 
 
 
-
+/*
 proc print data=sashelp.class(obs=10); 
 run;
 
 proc format; 
-value color low-80='LIGR' 
-80-130='white' 
-130-high='LIGR'; 
+	value 	weightF 	low-80='red' 
+						80-130='white' 
+						130-high='red';
+	value	heightF 	low-60='red'
+						60-70='white'
+						70-high='red';
+	value 	weightM 	low-80='blue' 
+						80-130='white' 
+						130-high='blue';
+	value	heightM 	low-60='blue'
+						60-70='white'
+						70-high='blue';
 run; 
 
 proc report data=sashelp.class nowd; 
-columns Name Sex Age Height Weight; 
-define weight/style={background=color.}; 
+	columns Name Sex Age Height Weight; 
+	define height/style={background=heightF.};
+	define weight/style={background=weightM.}; 
 run;
 
-Temperature (C) 35.5 – 37.5
-Supine Systolic Blood pressure (mmHg) 90 – 140
-Supine Diastolic Blood pressure (mmHg) 45 – 90
-Supine Pulse Rate (bpm) 40 – 100
-Standing Systolic Blood pressure (mmHg) 85 – 150
-Standing Diastolic Blood pressure (mmHg) 50 – 95
-Standing Pulse Rate (bpm) 40 – 100
+proc report data=sashelp.class nowd;
+    columns Name Sex Age Height Weight;
+    compute before Sex;
+        if Sex = 'F' then do;
+            call define('height', 'style', 'style=[background=heightF.]');
+            call define('weight', 'style', 'style=[background=weightF.]');
+        end;
+        else if Sex = 'M' then do;
+            call define('height', 'style', 'style=[background=heightM.]');
+            call define('weight', 'style', 'style=[background=weightM.]');
+        end;
+    endcomp;
+run;
+*/
 
+/*
+proc tabulate data=sashelp.class out=temp;
+  	var age height weight;
+  	class sex;
+  	table height='height: mean (std)', (sex all)*(mean='' std='');
+	table height='height: min-max', (sex all)*(min='' max='');
+	table weight='weight: mean (std)', (sex all)*(mean='' std='');
+	table weight='weight: min-max', (sex all)*(min='' max='');
+run;
+
+proc tabulate data=sashelp.class out=temp;
+  	var age height weight;
+  	class sex;
+  	table height='height: mean (std)'*(mean=' ' std=' ')
+	      height='height: min-max'*(min=' ' max=' ')
+	      weight='weight: mean (std)'*(mean=' ' std=' ')
+ 	      weight='weight: min-max'*(min=' ' max=' ')
+          ,
+           (sex all);
+run;
+*/
