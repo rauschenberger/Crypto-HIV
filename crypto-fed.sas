@@ -834,3 +834,115 @@ proc print data=wide;
 run;
 
 */
+
+
+
+/* table with special formatting - working */
+
+%macro combine(dataset);
+data &dataset.;
+	set &dataset.;
+	length M_STD MIN_MAX $15;
+	M_STD= strip(put(mean, 6.2))||' ('||strip(put(std, 6.2))||')';
+	MIN_MAX= strip(put(min, best.))||' - '||strip(put(max, best.));
+run;
+%mend combine;
+
+proc means data=sashelp.class;
+ways 1;
+class sex;
+var height weight;
+output out=means1;
+title 'proc means';
+run;
+
+proc transpose data=means1 out=wide1;
+by sex;
+var height weight;
+id _stat_;
+proc print;
+title 'proc transpose';
+run;
+
+proc means data=sashelp.class mean std median min max n;
+var height weight;
+output out=means2;
+title 'proc means';
+run;
+
+proc transpose data=means2 out=wide2;
+by _type_;
+var height weight;
+id _stat_;
+proc print;
+title 'proc transpose';
+run;
+
+%combine(wide1);
+%combine(wide2);
+
+proc print data=wide;
+run;
+
+proc sort data= wide1;
+by _name_;
+run;
+
+proc print data=wide;
+run;
+
+
+proc transpose data=wide1 out=narrow1;
+by _name_ ;
+var m_std min_max n;
+id sex;
+proc print;
+title 'transpose';
+run;
+
+proc transpose data=wide2 out=narrow2 (rename=(col1=TOTAL));
+by _name_ ;
+var m_std min_max n;
+proc print;
+title 'tranpose';
+run;
+
+data final;
+merge narrow1 narrow2;
+by _name_;
+if find(f, '(') gt 0 then stat= 'mean (std)';
+else do; stat= 'min - max';
+_name_='';
+end;
+proc print;
+title 'final';
+run;
+
+proc report data= final split='~';
+column _name_ stat('Sex' f m) ('Both~' total);
+define _name_/'' display;
+define stat/'' display;
+define f/ 'F' display;
+define m/'M' display;
+define total/'' display;
+run;
+
+/* trial
+proc tabulate data=sashelp.class out=temp;
+	class sex;
+	var weight height;
+	table (weight height)*(mean median n), sex all=both;
+run;
+
+
+proc sort data=temp;
+by Sex;
+run;
+
+proc transpose data=temp;
+by Sex;
+var Weight_Mean Weight_Median;
+proc print;
+title 'proc transpose';
+run;
+*/
