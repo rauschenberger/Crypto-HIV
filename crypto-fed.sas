@@ -837,7 +837,7 @@ run;
 
 
 
-/* table with special formatting - working */
+/* table with special formatting - working
 
 %macro combine(dataset);
 data &dataset.;
@@ -930,10 +930,10 @@ define f/ 'F' display;
 define m/'M' display;
 define total/'' display;
 run;
+*/
 
 
-
-/* trial: output from tabulate  */
+/* trial: output from tabulate 
 
 
 proc tabulate data=sashelp.class out=temp;
@@ -944,10 +944,11 @@ run;
 
 proc print data=temp;
 run;
+*/
 
 
 
-/* trial: output from summary */
+/* trial: output from summary 
 
 proc summary data=sashelp.class mean std median min max print;
 	class sex;
@@ -969,4 +970,4 @@ proc transpose data=temp;
 	id sex;
 run;
 
-
+*/
