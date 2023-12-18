@@ -856,6 +856,9 @@ output out=means1;
 title 'proc means';
 run;
 
+proc print data=means1;
+run;
+
 proc transpose data=means1 out=wide1;
 by sex;
 var height weight;
@@ -864,11 +867,12 @@ proc print;
 title 'proc transpose';
 run;
 
-proc means data=sashelp.class mean std median min max n;
+proc means data=sashelp.class;
 var height weight;
 output out=means2;
 title 'proc means';
 run;
+
 
 proc transpose data=means2 out=wide2;
 by _type_;
@@ -881,7 +885,7 @@ run;
 %combine(wide1);
 %combine(wide2);
 
-proc print data=wide;
+proc print data=wide1;
 run;
 
 proc sort data= wide1;
@@ -904,7 +908,7 @@ proc transpose data=wide2 out=narrow2 (rename=(col1=TOTAL));
 by _name_ ;
 var m_std min_max n;
 proc print;
-title 'tranpose';
+title 'transpose';
 run;
 
 data final;
@@ -927,22 +931,42 @@ define m/'M' display;
 define total/'' display;
 run;
 
-/* trial
+
+
+/* trial: output from tabulate  */
+
+
 proc tabulate data=sashelp.class out=temp;
 	class sex;
-	var weight height;
-	table (weight height)*(mean median n), sex all=both;
+	var height weight;
+	table (height weight) * (mean median min max), sex all=both;
+run;
+
+proc print data=temp;
 run;
 
 
+
+/* trial: output from summary */
+
+proc summary data=sashelp.class mean std median min max print;
+	class sex;
+	var height weight;
+	output out=temp mean= median= min= max=;
+run;
+
+proc print data=temp;
+	title 'summary';
+run;
+
 proc sort data=temp;
-by Sex;
+	by _stat_;
 run;
 
 proc transpose data=temp;
-by Sex;
-var Weight_Mean Weight_Median;
-proc print;
-title 'proc transpose';
+	by _stat_;
+	var height weight;
+	id sex;
 run;
-*/
+
+
