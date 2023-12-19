@@ -200,7 +200,7 @@ run;
 
 /* vital signs - listing */ 
 
-/* start temporary */
+/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results.*/ 
 %macro listncs(code,visit);
 	%if &code.=VS %then %do;
 		%let var_test=VSSTRESC;
@@ -222,10 +222,8 @@ run;
 %mend listncs;
 
 %listncs(code=VS,visit='Screening Visit'); /* should return 20 */
-%listncs(code=EG,visit='SCREENING'); /* should return 1,12 */
 
-end temporary */
-
+/*
 data temp;	
 	set VS;
 	where VISIT='Screening Visit' and VSSTRESC='NCS' and not missing(RID);
@@ -236,6 +234,7 @@ proc sql noprint;
   into :ids_ncs separated by ','
   from temp;
 quit;
+*/
 
 data long;
 	set VS;
@@ -314,6 +313,7 @@ run;
 
 /* ECG - listing */ 
 
+/*
 data temp;	
 	set EG;
 	where VISIT='SCREENING' and EGSTRESC1="Abnormal, NCS" and not missing(RID);
@@ -324,6 +324,9 @@ proc sql noprint;
   into :ids_ncs separated by ','
   from temp;
 quit;
+*/
+
+%listncs(code=EG,visit='SCREENING'); /* should return 1,12 */
 
 data long;
 	set EG;
