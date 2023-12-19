@@ -264,7 +264,6 @@ define weight/style={background=weight.};
 run;
 */
 
-
 /* lead ECG */
 
 %asnumeric(EG,EGORRES);
@@ -291,16 +290,35 @@ proc tabulate data=EG;
 	table VISIT;
 run;
 
-
-
-proc print data=EG;
-	where VISIT in ('SCREENING','Unscheduled Screening') and EGSTRESC1="Abnormal, NCS" and not missing(RID);
-	id RID;
-	var seq VISIT EGTEST EGORRES EGORRESU;
-	title "ECG - listing";
+data temp;	
+	set EG;
+	where VISIT='SCREENING' and EGSTRESC1="Abnormal, NCS" and not missing(RID);
 run;
 
-/* CONTINUE HERE: First extract identifiers, then show results for both visits.*/
+proc sql noprint;
+  select distinct RID
+  into :ids_ncs separated by ','
+  from temp;
+quit;
+
+data long;
+	set Eg;
+	if RID in (&ids_ncs);
+	if VISIT in ('SCREENING','Unscheduled Screening');
+run; 
+
+proc transpose data=long out=wide;
+	by RID VISIT;
+	id EGTEST;
+	var EGORRES;
+run;
+
+proc print data=wide;
+	id RID;
+	title 'patients with abnormal ECG - screening visits';
+run;
+
+/* CONTINUE HERE: Use macro for this repetitive code. */
 
 /* hematology: data formatting will be different in actual clinical trial */
 
@@ -836,7 +854,6 @@ run;
 */
 
 
-
 /* table with special formatting - working
 
 %macro combine(dataset);
@@ -930,8 +947,9 @@ define f/ 'F' display;
 define m/'M' display;
 define total/'' display;
 run;
-*/
 
+
+end trial */
 
 /* trial: output from tabulate 
 
