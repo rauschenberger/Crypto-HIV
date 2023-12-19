@@ -200,6 +200,32 @@ run;
 
 /* vital signs - listing */ 
 
+/* start temporary */
+%macro listncs(code,visit);
+	%if &code.=VS %then %do;
+		%let var_test=VSSTRESC;
+	%end;
+	%else %do;
+		%let var_test=EGSTRESC1;
+	%end;
+	%put var_test=&var_test;
+    data temp;    
+        set &code.;
+        where VISIT = &visit. and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
+    run;
+    proc sql noprint;
+        select distinct RID
+        into :ids_ncs separated by ','
+        from temp;
+    quit;
+	%put ids_ncs=&ids_ncs;
+%mend listncs;
+
+%listncs(code=VS,visit='Screening Visit'); /* should return 20 */
+%listncs(code=EG,visit='SCREENING'); /* should return 1,12 */
+
+end temporary */
+
 data temp;	
 	set VS;
 	where VISIT='Screening Visit' and VSSTRESC='NCS' and not missing(RID);
@@ -232,6 +258,7 @@ proc print data=wide;
 	title 'patients with abnormal NCS - screening visits';
 run;
 
+
 proc format; 
 	value 	temp 	low-35.5='LIGR' 
 					35.5-37.5='white' 
@@ -255,6 +282,8 @@ proc format;
 					40-100='white'
 					100-high='LIGR';
 run; 
+
+/* TO DO: Use blue/red colour for too low/high values. */ 
 
 /*
 proc report data=wide nowd; 
@@ -285,11 +314,6 @@ run;
 
 /* ECG - listing */ 
 
-proc tabulate data=EG;
-	class VISIT;
-	table VISIT;
-run;
-
 data temp;	
 	set EG;
 	where VISIT='SCREENING' and EGSTRESC1="Abnormal, NCS" and not missing(RID);
@@ -302,7 +326,7 @@ proc sql noprint;
 quit;
 
 data long;
-	set Eg;
+	set EG;
 	if RID in (&ids_ncs);
 	if VISIT in ('SCREENING','Unscheduled Screening');
 run; 
@@ -365,7 +389,6 @@ data VS;
 	else time=.;
 run;
 
-
 /*
 data VS;
 	set VS;
@@ -382,6 +405,8 @@ data VS;
 	else time=.;
 run;
 */
+
+/* TO DO: Use nicer labels but maintain order in tables and figures. */ 
 
 %macro tabval(test);
 	proc tabulate data=VS;
@@ -496,8 +521,6 @@ proc sql noprint;
   into :ids_ncs separated by ','
   from temp;
 quit;
-
-/*%put &ids_ncs;*/
 
 /* vital signs - unscheduled visits */
 
@@ -736,7 +759,7 @@ ods pdf close;
 */
 
 /*
-TRYING TO REFOMAT OUTPUT FROM TABULATE:
+TRYING TO REFORMAT OUTPUT FROM TABULATE:
 Use SAS-proc-tabulate for statistical reporting:
 https://support.sas.com/resources/papers/proceedings13/289-2013.pdf
 
@@ -854,7 +877,7 @@ run;
 */
 
 
-/* table with special formatting - working
+/* table with special formatting - working 
 
 %macro combine(dataset);
 data &dataset.;
@@ -890,7 +913,6 @@ output out=means2;
 title 'proc means';
 run;
 
-
 proc transpose data=means2 out=wide2;
 by _type_;
 var height weight;
@@ -911,7 +933,6 @@ run;
 
 proc print data=wide;
 run;
-
 
 proc transpose data=wide1 out=narrow1;
 by _name_ ;
@@ -952,7 +973,6 @@ run;
 end trial */
 
 /* trial: output from tabulate 
-
 
 proc tabulate data=sashelp.class out=temp;
 	class sex;
