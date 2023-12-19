@@ -239,14 +239,16 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
+/*
 proc print data=wide;
 	id RID;
 	title 'patients with abnormal NCS - screening visits';
 run;
+*/
 
 proc format; 
-	%let low='#4ED3D4';
-	%let high='#D9544D';
+	%let low='LIGR'; /*low='#4ED3D4';*/
+	%let high='LIGR'; /*high='#D9544D';*/
 	value 	temp 		low-35.5=&low. 
 						35.5-37.5='white' 
 						37.5-high=&high.;
@@ -299,11 +301,12 @@ run;
 				call define(_col_,'style','style={background=sta_pul.}');
 			end;
     	endcomp;
+		define _NAME_ / order noprint;
+		title "&title.";
 	run;
-	title "&title.";
 %mend;
 
-%reportVS(wide);
+%reportVS(wide,title="patients with abnormal NCS - screening visits");
 
 /* lead ECG */
 
@@ -514,7 +517,7 @@ proc print data=wide;
 run;
 */
 
-%reportVS(wide);
+%reportVS(wide,title="patients with abnormal NCS - scheduled visits");
 
 /* vital signs - sample identifiers . */
 
@@ -551,7 +554,7 @@ proc print data=wide;
 run;
 */
 
-%reportVS(wide);
+%reportVS(wide,title="patients with abnormal NCS - unscheduled visits");
 
 /* vital signs - trajectory */
 
