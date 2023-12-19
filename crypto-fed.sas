@@ -223,19 +223,6 @@ run;
 
 %listncs(code=VS,visit='Screening Visit'); /* should return 20 */
 
-/*
-data temp;	
-	set VS;
-	where VISIT='Screening Visit' and VSSTRESC='NCS' and not missing(RID);
-run;
-
-proc sql noprint;
-  select distinct RID
-  into :ids_ncs separated by ','
-  from temp;
-quit;
-*/
-
 data long;
 	set VS;
 	if RID in (&ids_ncs);
@@ -243,11 +230,11 @@ data long;
 run; 
 
 proc sort data=long;
-	by RID VSPOS;
+	by RID VISIT VSPOS;
 run;
 
 proc transpose data=long out=wide;
-	by RID VSPOS VISIT;
+	by RID VISIT VSPOS;
 	id VSTEST;
 	var VSORRES;
 run;
@@ -257,40 +244,66 @@ proc print data=wide;
 	title 'patients with abnormal NCS - screening visits';
 run;
 
-
 proc format; 
-	value 	temp 	low-35.5='LIGR' 
-					35.5-37.5='white' 
-					37.5-high='LIGR';
-	value	supsys 	low-90='LIGR'
-					90-140='white'
-					140-high='LIGR';
-	value	supdia 	low-45='LIGR'
-					45-90='white'
-					90-high='LIGR';
-	value	suppul 	low-40='LIGR'
-					40-100='white'
-					100-high='LIGR';
-	value	stasys 	low-85='LIGR'
-					85-150='white'
-					150-high='LIGR';
-	value	stadia 	low-50='LIGR'
-					50-95='white'
-					95-high='LIGR';
-	value	stapul 	low-40='LIGR'
-					40-100='white'
-					100-high='LIGR';
+	%let low='#4ED3D4';
+	%let high='#D9544D';
+	value 	temp 		low-35.5=&low. 
+						35.5-37.5='white' 
+						37.5-high=&high.;
+	value	sup_sys 	low-90=&low.
+						90-140='white'
+						140-high=&high.;
+	value	sup_dia 	low-45=&low.
+						45-90='white'
+						90-high=&high.;
+	value	sup_pul 	low-40=&low.
+						40-100='white'
+						100-high=&high.;
+	value	sta_sys 	low-85=&low.
+						85-150='white'
+						150-high=&high.;
+	value	sta_dia 	low-50=&low.
+						50-95='white'
+						95-high=&high.;
+	value	sta_pul 	low-40=&low.
+						40-100='white'
+						100-high=&high.;
 run; 
 
-/* TO DO: Use blue/red colour for too low/high values. */ 
+%macro reportVS(data,title);
+	proc report data=wide nowd;
+		compute Temperature;
+        	    call define(_col_,'style','style={background=temp.}');
+    	endcomp;
+    	compute Systolic_Blood_Pressure;
+        	if VSPOS = 'Supine'  then do;
+            	call define(_col_,'style','style={background=sup_sys.}');
+        	end;
+			else if VSPOS='Standing' then do;
+				call define(_col_,'style','style={background=sta_sys.}');
+			end;
+    	endcomp;
+    	compute Diastolic_Blood_Pressure;
+        	if VSPOS = 'Supine'  then do;
+            	call define(_col_,'style','style={background=sup_dia.}');
+        	end;
+			else if VSPOS='Standing' then do;
+				call define(_col_,'style','style={background=sta_dia.}');
+			end;
+    	endcomp;
+    	compute Pulse_Rate;
+        	if VSPOS = 'Supine'  then do;
+            	call define(_col_,'style','style={background=sup_pul.}');
+        	end;
+			else if VSPOS='Standing' then do;
+				call define(_col_,'style','style={background=sta_pul.}');
+			end;
+    	endcomp;
+	run;
+	title "&title.";
+%mend;
 
-/*
-proc report data=wide nowd; 
-	id RID;
-define height/style={background=height.};
-define weight/style={background=weight.};
-run;
-*/
+%reportVS(wide);
 
 /* lead ECG */
 
@@ -312,19 +325,6 @@ proc tabulate data=EG;
 run;
 
 /* ECG - listing */ 
-
-/*
-data temp;	
-	set EG;
-	where VISIT='SCREENING' and EGSTRESC1="Abnormal, NCS" and not missing(RID);
-run;
-
-proc sql noprint;
-  select distinct RID
-  into :ids_ncs separated by ','
-  from temp;
-quit;
-*/
 
 %listncs(code=EG,visit='SCREENING'); /* should return 1,12 */
 
@@ -506,11 +506,15 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
+/*
 proc print data=wide;
 	id RID;
 	var VISIT period treat VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;
 	title 'patients with abnormal NCS - scheduled visits';
 run;
+*/
+
+%reportVS(wide);
 
 /* vital signs - sample identifiers . */
 
@@ -539,11 +543,15 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
+/*
 proc print data=wide;
 	id RID;
 	var VISIT period treat VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;
 	title 'patients with abnormal NCS - unscheduled visits';
 run;
+*/
+
+%reportVS(wide);
 
 /* vital signs - trajectory */
 
