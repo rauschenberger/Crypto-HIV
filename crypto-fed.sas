@@ -196,10 +196,10 @@ run;
 
 proc tabulate data=VS;
 	where VISIT='Screening Visit';
-	class seq VSPOS VSTESTCD VSSTRESC;
+	class seq VSPOS VSTEST VSSTRESC;
 	var VSORRES;
-	table	VSPOS * VSTESTCD * (VSSTRESC)*(N)
-			VSPOS * VSTESTCD * (VSORRES)*(mean std median min max N),
+	table	VSPOS * VSTEST * VSSTRESC * (N)
+			VSPOS * VSTEST * VSORRES * (mean std median min max N),
 			seq all='both';
 	title "vital signs";
 run;
@@ -606,22 +606,15 @@ ISSUE: Define order of time. Format time object.
 
 proc tabulate data=VS;
 	where visit='Post Study';
-	class seq VSPOS VSTESTCD VSSTRESC;
+	class seq VSPOS VSTEST VSSTRESC;
 	var VSORRES;
-	table	VSPOS * VSTESTCD * (VSSTRESC)*(N)
-			VSPOS * VSTESTCD * (VSORRES)*(mean std median min max N),
+	table	VSPOS * VSTEST * VSSTRESC * (N)
+			VSPOS * VSTEST * VSORRES * (mean std median min max N),
 			seq all='both';
 	title "vital signs - post study";
 run;
 
-/*
-CONTINUE HERE: change from screening to post-study
-ideas:
-- adapting calcdiff
-- probably better:
-  table with screening values, table with post-study values, difference
-  or transpose
-*/
+/* vital signs - overall change */
 
 data long;
 	set VS;
