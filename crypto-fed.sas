@@ -313,8 +313,6 @@ run;
 			call define(_col_,'style','style={background=sta_pul.}');
 		end;
 	endcomp;
-/*%mend color_VS;*/
-/*%macro color_EG;*/
 	compute Heart_Rate;
 		call define(_col_,'style','style={background=ECG_HR.}');
 	endcomp;
@@ -327,10 +325,9 @@ run;
 	compute P_Wave_Axis;
 		call define(_col_,'style','style={background=ECG_axis.}');
 	endcomp;
-/*%mend color_EG;*/
 %mend color;
 
-/* CONTINUE HERE: condition computation on non-missingness, combine color-macros for VS and EG */ 
+/* CONTINUE HERE: condition computation on availability of column */ 
 
 %macro report(data,title);
 	proc report data=&data. spanrows;
@@ -344,19 +341,24 @@ run;
 
 %report(wide,title="patients with abnormal NCS - screening visits");
 
-/* CONTINUE HERE: use same report-macro for VS and EG */ 
+/* start temporary
 
-
-
-proc report data=wide spanrows;
-	compute Temperaturesdf;
-		call define(_col_,'style','style={background=temp.}');
-	endcomp;
+proc report data=wide spanrows out=temp1;
 	define RID/group;
 	define VISIT/group;
 	define _NAME_/noprint;
 	title "blabla";
 run;
+
+proc print data=temp1;
+run;
+
+compute Temperature;
+	call define(_col_,'style','style={background=temp.}');
+endcomp;
+
+end temporary */
+ 
 
 /* lead ECG */
 
