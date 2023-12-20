@@ -389,6 +389,33 @@ run;
 
 /* vital signs - values */
 
+%macro addperiod(code);
+	data &code.;
+		set &code.;
+		if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
+		else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
+		else period = '';
+	run;
+%mend addperiod;
+
+%macro addtreat(code);
+	data &code.;
+		set &code.;
+    	if period='1' and seq='1 (AB)' then treat='A';
+		else if period='1' and seq='2 (BA)' then treat='B';
+		else if period='2' and seq='1 (AB)' then treat='B';
+		else if period='2' and seq='2 (BA)' then treat='A';
+		else treat = '';
+	run;
+%mend addtreat;
+
+%addperiod(VS);
+%addtreat(VS);
+
+proc print data=VS;
+run;
+
+/*
 data VS;
 	set VS;
 	if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
@@ -400,6 +427,7 @@ data VS;
 	else if period='2' and seq='2 (BA)' then treat='A';
 	else treat = '';
 run;
+*/
 
 /*
 data VS;
@@ -642,6 +670,15 @@ proc tabulate data=wide;
 	table VSTEST * diff * (mean std median min max n), seq;
 	title 'vital signs - change from screening to post study';
 run;
+
+/* ECG during treatment */
+
+/* CONTINUE HERE */
+
+/*
+proc print data=EG;
+run;
+*/
 
 /* adverse events */ 
 
