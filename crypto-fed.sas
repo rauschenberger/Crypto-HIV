@@ -346,6 +346,7 @@ proc transpose data=long out=wide;
 run;
 
 proc report data=wide spanrows;
+	column ;
 	define RID/group;
 	define VISIT/group;
 	define _NAME_/noprint;
@@ -506,7 +507,7 @@ data long;
 run;
 
 proc transpose data=long out=wide;
-	by RID treat period FORM VSPOS VISIT;
+	by RID treat period VISIT FORM VSPOS;
 	id VSTEST;
 	var VSORRES;
 run;
@@ -535,7 +536,8 @@ data long;
 run; 
 
 proc transpose data=long out=wide;
-	by RID VISIT VSPOS period treat;
+	/*by RID VISIT VSPOS period treat;*/
+	by RID treat period VISIT VSPOS;
 	id VSTEST;
 	var VSORRES;
 run;
