@@ -119,18 +119,22 @@ run;
 
 /* ineligibility */
 
-proc print data=IE;
+proc report data=IE spanrows;
+	column SUBJID IECAT IETEST IESTRESC;
 	where (IECAT='INCLUSION' and IESTRESC='No') or (IECAT='EXCLUSION' and IESTRESC='Yes');
-	var IECAT IETEST IESTRESC;
-	id SUBJID;
+	define SUBJID/group;
+	define IECAT/group;
 	title 'listing of ineligible samples';
 run;
 
 /* protocol deviations */
 
-proc print data=DV;
-	var seq VISIT FORM DVTERM DVCAT;
-	id RID;
+proc report data=DV spanrows;
+	column RID seq VISIT FORM DVTERM DVCAT;
+	define RID/group;
+	define seq/group;
+	define VISIT/group;
+	define FORM/group;
 	title 'protocol deviations';
 run;
 
@@ -173,10 +177,11 @@ run;
 
 /* medical history */
 
-proc print data=MH;
+proc report data=MH spanrows;
+	column RID seq MHTERM MHSTDAT MHENDAT MHONGO;
 	where not missing(RID);
-	id RID;
-	var seq MHTERM MHSTDAT MHENDAT MHONGO;
+	define RID/group;
+	define seq/group;
 	title 'medical history';
 run;
 
@@ -347,21 +352,12 @@ proc transpose data=long out=wide;
 	var EGORRES;
 run;
 
-/*
-proc print data=wide;
-	id RID;
-	title 'patients with abnormal ECG - screening visits';
-run;
-*/
-
 proc report data=wide nowd spanrows;
 	define RID/group;
 	define VISIT/group;
-	define _NAME_ / order noprint;
+	define _NAME_/noprint;
 	title 'patients with abnormal ECG - screening visits';
 run;
-
-/* CONTINUE HERE: Use macro for this repetitive code. */
 
 /* hematology: data formatting will be different in actual clinical trial */
 
@@ -598,9 +594,9 @@ ISSUE: Define order of time. Format time object.
 
 /* adverse events */ 
 
-proc print data=AE;
-	id RID;
-	var AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
+proc report data=AE spanrows;
+	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
+	define RID/group;
 	title 'adverse events';
 run;
 
