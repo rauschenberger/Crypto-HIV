@@ -206,7 +206,7 @@ run;
 
 /* vital signs - listing */ 
 
-/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results.*/ 
+/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
 %macro listncs(code,visit);
 	%if &code.=VS %then %do;
 		%let var_test=VSSTRESC;
@@ -284,7 +284,6 @@ proc format;
 						-30-90='white'
 						90-high=&high.;
 run; 
-
 
 %macro color_VS;
 	compute Temperature;
@@ -602,6 +601,54 @@ run;
 /*
 ISSUE: Define order of time. Format time object.
 */
+
+/* vital signs - post study */ 
+
+proc tabulate data=VS;
+	where visit='Post Study';
+	class seq VSPOS VSTESTCD VSSTRESC;
+	var VSORRES;
+	table	VSPOS * VSTESTCD * (VSSTRESC)*(N)
+			VSPOS * VSTESTCD * (VSORRES)*(mean std median min max N),
+			seq all='both';
+	title "vital signs - post study";
+run;
+
+/*
+CONTINUE HERE: change from screening to post-study
+ideas:
+- adapting calcdiff
+- probably better:
+  table with screening values, table with post-study values, difference
+  or transpose
+*/
+
+data long;
+	set VS;
+	where VISIT in ('Screening Visit','Post Study') and VSPOS='Supine';
+run;
+
+proc sort data=long;
+	by RID VSTEST;
+run;
+
+proc transpose data=long out=wide;
+	by RID VSTEST seq;
+	id VISIT;
+	var VSORRES;
+run;
+
+data wide;
+	set wide;
+	diff = Post_Study - Screening_Visit;
+run;
+
+proc tabulate data=wide;
+	class seq RID VSTEST / mlf order=data;
+	var diff;
+	table VSTEST * diff * (mean std median min max n), seq;
+	title 'vital signs - change from screening to post study';
+run;
 
 /* adverse events */ 
 
