@@ -412,19 +412,6 @@ run;
 %addperiod(VS);
 %addtreat(VS);
 
-/*
-data VS;
-	set VS;
-	if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
-	else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
-	else period = '';
-    if period='1' and seq='1 (AB)' then treat='A';
-	else if period='1' and seq='2 (BA)' then treat='B';
-	else if period='2' and seq='1 (AB)' then treat='B';
-	else if period='2' and seq='2 (BA)' then treat='A';
-	else treat = '';
-run;
-*/
 
 /*
 data VS;
@@ -704,21 +691,14 @@ run;
 
 data PK;
 	set PK;
-	if SAMPLETIME__HR_='Pre-dose (0)' then SAMPLETIME__HR_=0;
-	if CONCENTRATION='BLQ' then CONCENTRATION=0;
 	rename SUBJECTID=RID;
 	rename SAMPLETIME__HR_=SAMPLETIME;
+	if SAMPLETIME__HR_='Pre-dose (0)' then SAMPLETIME__HR_=0;
+	if CONCENTRATION='BLQ' then CONCENTRATION=0;
 run;
 
 %addseq(PK);
-
-data PK;
-	set PK;
-	if PERIOD=1 and seq='1 (AB)' then treat='A';
-	if PERIOD=1 and seq='2 (BA)' then treat='B';
-	if PERIOD=2 and seq='1 (AB)' then treat='B';
-	if PERIOD=2 and seq='2 (BA)' then treat='A';
-run;
+%addtreat(PK);
 
 %asnumeric(PK,SAMPLETIME);
 %asnumeric(PK,CONCENTRATION);
@@ -784,16 +764,29 @@ x "&RCommand";
 */
 
 proc import datafile="I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\9 - Final analysis\Data\Final Parameters_NCA_primary analysis"
-		out=PKpars
-		dbms=xls;
+	out=PKpars
+	dbms=xls;
 run;
 
 data PKpars;
+	set PKpars;
+	if seqence=1 then
+        seq='1 (AB)';
+    else if seqence=2 then
+        seq='2 (BA)';
+    else
+        seq='';
+run;
+
+%addtreat(PKpars);
+
+/*
+proc print data=PKpars;
+run;
+*/
+
+data PKpars;
  	set PKpars;
-	if PERIOD=1 and seqence=1 then treat='A';
-	if PERIOD=1 and seqence=2 then treat='B';
-	if PERIOD=2 and seqence=1 then treat='B';
-	if PERIOD=2 and seqence=2 then treat='A';
 	logCmax = log(Cmax);
 	logAUCall = log(AUCall); /* multiple choices - check Anouk's code */
 	logAUCinf = log(AUCINF_obs); /* multiple choices - check Anouk's code */ 
