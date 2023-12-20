@@ -227,7 +227,7 @@ run;
 	%put ids_ncs=&ids_ncs;
 %mend listncs;
 
-%listncs(code=VS,visit='Screening Visit'); /* should return 20 */
+%listncs(code=VS,visit='Screening Visit');
 
 data long;
 	set VS;
@@ -246,8 +246,9 @@ proc transpose data=long out=wide;
 run;
 
 proc format; 
-	%let low='LIGR'; /*low='#4ED3D4';*/
-	%let high='LIGR'; /*high='#D9544D';*/
+	%let low='LIGR'; /*pale blue: '#4ED3D4'*/
+	%let high='LIGR'; /*pale red: '#D9544D'*/
+	/* vital signs*/
 	value 	temp 		low-35.5=&low. 
 						35.5-37.5='white' 
 						37.5-high=&high.;
@@ -269,11 +270,23 @@ proc format;
 	value	sta_pul 	low-40=&low.
 						40-100='white'
 						100-high=&high.;
+	/* ECG */ 
+	value ECG_HR		low-40=&low.
+						40-100='white'
+						100-high=&high.;
+	value ECG_QRS		low-0=&low.
+						0-119='white'
+						119-high=&high.;
+	value ECG_PR		low-120=&low.
+						120-220='white'
+						220-high=&high.;
+	value ECG_axis		low--30=&low.
+						-30-90='white'
+						90-high=&high.;
 run; 
 
 %macro reportVS(data,title);
 	proc report data=wide spanrows;
-		/*column Subject_ID period treat VISIT VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;*/
 		compute Temperature;
         	    call define(_col_,'style','style={background=temp.}');
     	endcomp;
@@ -331,7 +344,7 @@ run;
 
 /* ECG - listing */ 
 
-%listncs(code=EG,visit='SCREENING'); /* should return 1,12 */
+%listncs(code=EG,visit='SCREENING');
 
 data long;
 	set EG;
@@ -536,7 +549,6 @@ data long;
 run; 
 
 proc transpose data=long out=wide;
-	/*by RID VISIT VSPOS period treat;*/
 	by RID treat period VISIT VSPOS;
 	id VSTEST;
 	var VSORRES;
@@ -742,7 +754,6 @@ TO DO:
 
 - vital signs: solve date/time issue
 
-- general: Extract output from tabulate
 */
 
 /*
@@ -753,6 +764,9 @@ proc npar1way data=PKpars wilcoxon;
 	var Cmax Tmax Lambda_z;
 run;
 */
+
+
+
 
 /*
 Saving output to PDF or RTF:
