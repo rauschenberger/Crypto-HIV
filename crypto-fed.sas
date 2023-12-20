@@ -347,8 +347,17 @@ proc transpose data=long out=wide;
 	var EGORRES;
 run;
 
+/*
 proc print data=wide;
 	id RID;
+	title 'patients with abnormal ECG - screening visits';
+run;
+*/
+
+proc report data=wide nowd spanrows;
+	define RID/group;
+	define VISIT/group;
+	define _NAME_ / order noprint;
 	title 'patients with abnormal ECG - screening visits';
 run;
 
