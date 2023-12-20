@@ -327,7 +327,7 @@ run;
 	endcomp;
 %mend color;
 
-/* CONTINUE HERE: condition computation on availability of column */ 
+/* CONTINUE HERE: condition computation on availability of a column */ 
 
 %macro report(data,title);
 	proc report data=&data. spanrows;
@@ -343,7 +343,16 @@ run;
 
 /* start temporary
 
+proc contents data=wide out=vars noprint;
+run;
+
+proc print data=vars;
+run;
+
 proc report data=wide spanrows out=temp1;
+	compute Temperature;
+		call define(_col_,'style','style={background=temp.}');
+	endcomp;
 	define RID/group;
 	define VISIT/group;
 	define _NAME_/noprint;
@@ -352,10 +361,6 @@ run;
 
 proc print data=temp1;
 run;
-
-compute Temperature;
-	call define(_col_,'style','style={background=temp.}');
-endcomp;
 
 end temporary */
  
@@ -474,12 +479,12 @@ run;
 
 %macro tabval(test);
 	proc tabulate data=VS;
-		where VSPOS='Supine' and VSTEST=&test;
+		where VSPOS='Supine' and VSTEST=&test.;
 		class VISIT treat FORM / mlf order=data;
 		var VSORRES;
 		table 	FORM * VSORRES * (mean std median min max n),
 			treat;
-		title "supine &test - values";
+		title "supine &test. - values";
 	run;
 %mend tabval;
 
@@ -488,7 +493,7 @@ run;
 %macro calcdiff(test);
 	data temp;
 		set VS;
-		where VSTEST=&test and VSPOS='Supine' and not missing(RID) and not missing(period);
+		where VSTEST=&test. and VSPOS='Supine' and not missing(RID) and not missing(period);
 	run;
 	data temp;
   		do until(last.RID);
@@ -515,23 +520,23 @@ proc tabulate data=temp;
 	var diff;
 	table 	FORM * diff * (mean std median min max n),
 			treat;
-	title "supine &test - change";
+	title "supine &test. - change";
 run;
 %mend;
 
 /* vital signs - both */
 
-%tabval("Systolic Blood Pressure");
-%calcdiff("Systolic Blood Pressure");
-%tabdiff("Systolic Blood Pressure");
+%tabval('Systolic Blood Pressure');
+%calcdiff('Systolic Blood Pressure');
+%tabdiff('Systolic Blood Pressure');
 
-%tabval("Diastolic Blood Pressure");
-%calcdiff("Diastolic Blood Pressure");
-%tabdiff("Diastolic Blood Pressure");
+%tabval('Diastolic Blood Pressure');
+%calcdiff('Diastolic Blood Pressure');
+%tabdiff('Diastolic Blood Pressure');
 
-%tabval("Pulse Rate");
-%calcdiff("Pulse Rate");
-%tabdiff("Pulse Rate");
+%tabval('Pulse Rate');
+%calcdiff('Pulse Rate');
+%tabdiff('Pulse Rate');
 
 /* vital signs - normal/abnormal */
 
