@@ -285,13 +285,13 @@ proc format;
 						90-high=&high.;
 run; 
 
-%macro reportVS(data,title);
-	proc report data=wide spanrows;
+
+%macro addcolvs;
 		compute Temperature;
         	    call define(_col_,'style','style={background=temp.}');
     	endcomp;
     	compute Systolic_Blood_Pressure;
-        	if VSPOS = 'Supine'  then do;
+        	if VSPOS = 'Supine' then do;
             	call define(_col_,'style','style={background=sup_sys.}');
         	end;
 			else if VSPOS='Standing' then do;
@@ -299,7 +299,7 @@ run;
 			end;
     	endcomp;
     	compute Diastolic_Blood_Pressure;
-        	if VSPOS = 'Supine'  then do;
+        	if VSPOS = 'Supine' then do;
             	call define(_col_,'style','style={background=sup_dia.}');
         	end;
 			else if VSPOS='Standing' then do;
@@ -307,13 +307,36 @@ run;
 			end;
     	endcomp;
     	compute Pulse_Rate;
-        	if VSPOS = 'Supine'  then do;
+        	if VSPOS = 'Supine' then do;
             	call define(_col_,'style','style={background=sup_pul.}');
         	end;
 			else if VSPOS='Standing' then do;
 				call define(_col_,'style','style={background=sta_pul.}');
 			end;
     	endcomp;
+%mend addcolvs;
+
+
+/* RR_Interval__Aggregate Q QT_Interval__Aggregate QTc__Fredericia  P_Wave_Duration__Aggregate P_Wave_Axis */
+
+%macro addcoleg;
+		compute Heart_Rate;
+        	    call define(_col_,'style','style={background=ECG_HR.}');
+    	endcomp;
+		compute QRS_Duration__Aggregate;
+        	    call define(_col_,'style','style={background=ECG_QRS.}');
+    	endcomp;
+		compute PR_Interval__Aggregate;
+        	    call define(_col_,'style','style={background=ECG_PR.}');
+    	endcomp;
+		compute P_Wave_Axis;
+        	    call define(_col_,'style','style={background=ECG_axis.}');
+    	endcomp;
+%mend addcoleg;
+
+%macro reportVS(data,title);
+	proc report data=wide spanrows;
+		%addcolvs;
 		define RID/group;
 		define VISIT/group;
 		define _NAME_ / order noprint;
@@ -359,10 +382,10 @@ proc transpose data=long out=wide;
 run;
 
 proc report data=wide spanrows;
-	column ;
 	define RID/group;
 	define VISIT/group;
 	define _NAME_/noprint;
+	%addcoleg;
 	title 'patients with abnormal ECG - screening visits';
 run;
 
