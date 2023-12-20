@@ -45,30 +45,30 @@ run;
 
 /* extract random ID */
 
-%macro addrid(file); 
+%macro add_rid(file); 
 data &file;
  	set &file;
  	RID = input(substr(USUBJID,index(USUBJID,'/')+1),best.);
 run;
-%mend addrid;
+%mend add_rid;
 
 /* sort by random ID */
 
-%macro sortrid(file);
+%macro sort_rid(file);
 	proc sort data=&file;
 		by RID;
 	run;
-%mend sortrid;
+%mend sort_rid;
 
 /* add random info */
 
-%macro addseq(file);
+%macro add_seq(file);
 	data &file;
 		merge &file(in=a) random(in=b);
 		by RID;
 		if a;
 	run;
-%mend addseq;
+%mend add_seq;
 
 /* import and process clinical data */
 
@@ -76,9 +76,9 @@ run;
    %let code = IE AE DM DS DV SU MH VS EG LB; /* add other abbreviations*/
    %do i = 1 %to %sysfunc(countw(&code));
       %import(&pathClin,%scan(&code,&i));
-	  %addrid(%scan(&code,&i));
-	  %sortrid(%scan(&code,&i));
-	  %addseq(%scan(&code,&i));
+	  %add_rid(%scan(&code,&i));
+	  %sort_rid(%scan(&code,&i));
+	  %add_seq(%scan(&code,&i));
    %end;
 %mend prepare;
 
@@ -285,7 +285,7 @@ proc format;
 						90-high=&high.;
 run; 
 
-%macro color_VS;
+%macro color;
 	compute Temperature;
 		call define(_col_,'style','style={background=temp.}');
 	endcomp;
@@ -313,9 +313,8 @@ run;
 			call define(_col_,'style','style={background=sta_pul.}');
 		end;
 	endcomp;
-%mend color_VS;
-
-%macro color_EG;
+/*%mend color_VS;*/
+/*%macro color_EG;*/
 	compute Heart_Rate;
 		call define(_col_,'style','style={background=ECG_HR.}');
 	endcomp;
@@ -328,13 +327,14 @@ run;
 	compute P_Wave_Axis;
 		call define(_col_,'style','style={background=ECG_axis.}');
 	endcomp;
-%mend color_EG;
+/*%mend color_EG;*/
+%mend color;
 
-/* CONTINUE HERE: */ 
+/* CONTINUE HERE: condition computation on non-missingness, combine color-macros for VS and EG */ 
 
-%macro reportVS(data,title);
+%macro report(data,title);
 	proc report data=&data. spanrows;
-		%color_VS;
+		%color;
 		define RID/group;
 		define VISIT/group;
 		define _NAME_/noprint;
@@ -342,7 +342,21 @@ run;
 	run;
 %mend;
 
-%reportVS(wide,title="patients with abnormal NCS - screening visits");
+%report(wide,title="patients with abnormal NCS - screening visits");
+
+/* CONTINUE HERE: use same report-macro for VS and EG */ 
+
+
+
+proc report data=wide spanrows;
+	compute Temperaturesdf;
+		call define(_col_,'style','style={background=temp.}');
+	endcomp;
+	define RID/group;
+	define VISIT/group;
+	define _NAME_/noprint;
+	title "blabla";
+run;
 
 /* lead ECG */
 
@@ -379,28 +393,22 @@ proc transpose data=long out=wide;
 	var EGORRES;
 run;
 
-proc report data=wide spanrows;
-	define RID/group;
-	define VISIT/group;
-	define _NAME_/noprint;
-	%color_EG;
-	title 'patients with abnormal ECG - screening visits';
-run;
+%report(wide,title='patients with abnormal ECG - screening visits');
 
 /* hematology: data formatting will be different in actual clinical trial */
 
 /* vital signs - values */
 
-%macro addperiod(code);
+%macro add_period(code);
 	data &code.;
 		set &code.;
 		if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
 		else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
 		else period = '';
 	run;
-%mend addperiod;
+%mend add_period;
 
-%macro addtreat(code);
+%macro add_treat(code);
 	data &code.;
 		set &code.;
     	if period='1' and seq='1 (AB)' then treat='A';
@@ -409,10 +417,10 @@ run;
 		else if period='2' and seq='2 (BA)' then treat='A';
 		else treat = '';
 	run;
-%mend addtreat;
+%mend add_treat;
 
-%addperiod(VS);
-%addtreat(VS);
+%add_period(VS);
+%add_treat(VS);
 
 /*
 data VS;
@@ -557,7 +565,7 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%reportVS(wide,title="patients with abnormal NCS - scheduled visits");
+%report(wide,title="patients with abnormal NCS - scheduled visits");
 
 /* vital signs - sample identifiers . */
 
@@ -586,7 +594,7 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%reportVS(wide,title="patients with abnormal NCS - unscheduled visits");
+%report(wide,title="patients with abnormal NCS - unscheduled visits");
 
 /* vital signs - trajectory */
 
@@ -658,8 +666,8 @@ run;
 
 /* ECG during treatment */
 
-%addperiod(EG);
-%addtreat(EG);
+%add_period(EG);
+%add_treat(EG);
 
 proc tabulate data=EG;
 	where not missing(RID) and PAGENAME ne 'ECG';
@@ -698,8 +706,8 @@ data PK;
 	if CONCENTRATION='BLQ' then CONCENTRATION=0;
 run;
 
-%addseq(PK);
-%addtreat(PK);
+%add_seq(PK);
+%add_treat(PK);
 
 %asnumeric(PK,SAMPLETIME);
 %asnumeric(PK,CONCENTRATION);
@@ -779,7 +787,7 @@ data PKpars;
         seq='';
 run;
 
-%addtreat(PKpars);
+%add_treat(PKpars);
 
 data PKpars;
  	set PKpars;
