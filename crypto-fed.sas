@@ -412,9 +412,6 @@ run;
 %addperiod(VS);
 %addtreat(VS);
 
-proc print data=VS;
-run;
-
 /*
 data VS;
 	set VS;
@@ -673,12 +670,15 @@ run;
 
 /* ECG during treatment */
 
-/* CONTINUE HERE */
+%addperiod(EG);
+%addtreat(EG);
 
-/*
-proc print data=EG;
+proc tabulate data=EG;
+	where not missing(RID) and PAGENAME ne 'ECG';
+	class treat EGTEST PAGENAME;
+	var EGORRES;
+	table EGTEST*EGORRES * (mean std median min max N), treat*PAGENAME;
 run;
-*/
 
 /* adverse events */ 
 
