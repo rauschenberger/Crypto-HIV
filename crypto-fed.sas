@@ -684,7 +684,6 @@ proc tabulate data=EG;
 	title 'ECG during treatment';
 run;
 
-
 /* CONTINUE HERE: listing abnormal ECG*/
 
 /* adverse events */ 
