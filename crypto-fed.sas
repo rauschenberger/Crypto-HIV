@@ -215,9 +215,9 @@ run;
 		%let var_test=EGSTRESC1;
 	%end;
 	%put var_test=&var_test;
-    data temp;    
+    data temp;
         set &code.;
-        where VISIT = &visit. and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
+        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
     run;
     proc sql noprint;
         select distinct RID
@@ -684,7 +684,17 @@ proc tabulate data=EG;
 	title 'ECG during treatment';
 run;
 
-/* CONTINUE HERE: listing abnormal ECG*/
+%let visits='Treatment Period 1: 30 hrs PD','Treatment Period 2: 30 hrs PD';
+%listncs(code=EG,visit=visits);
+%listncs(code=EG,visit='Post Study');
+
+/* CONTINUE HERE: reporting data for samples with abnormal ECG results during or after treatment (separately)
+
+proc print data=EG;
+	where RID in (&ids_ncs);
+run;
+
+*/
 
 /* adverse events */ 
 
