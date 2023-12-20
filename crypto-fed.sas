@@ -678,6 +678,7 @@ proc tabulate data=EG;
 	class treat EGTEST PAGENAME;
 	var EGORRES;
 	table EGTEST*EGORRES * (mean std median min max N), treat*PAGENAME;
+	title 'ECG during treatment';
 run;
 
 /* adverse events */ 
