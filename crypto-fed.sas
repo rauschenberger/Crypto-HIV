@@ -62,13 +62,13 @@ run;
 
 /* add random info */
 
-%macro addinf(file);
+%macro addseq(file);
 	data &file;
 		merge &file(in=a) random(in=b);
 		by RID;
 		if a;
 	run;
-%mend addinf;
+%mend addseq;
 
 /* import and process clinical data */
 
@@ -78,7 +78,7 @@ run;
       %import(&pathClin,%scan(&code,&i));
 	  %addrid(%scan(&code,&i));
 	  %sortrid(%scan(&code,&i));
-	  %addinf(%scan(&code,&i));
+	  %addseq(%scan(&code,&i));
    %end;
 %mend prepare;
 
@@ -681,6 +681,9 @@ proc tabulate data=EG;
 	title 'ECG during treatment';
 run;
 
+
+/* CONTINUE HERE: listing abnormal ECG*/
+
 /* adverse events */ 
 
 proc report data=AE spanrows;
@@ -707,7 +710,7 @@ data PK;
 	rename SAMPLETIME__HR_=SAMPLETIME;
 run;
 
-%addinf(PK);
+%addseq(PK);
 
 data PK;
 	set PK;
