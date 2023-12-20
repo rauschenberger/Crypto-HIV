@@ -245,13 +245,6 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-/*
-proc print data=wide;
-	id RID;
-	title 'patients with abnormal NCS - screening visits';
-run;
-*/
-
 proc format; 
 	%let low='LIGR'; /*low='#4ED3D4';*/
 	%let high='LIGR'; /*high='#D9544D';*/
@@ -279,7 +272,7 @@ proc format;
 run; 
 
 %macro reportVS(data,title);
-	proc report data=wide nowd spanrows;
+	proc report data=wide spanrows;
 		/*column Subject_ID period treat VISIT VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;*/
 		compute Temperature;
         	    call define(_col_,'style','style={background=temp.}');
@@ -352,7 +345,7 @@ proc transpose data=long out=wide;
 	var EGORRES;
 run;
 
-proc report data=wide nowd spanrows;
+proc report data=wide spanrows;
 	define RID/group;
 	define VISIT/group;
 	define _NAME_/noprint;
@@ -518,14 +511,6 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-/*
-proc print data=wide;
-	id RID;
-	var VISIT period treat VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;
-	title 'patients with abnormal NCS - scheduled visits';
-run;
-*/
-
 %reportVS(wide,title="patients with abnormal NCS - scheduled visits");
 
 /* vital signs - sample identifiers . */
@@ -554,14 +539,6 @@ proc transpose data=long out=wide;
 	id VSTEST;
 	var VSORRES;
 run;
-
-/*
-proc print data=wide;
-	id RID;
-	var VISIT period treat VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;
-	title 'patients with abnormal NCS - unscheduled visits';
-run;
-*/
 
 %reportVS(wide,title="patients with abnormal NCS - unscheduled visits");
 
@@ -755,6 +732,8 @@ run;
 %PKmixmod(logAUCall);
 %PKmixmod(logAUCinf);
 
+
+
 /*
 TO DO:
 - mixed models: combine tables
@@ -795,8 +774,6 @@ proc tabulate data=sashelp.class out=temp;
 	table weight='weight: min-max', (sex all)*(min='' max='');
 run;
 */
-
-
 
 /*
 proc print data=sashelp.class(obs=10); 
@@ -861,12 +838,9 @@ run;
 */
 
 
-
 /* 
 
 macro - listing abnormal
-
-CONTINUE HERE!
 
 data temp;	
 	set VS;
@@ -898,7 +872,6 @@ proc print data=wide;
 run;
 
 */
-
 
 /* table with special formatting - working 
 
@@ -992,7 +965,6 @@ define m/'M' display;
 define total/'' display;
 run;
 
-
 end trial */
 
 /* trial: output from tabulate 
@@ -1006,8 +978,6 @@ run;
 proc print data=temp;
 run;
 */
-
-
 
 /* trial: output from summary 
 
