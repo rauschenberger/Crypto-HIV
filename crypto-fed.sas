@@ -30,6 +30,7 @@ data random;
 		seq='1 (AB)';
 	else
 		seq='2 (BA)';
+	/*drop Subject_ID;*/
 run;
 
 /* import clinical data */
@@ -273,7 +274,8 @@ proc format;
 run; 
 
 %macro reportVS(data,title);
-	proc report data=wide nowd;
+	proc report data=wide nowd spanrows;
+		/*column Subject_ID period treat VISIT VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;*/
 		compute Temperature;
         	    call define(_col_,'style','style={background=temp.}');
     	endcomp;
@@ -301,6 +303,8 @@ run;
 				call define(_col_,'style','style={background=sta_pul.}');
 			end;
     	endcomp;
+		define RID/group;
+		define VISIT/group;
 		define _NAME_ / order noprint;
 		title "&title.";
 	run;
