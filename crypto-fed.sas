@@ -330,6 +330,8 @@ run;
 	endcomp;
 %mend color_EG;
 
+/* CONTINUE HERE: */ 
+
 %macro reportVS(data,title);
 	proc report data=&data. spanrows;
 		%color_VS;
@@ -411,7 +413,6 @@ run;
 
 %addperiod(VS);
 %addtreat(VS);
-
 
 /*
 data VS;
@@ -527,7 +528,7 @@ run;
 proc summary data=VS nway;
 	where not missing(RID) and not missing(period);
 	class VSSTRESC RID FORM treat time;
-	id RID FORM treat;
+	/*id RID FORM treat;*/
 	output out=temp;
 run;
 
@@ -630,7 +631,7 @@ run;
 
 data long;
 	set VS;
-	where VISIT in ('Screening Visit','Post Study') and VSPOS='Supine';
+	where VISIT in ('Screening Visit','Post Study') and VSPOS='Supine' and not missing(RID);
 run;
 
 proc sort data=long;
@@ -779,11 +780,6 @@ data PKpars;
 run;
 
 %addtreat(PKpars);
-
-/*
-proc print data=PKpars;
-run;
-*/
 
 data PKpars;
  	set PKpars;
