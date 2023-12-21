@@ -7,6 +7,13 @@ dm 'odsresults; clear';
 proc datasets library=work kill;
 run;
 %symdel _all_;
+dm log "OUT;CLEAR;LOG;CLEAR;";
+
+/* option for log */
+
+options nosource;
+options nonotes;
+/*options source notes errors=4;*/
 
 /* define paths */
 
@@ -122,8 +129,8 @@ run;
 proc report data=IE spanrows;
 	column SUBJID IECAT IETEST IESTRESC;
 	where (IECAT='INCLUSION' and IESTRESC='No') or (IECAT='EXCLUSION' and IESTRESC='Yes');
-	define SUBJID/group;
-	define IECAT/group;
+	define SUBJID/order;
+	define IECAT/order;
 	title 'listing of ineligible samples';
 run;
 
@@ -131,10 +138,10 @@ run;
 
 proc report data=DV spanrows;
 	column RID seq VISIT FORM DVTERM DVCAT;
-	define RID/group;
-	define seq/group;
-	define VISIT/group;
-	define FORM/group;
+	define RID/order;
+	define seq/order;
+	define VISIT/order;
+	define FORM/order;
 	title 'protocol deviations';
 run;
 
@@ -180,8 +187,8 @@ run;
 proc report data=MH spanrows;
 	column RID seq MHTERM MHSTDAT MHENDAT MHONGO;
 	where not missing(RID);
-	define RID/group;
-	define seq/group;
+	define RID/order;
+	define seq/order;
 	title 'medical history';
 run;
 
@@ -332,8 +339,8 @@ run;
 %macro report(data,title);
 	proc report data=&data. spanrows;
 		%color;
-		define RID/group;
-		define VISIT/group;
+		define RID/order;
+		define VISIT/order;
 		define _NAME_/noprint;
 		title "&title.";
 	run;
@@ -684,23 +691,24 @@ proc tabulate data=EG;
 	title 'ECG during treatment';
 run;
 
-%let visits='Treatment Period 1: 30 hrs PD','Treatment Period 2: 30 hrs PD';
-%listncs(code=EG,visit=visits);
+/*
+CONTINUE HERE: reporting data for samples with abnormal ECG results during or after treatment (separately)
+
+%let visit='Treatment Period 1: 30 hrs PD','Treatment Period 2: 30 hrs PD';
+%listncs(code=EG,visit=visit);
 %listncs(code=EG,visit='Post Study');
 
-/* CONTINUE HERE: reporting data for samples with abnormal ECG results during or after treatment (separately)
 
 proc print data=EG;
 	where RID in (&ids_ncs);
 run;
-
 */
 
 /* adverse events */ 
 
 proc report data=AE spanrows;
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
-	define RID/group;
+	define RID/order;
 	title 'adverse events';
 run;
 
@@ -720,6 +728,7 @@ data PK;
 	rename SAMPLETIME__HR_=SAMPLETIME;
 	if SAMPLETIME__HR_='Pre-dose (0)' then SAMPLETIME__HR_=0;
 	if CONCENTRATION='BLQ' then CONCENTRATION=0;
+	if CONCENTRATION='NS' then CONCENTRATION=.; /* verify this */
 run;
 
 %add_seq(PK);
