@@ -342,7 +342,7 @@ run;
 		define RID/order;
 		define VISIT/order;
 		define _NAME_/noprint;
-		title "&title.";
+		title &title.;
 	run;
 %mend;
 
@@ -407,7 +407,7 @@ proc transpose data=long out=wide;
 	var EGORRES;
 run;
 
-%report(wide,title='patients with abnormal ECG - screening visits');
+%report(wide,title="patients with abnormal ECG - screening visits");
 
 /* hematology: data formatting will be different in actual clinical trial */
 
@@ -691,18 +691,51 @@ proc tabulate data=EG;
 	title 'ECG during treatment';
 run;
 
-/*
-CONTINUE HERE: reporting data for samples with abnormal ECG results during or after treatment (separately)
+/* abnormal ECG results during treatment */
 
-%let visit='Treatment Period 1: 30 hrs PD','Treatment Period 2: 30 hrs PD';
-%listncs(code=EG,visit=visit);
+%let visits='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
+%listncs(code=EG,visit=&visits);
+
+data long;
+	set EG;
+	if RID in (&ids_ncs);
+	if VISIT in ('Treatment Period 1: 30 hrs PD','Treatment Period 2: 30 hrs PD');
+run; 
+
+proc sort data=long;
+	by RID VISIT PAGENAME;
+run;
+
+proc transpose data=long out=wide;
+	by RID VISIT PAGENAME;
+	id EGTEST;
+	var EGORRES;
+run;
+
+%report(wide,title="patients with abnormal ECG - treatment period");
+/* ISSUE: wrong order of PAGENAME levels */
+
+/* abnormal ECG results post study (CONTINUE HERE) */
+
 %listncs(code=EG,visit='Post Study');
 
+data long;
+	set EG;
+	if RID in (&ids_ncs);
+	if VISIT in ('Post Study');
+run; 
 
-proc print data=EG;
-	where RID in (&ids_ncs);
+proc sort data=long;
+	by RID VISIT PAGENAME;
 run;
-*/
+
+proc transpose data=long out=wide;
+	by RID VISIT PAGENAME;
+	id EGTEST;
+	var EGORRES;
+run;
+
+%report(wide,title="patients with abnormal ECG - treatment period");
 
 /* adverse events */ 
 
