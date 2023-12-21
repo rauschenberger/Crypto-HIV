@@ -290,6 +290,9 @@ proc format;
 	value ECG_axis		low--30=&low.
 						-30-90='white'
 						90-high=&high.;
+	value ECG_wave 		low-0=&low.  
+						0-130='white' /*unknown normal range*/
+						130-high=&high.;
 run; 
 
 %macro color;
@@ -331,6 +334,9 @@ run;
 	endcomp;
 	compute P_Wave_Axis;
 		call define(_col_,'style','style={background=ECG_axis.}');
+	endcomp;
+	compute P_Wave_Duration__Aggregate;
+		call define(_col_,'style','style={background=ECG_wave.}');
 	endcomp;
 %mend color;
 
