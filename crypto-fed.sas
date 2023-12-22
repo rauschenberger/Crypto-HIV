@@ -4,10 +4,10 @@
 /* clean workspace */
 
 dm 'odsresults; clear';
+dm "log; clear; ";
 proc datasets library=work kill;
 run;
 %symdel _all_;
-dm log "OUT;CLEAR;LOG;CLEAR;";
 
 /* option for log */
 
