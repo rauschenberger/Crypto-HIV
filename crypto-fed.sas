@@ -809,6 +809,9 @@ Things to do:
 
 - mixed models: combine tables
 - vital signs: solve date/time issue
+- order labels for category levels
+- security analysis
+- integration with WinNonlin
 
 
 Mann-Whitney U test:
