@@ -421,20 +421,6 @@ run;
 %add_period(VS);
 %add_treat(VS);
 
-/*
-data VS;
-	set VS;
-	if VISIT='Screening Visit' then time=-1;
-	else if FORM='Pre-dose' then time=0;
-	else if FORM='2 hours post-dose' then time=1;
-	else if FORM='4 hours post-dose' then time=2;
-	else if FORM='6 hours post-dose' then time=3;
-	else if FORM='48 hours post-dose' then time=4;
-	else if VISIT='Post Study' then time=5;
-	else time=.;
-run;
-*/
-
 data VS;
 	set VS;
 	length time $40;
@@ -449,23 +435,6 @@ data VS;
 	else if VISIT='Unscheduled Treatment Period 2' then time='P2X';
 	else time=.;
 run;
-
-/*
-data VS;
-	set VS;
-	length time $40;
-	if VISIT='Screening Visit' then time='screen';
-	else if FORM='Pre-dose' then time=cat('P',period,'pre');
-	else if FORM='2 hours post-dose' then time=cat('P',period,'H2');
-	else if FORM='4 hours post-dose' then time=cat('P',period,'H4');
-	else if FORM='6 hours post-dose' then time=cat('P',period,'H6');
-	else if FORM='48 hours post-dose' then time=cat('P',period,'H48');
-	else if VISIT='Post Study' then time='post';
-	else if VISIT='Unscheduled Treatment Period 1' then time='P1X';
-	else if VISIT='Unscheduled Treatment Period 2' then time='P2X';
-	else time=.;
-run;
-*/
 
 /* TO DO: Use nicer labels but maintain order in tables and figures. */ 
 
@@ -535,7 +504,6 @@ run;
 proc summary data=VS nway;
 	where not missing(RID) and not missing(period);
 	class VSSTRESC RID FORM treat time;
-	/*id RID FORM treat;*/
 	output out=temp;
 run;
 
@@ -551,20 +519,11 @@ proc tabulate data=temp;
 run;
 
 
-/* START TRIAL
-
-%listncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
-%showncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',name='VS');
-%report(wide,title="patients with abnormal NCS - scheduled visits",name='VS');
-
-END TRIAL */ 
-
 /* vital signs - listing abnormal */
 
 data long;
 	set VS;
-	where VSSTRESC='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD'); /* and not missing(FORM) and VSPOS='Supine';*/
-	/*keep VISIT RID treat period FORM VSTEST VSPOS VSORRES;*/
+	where VSSTRESC='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
 run;
 
 proc sort data=VS;
@@ -581,7 +540,7 @@ run;
 
 %listncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
 %showncs(code=VS,visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',name='VS');
-%report(wide,title="patients with abnormal NCS - scheduled visits",name='VS');
+%report(wide,title="patients with abnormal NCS - unscheduled visits",name='VS');
 
 /* vital signs - trajectory */
 
@@ -844,298 +803,27 @@ run;
 %PKmixmod(logAUCall);
 %PKmixmod(logAUCinf);
 
-
-
 /*
-TO DO:
-- mixed models: combine tables
 
+Things to do:
+
+- mixed models: combine tables
 - vital signs: solve date/time issue
 
-*/
 
-/*
-Mann-Whitney U test
+Mann-Whitney U test:
 
 proc npar1way data=PKpars wilcoxon;
 	class treat;
 	var Cmax Tmax Lambda_z;
 run;
-*/
 
 
-/*
 Saving output to PDF or RTF:
+
 ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
 run;
 SOME CODE
 ods pdf close;
-*/
-
-/*
-TRYING TO REFORMAT OUTPUT FROM TABULATE:
-Use SAS-proc-tabulate for statistical reporting:
-https://support.sas.com/resources/papers/proceedings13/289-2013.pdf
-
-proc tabulate data=sashelp.class out=temp;
-  	var age height weight;
-  	class sex;
-  	table height='height: mean (std)', (sex all)*(mean='' std='');
-	table height='height: min-max', (sex all)*(min='' max='');
-	table weight='weight: mean (std)', (sex all)*(mean='' std='');
-	table weight='weight: min-max', (sex all)*(min='' max='');
-run;
-*/
-
-/*
-proc print data=sashelp.class(obs=10); 
-run;
-
-proc format; 
-	value 	weightF 	low-80='red' 
-						80-130='white' 
-						130-high='red';
-	value	heightF 	low-60='red'
-						60-70='white'
-						70-high='red';
-	value 	weightM 	low-80='blue' 
-						80-130='white' 
-						130-high='blue';
-	value	heightM 	low-60='blue'
-						60-70='white'
-						70-high='blue';
-run; 
-
-proc report data=sashelp.class nowd; 
-	columns Name Sex Age Height Weight; 
-	define height/style={background=heightF.};
-	define weight/style={background=weightM.}; 
-run;
-
-proc report data=sashelp.class nowd;
-    columns Name Sex Age Height Weight;
-    compute before Sex;
-        if Sex = 'F' then do;
-            call define('height', 'style', 'style=[background=heightF.]');
-            call define('weight', 'style', 'style=[background=weightF.]');
-        end;
-        else if Sex = 'M' then do;
-            call define('height', 'style', 'style=[background=heightM.]');
-            call define('weight', 'style', 'style=[background=weightM.]');
-        end;
-    endcomp;
-run;
-*/
-
-/*
-proc tabulate data=sashelp.class out=temp;
-  	var age height weight;
-  	class sex;
-  	table height='height: mean (std)', (sex all)*(mean='' std='');
-	table height='height: min-max', (sex all)*(min='' max='');
-	table weight='weight: mean (std)', (sex all)*(mean='' std='');
-	table weight='weight: min-max', (sex all)*(min='' max='');
-run;
-
-proc tabulate data=sashelp.class out=temp;
-  	var age height weight;
-  	class sex;
-  	table height='height: mean (std)'*(mean=' ' std=' ')
-	      height='height: min-max'*(min=' ' max=' ')
-	      weight='weight: mean (std)'*(mean=' ' std=' ')
- 	      weight='weight: min-max'*(min=' ' max=' ')
-          ,
-           (sex all);
-run;
-*/
-
-
-/* 
-
-macro - listing abnormal
-
-data temp;	
-	set VS;
-	where VSSTRESC='NCS' and not missing(RID);
-run;
-
-proc sql noprint;
-  select distinct RID
-  into :ids_ncs separated by ','
-  from temp;
-quit;
-
-data long;
-	set VS;
-	if RID in (&ids_ncs);
-	if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2');
-run; 
-
-proc transpose data=long out=wide;
-	by RID VISIT VSPOS period treat;
-	id VSTEST;
-	var VSORRES;
-run;
-
-proc print data=wide;
-	id RID;
-	var VISIT period treat VSPOS Systolic_Blood_Pressure Diastolic_Blood_Pressure Pulse_Rate;
-	title 'patients with abnormal NCS - unscheduled visits';
-run;
 
 */
-
-/* table with special formatting - working 
-
-%macro combine(dataset);
-data &dataset.;
-	set &dataset.;
-	length M_STD MIN_MAX $15;
-	M_STD= strip(put(mean, 6.2))||' ('||strip(put(std, 6.2))||')';
-	MIN_MAX= strip(put(min, best.))||' - '||strip(put(max, best.));
-run;
-%mend combine;
-
-proc means data=sashelp.class;
-ways 1;
-class sex;
-var height weight;
-output out=means1;
-title 'proc means';
-run;
-
-proc print data=means1;
-run;
-
-proc transpose data=means1 out=wide1;
-by sex;
-var height weight;
-id _stat_;
-proc print;
-title 'proc transpose';
-run;
-
-proc means data=sashelp.class;
-var height weight;
-output out=means2;
-title 'proc means';
-run;
-
-proc transpose data=means2 out=wide2;
-by _type_;
-var height weight;
-id _stat_;
-proc print;
-title 'proc transpose';
-run;
-
-%combine(wide1);
-%combine(wide2);
-
-proc print data=wide1;
-run;
-
-proc sort data= wide1;
-by _name_;
-run;
-
-proc print data=wide;
-run;
-
-proc transpose data=wide1 out=narrow1;
-by _name_ ;
-var m_std min_max n;
-id sex;
-proc print;
-title 'transpose';
-run;
-
-proc transpose data=wide2 out=narrow2 (rename=(col1=TOTAL));
-by _name_ ;
-var m_std min_max n;
-proc print;
-title 'transpose';
-run;
-
-data final;
-merge narrow1 narrow2;
-by _name_;
-if find(f, '(') gt 0 then stat= 'mean (std)';
-else do; stat= 'min - max';
-_name_='';
-end;
-proc print;
-title 'final';
-run;
-
-proc report data= final split='~';
-column _name_ stat('Sex' f m) ('Both~' total);
-define _name_/'' display;
-define stat/'' display;
-define f/ 'F' display;
-define m/'M' display;
-define total/'' display;
-run;
-
-end trial */
-
-/* trial: output from tabulate 
-
-proc tabulate data=sashelp.class out=temp;
-	class sex;
-	var height weight;
-	table (height weight) * (mean median min max), sex all=both;
-run;
-
-proc print data=temp;
-run;
-*/
-
-/* trial: output from summary 
-
-proc summary data=sashelp.class mean std median min max print;
-	class sex;
-	var height weight;
-	output out=temp mean= median= min= max=;
-run;
-
-proc print data=temp;
-	title 'summary';
-run;
-
-proc sort data=temp;
-	by _stat_;
-run;
-
-proc transpose data=temp;
-	by _stat_;
-	var height weight;
-	id sex;
-run;
-
-*/
-
-
-/* start temporary
-
-proc contents data=wide out=vars noprint;
-run;
-
-proc print data=vars;
-run;
-
-proc report data=wide spanrows out=temp1;
-	compute Temperature;
-		call define(_col_,'style','style={background=temp.}');
-	endcomp;
-	define RID/group;
-	define VISIT/group;
-	define _NAME_/noprint;
-	title "blabla";
-run;
-
-proc print data=temp1;
-run;
-
-end temporary */
- 
