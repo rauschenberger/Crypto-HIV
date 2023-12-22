@@ -814,6 +814,10 @@ Things to do:
 - integration with WinNonlin
 
 
+Consider computing PK parameters in SAS:
+- https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
+
+
 Mann-Whitney U test:
 
 proc npar1way data=PKpars wilcoxon;
