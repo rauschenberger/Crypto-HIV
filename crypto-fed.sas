@@ -97,30 +97,6 @@ data &file;
 run;
 %mend asnumeric;
 
-
-/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
-%macro listncs(code,visit);
-	%global ids_ncs;
-	%if &code.=VS %then %do;
-		%let var_test=VSSTRESC;
-	%end;
-	%else %do;
-		%let var_test=EGSTRESC1;
-	%end;
-	%put var_test=&var_test.;
-    data temp;
-        set &code.;
-        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
-    run;
-    proc sql noprint;
-        select distinct RID
-        into :ids_ncs separated by ','
-        from temp;
-    quit;
-	%let ids_ncs=&ids_ncs.;
-	%put ids_ncs=&ids_ncs.;
-%mend listncs;
-
 proc format; 
 	%let low='LIGR'; /*pale blue: '#4ED3D4'*/
 	%let high='LIGR'; /*pale red: '#D9544D'*/
@@ -213,16 +189,6 @@ run;
 	endcomp;
 	%end;
 %mend color;
-
-%macro report(data,title,name);
-	proc report data=&data. spanrows;
-		%color(name=&name.);
-		define RID/order;
-		define VISIT/order;
-		define _NAME_/noprint;
-		title &title.;
-	run;
-%mend;
 
 %macro add_period(code);
 	data &code.;
@@ -353,10 +319,77 @@ proc tabulate data=VS;
 	title "vital signs";
 run;
 
-/* vital signs - listing */ 
+/* vital signs - screening - listing */
+
+/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
+%macro listncs(code,visit);
+	%global ids_ncs;
+	%if &code.=VS %then %do;
+		%let var_test=VSSTRESC;
+	%end;
+	%else %do;
+		%let var_test=EGSTRESC1;
+	%end;
+	%put var_test=&var_test.;
+    data temp;
+        set &code.;
+        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
+    run;
+    proc sql noprint;
+        select distinct RID
+        into :ids_ncs separated by ','
+        from temp;
+    quit;
+	%let ids_ncs=&ids_ncs.;
+	%put ids_ncs=&ids_ncs.;
+%mend listncs;
+
+%macro showncs(code,visit,name);
+	%if &name.='VS' %then %do;
+		%let var_id=VSTEST;
+		%let state_by=RID VISIT VSPOS;
+		%let var=VSORRES;
+	%end;
+	%else %if &name.='EG' %then %do;
+		%let var_id=EGTEST;
+		%let state_by=RID VISIT PAGENAME;
+		%let var=EGORRES;
+	%end;
+	data long;
+		set &code.;
+		if RID in (&ids_ncs.);
+		if VISIT in (&visit.);
+	run; 
+	proc sort data=long;
+		by &state_by.;
+	run;
+	proc transpose data=long out=wide;
+		by &state_by.;
+		id &var_id.;
+		var &var.;
+	run;
+%mend;
+
+%macro report(data,title,name);
+	proc report data=&data. spanrows;
+		%color(name=&name.);
+		define RID/order;
+		define VISIT/order;
+		define _NAME_/noprint;
+		title &title.;
+	run;
+%mend;
 
 %listncs(code=VS,visit='Screening Visit');
+%showncs(code=VS,visit='Screening Visit' 'Unscheduled Screening',name='VS');
+%report(wide,title="patients with abnormal NCS - screening visits",name='VS');
 
+/*
+CONTINUE HERE: Combine all three macros, allow for PAGENAME.
+- arguments: data, check_visit, show_visit
+*/ 
+
+/*
 data long;
 	set VS;
 	if RID in (&ids_ncs.);
@@ -374,6 +407,7 @@ proc transpose data=long out=wide;
 run;
 
 %report(wide,title="patients with abnormal NCS - screening visits",name='VS');
+*/
 
 /* lead ECG */
 
@@ -394,15 +428,27 @@ proc tabulate data=EG;
 	title "ECG";
 run;
 
-/* ECG - listing */ 
+/* ECG - screening - listing */ 
 
 %listncs(code=EG,visit='SCREENING');
+%showncs(code=EG,visit='SCREENING' 'Unscheduled Screening',name='EG');
+%report(wide,title="patients with abnormal ECG - screening visits",name='EG');
 
+/*
 data long;
 	set EG;
 	if RID in (&ids_ncs.);
 	if VISIT in ('SCREENING','Unscheduled Screening');
 run; 
+
+proc print data=long;
+run;
+
+proc sql;
+  select distinct PAGENAME
+  into :unique_value
+  from YourDataset;
+quit;
 
 proc transpose data=long out=wide;
 	by RID VISIT;
@@ -411,6 +457,7 @@ proc transpose data=long out=wide;
 run;
 
 %report(wide,title="patients with abnormal ECG - screening visits",name='EG');
+*/
 
 /* hematology: data formatting will be different in actual clinical trial */
 
@@ -553,7 +600,7 @@ run;
 data long;
 	set VS;
 	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM) and VSPOS='Supine';
-	keep VISIT RID treat period FORM VSTEST VSPOS VSORRES;
+	/*keep VISIT RID treat period FORM VSTEST VSPOS VSORRES;*/
 run;
 
 proc transpose data=long out=wide;
@@ -678,7 +725,10 @@ run;
 
 %let visits='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
 %listncs(code=EG,visit=&visits);
+%showncs(code=EG,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',name='EG');
+%report(wide,title="patients with abnormal ECG - treatment period",name='EG');
 
+/*
 data long;
 	set EG;
 	if RID in (&ids_ncs);
@@ -696,12 +746,17 @@ proc transpose data=long out=wide;
 run;
 
 %report(wide,title="patients with abnormal ECG - treatment period",name='EG');
+*/
+
 /* ISSUE: wrong order of PAGENAME levels */
 
 /* abnormal ECG results post study (CONTINUE HERE) */
 
 %listncs(code=EG,visit='Post Study');
+%showncs(code=EG,visit='Post Study',name='EG');
+%report(wide,title="patients with abnormal ECG - treatment period",name='EG');
 
+/*
 data long;
 	set EG;
 	if RID in (&ids_ncs);
@@ -719,6 +774,7 @@ proc transpose data=long out=wide;
 run;
 
 %report(wide,title="patients with abnormal ECG - treatment period",name='EG');
+*/
 
 /* adverse events */ 
 
