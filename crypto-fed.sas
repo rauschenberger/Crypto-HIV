@@ -215,13 +215,14 @@ run;
 
 /* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
 %macro listncs(code,visit);
+	%global ids_ncs;
 	%if &code.=VS %then %do;
 		%let var_test=VSSTRESC;
 	%end;
 	%else %do;
 		%let var_test=EGSTRESC1;
 	%end;
-	%put var_test=&var_test;
+	%put var_test=&var_test.;
     data temp;
         set &code.;
         where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
@@ -231,14 +232,15 @@ run;
         into :ids_ncs separated by ','
         from temp;
     quit;
-	%put ids_ncs=&ids_ncs;
+	%let ids_ncs=&ids_ncs.;
+	%put ids_ncs=&ids_ncs.;
 %mend listncs;
 
 %listncs(code=VS,visit='Screening Visit');
 
 data long;
 	set VS;
-	if RID in (&ids_ncs);
+	if RID in (&ids_ncs.);
 	if VISIT in ('Screening Visit','Unscheduled Screening');
 run; 
 
@@ -381,7 +383,7 @@ run;
 
 data long;
 	set EG;
-	if RID in (&ids_ncs);
+	if RID in (&ids_ncs.);
 	if VISIT in ('SCREENING','Unscheduled Screening');
 run; 
 
@@ -582,7 +584,7 @@ quit;
 
 data long;
 	set VS;
-	if RID in (&ids_ncs);
+	if RID in (&ids_ncs.);
 	if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2');
 run; 
 
@@ -600,7 +602,7 @@ run;
 	data temp;
 		set VS;
 		where VSTEST=&test. and VSPOS='Supine';
-		if RID in (&ids_ncs);
+		if RID in (&ids_ncs.);
 	run;
 	proc sort data=temp;
 		by VSDTC RID;
