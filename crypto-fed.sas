@@ -354,30 +354,6 @@ run;
 
 %report(wide,title="patients with abnormal NCS - screening visits");
 
-/* start temporary
-
-proc contents data=wide out=vars noprint;
-run;
-
-proc print data=vars;
-run;
-
-proc report data=wide spanrows out=temp1;
-	compute Temperature;
-		call define(_col_,'style','style={background=temp.}');
-	endcomp;
-	define RID/group;
-	define VISIT/group;
-	define _NAME_/noprint;
-	title "blabla";
-run;
-
-proc print data=temp1;
-run;
-
-end temporary */
- 
-
 /* lead ECG */
 
 %asnumeric(EG,EGORRES);
@@ -928,8 +904,6 @@ run;
 */
 
 
-
-
 /*
 Saving output to PDF or RTF:
 ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
@@ -1180,3 +1154,28 @@ proc transpose data=temp;
 run;
 
 */
+
+
+/* start temporary
+
+proc contents data=wide out=vars noprint;
+run;
+
+proc print data=vars;
+run;
+
+proc report data=wide spanrows out=temp1;
+	compute Temperature;
+		call define(_col_,'style','style={background=temp.}');
+	endcomp;
+	define RID/group;
+	define VISIT/group;
+	define _NAME_/noprint;
+	title "blabla";
+run;
+
+proc print data=temp1;
+run;
+
+end temporary */
+ 
