@@ -3,17 +3,12 @@
 
 /* clean workspace */
 
-dm 'odsresults; clear';
-dm "log; clear; ";
 proc datasets library=work kill;
 run;
-%symdel _all_;
-
-/* option for log */
-
+dm 'odsresults; clear';
+dm "log; clear; ";
 options nosource;
 options nonotes;
-/*options source notes errors=4;*/
 
 /* define paths */
 
@@ -101,6 +96,153 @@ data &file;
 	rename temp=&var;
 run;
 %mend asnumeric;
+
+
+/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
+%macro listncs(code,visit);
+	%global ids_ncs;
+	%if &code.=VS %then %do;
+		%let var_test=VSSTRESC;
+	%end;
+	%else %do;
+		%let var_test=EGSTRESC1;
+	%end;
+	%put var_test=&var_test.;
+    data temp;
+        set &code.;
+        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
+    run;
+    proc sql noprint;
+        select distinct RID
+        into :ids_ncs separated by ','
+        from temp;
+    quit;
+	%let ids_ncs=&ids_ncs.;
+	%put ids_ncs=&ids_ncs.;
+%mend listncs;
+
+proc format; 
+	%let low='LIGR'; /*pale blue: '#4ED3D4'*/
+	%let high='LIGR'; /*pale red: '#D9544D'*/
+	/* vital signs*/
+	value 	temp 		low-35.5=&low. 
+						35.5-37.5='white' 
+						37.5-high=&high.;
+	value	sup_sys 	low-90=&low.
+						90-140='white'
+						140-high=&high.;
+	value	sup_dia 	low-45=&low.
+						45-90='white'
+						90-high=&high.;
+	value	sup_pul 	low-40=&low.
+						40-100='white'
+						100-high=&high.;
+	value	sta_sys 	low-85=&low.
+						85-150='white'
+						150-high=&high.;
+	value	sta_dia 	low-50=&low.
+						50-95='white'
+						95-high=&high.;
+	value	sta_pul 	low-40=&low.
+						40-100='white'
+						100-high=&high.;
+	/* ECG */ 
+	value ECG_HR		low-40=&low.
+						40-100='white'
+						100-high=&high.;
+	value ECG_QRS		low-0=&low.
+						0-119='white'
+						119-high=&high.;
+	value ECG_PR		low-120=&low.
+						120-220='white'
+						220-high=&high.;
+	value ECG_axis		low--30=&low.
+						-30-90='white'
+						90-high=&high.;
+	value ECG_wave 		low-0=&low.  
+						0-130='white' /*unknown normal range*/
+						130-high=&high.;
+run; 
+
+%macro color(name);
+	%put name: &name.;
+	%if &name.='VS' %then %do;
+	compute Temperature;
+		call define(_col_,'style','style={background=temp.}');
+	endcomp;
+	compute Systolic_Blood_Pressure;
+		if VSPOS = 'Supine' then do;
+			call define(_col_,'style','style={background=sup_sys.}');
+		end;
+		else if VSPOS='Standing' then do;
+			call define(_col_,'style','style={background=sta_sys.}');
+		end;
+	endcomp;
+	compute Diastolic_Blood_Pressure;
+		if VSPOS = 'Supine' then do;
+			call define(_col_,'style','style={background=sup_dia.}');
+		end;
+		else if VSPOS='Standing' then do;
+			call define(_col_,'style','style={background=sta_dia.}');
+		end;
+	endcomp;
+	compute Pulse_Rate;
+		if VSPOS = 'Supine' then do;
+			call define(_col_,'style','style={background=sup_pul.}');
+		end;
+		else if VSPOS='Standing' then do;
+			call define(_col_,'style','style={background=sta_pul.}');
+		end;
+	endcomp;
+	%end;
+	%if &name.='EG' %then %do;
+	compute Heart_Rate;
+		call define(_col_,'style','style={background=ECG_HR.}');
+	endcomp;
+	compute QRS_Duration__Aggregate;
+		call define(_col_,'style','style={background=ECG_QRS.}');
+	endcomp;
+	compute PR_Interval__Aggregate;
+		call define(_col_,'style','style={background=ECG_PR.}');
+	endcomp;
+	compute P_Wave_Axis;
+		call define(_col_,'style','style={background=ECG_axis.}');
+	endcomp;
+	compute P_Wave_Duration__Aggregate;
+		call define(_col_,'style','style={background=ECG_wave.}');
+	endcomp;
+	%end;
+%mend color;
+
+%macro report(data,title,name);
+	proc report data=&data. spanrows;
+		%color(name=&name.);
+		define RID/order;
+		define VISIT/order;
+		define _NAME_/noprint;
+		title &title.;
+	run;
+%mend;
+
+%macro add_period(code);
+	data &code.;
+		set &code.;
+		if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
+		else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
+		else period = '';
+	run;
+%mend add_period;
+
+%macro add_treat(code);
+	data &code.;
+		set &code.;
+    	if period='1' and seq='1 (AB)' then treat='A';
+		else if period='1' and seq='2 (BA)' then treat='B';
+		else if period='2' and seq='1 (AB)' then treat='B';
+		else if period='2' and seq='2 (BA)' then treat='A';
+		else treat = '';
+	run;
+%mend add_treat;
 
 /* withdrawals */
 
@@ -213,29 +355,6 @@ run;
 
 /* vital signs - listing */ 
 
-/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
-%macro listncs(code,visit);
-	%global ids_ncs;
-	%if &code.=VS %then %do;
-		%let var_test=VSSTRESC;
-	%end;
-	%else %do;
-		%let var_test=EGSTRESC1;
-	%end;
-	%put var_test=&var_test.;
-    data temp;
-        set &code.;
-        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
-    run;
-    proc sql noprint;
-        select distinct RID
-        into :ids_ncs separated by ','
-        from temp;
-    quit;
-	%let ids_ncs=&ids_ncs.;
-	%put ids_ncs=&ids_ncs.;
-%mend listncs;
-
 %listncs(code=VS,visit='Screening Visit');
 
 data long;
@@ -254,111 +373,7 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-proc format; 
-	%let low='LIGR'; /*pale blue: '#4ED3D4'*/
-	%let high='LIGR'; /*pale red: '#D9544D'*/
-	/* vital signs*/
-	value 	temp 		low-35.5=&low. 
-						35.5-37.5='white' 
-						37.5-high=&high.;
-	value	sup_sys 	low-90=&low.
-						90-140='white'
-						140-high=&high.;
-	value	sup_dia 	low-45=&low.
-						45-90='white'
-						90-high=&high.;
-	value	sup_pul 	low-40=&low.
-						40-100='white'
-						100-high=&high.;
-	value	sta_sys 	low-85=&low.
-						85-150='white'
-						150-high=&high.;
-	value	sta_dia 	low-50=&low.
-						50-95='white'
-						95-high=&high.;
-	value	sta_pul 	low-40=&low.
-						40-100='white'
-						100-high=&high.;
-	/* ECG */ 
-	value ECG_HR		low-40=&low.
-						40-100='white'
-						100-high=&high.;
-	value ECG_QRS		low-0=&low.
-						0-119='white'
-						119-high=&high.;
-	value ECG_PR		low-120=&low.
-						120-220='white'
-						220-high=&high.;
-	value ECG_axis		low--30=&low.
-						-30-90='white'
-						90-high=&high.;
-	value ECG_wave 		low-0=&low.  
-						0-130='white' /*unknown normal range*/
-						130-high=&high.;
-run; 
-
-%macro color(data);
-	%if data=VS %then %do;
-	compute Temperature;
-		call define(_col_,'style','style={background=temp.}');
-	endcomp;
-	compute Systolic_Blood_Pressure;
-		if VSPOS = 'Supine' then do;
-			call define(_col_,'style','style={background=sup_sys.}');
-		end;
-		else if VSPOS='Standing' then do;
-			call define(_col_,'style','style={background=sta_sys.}');
-		end;
-	endcomp;
-	compute Diastolic_Blood_Pressure;
-		if VSPOS = 'Supine' then do;
-			call define(_col_,'style','style={background=sup_dia.}');
-		end;
-		else if VSPOS='Standing' then do;
-			call define(_col_,'style','style={background=sta_dia.}');
-		end;
-	endcomp;
-	compute Pulse_Rate;
-		if VSPOS = 'Supine' then do;
-			call define(_col_,'style','style={background=sup_pul.}');
-		end;
-		else if VSPOS='Standing' then do;
-			call define(_col_,'style','style={background=sta_pul.}');
-		end;
-	endcomp;
-	%end;
-	%if data=EG %then %do;
-	compute Heart_Rate;
-		call define(_col_,'style','style={background=ECG_HR.}');
-	endcomp;
-	compute QRS_Duration__Aggregate;
-		call define(_col_,'style','style={background=ECG_QRS.}');
-	endcomp;
-	compute PR_Interval__Aggregate;
-		call define(_col_,'style','style={background=ECG_PR.}');
-	endcomp;
-	compute P_Wave_Axis;
-		call define(_col_,'style','style={background=ECG_axis.}');
-	endcomp;
-	compute P_Wave_Duration__Aggregate;
-		call define(_col_,'style','style={background=ECG_wave.}');
-	endcomp;
-	%end;
-%mend color;
-
-/* CONTINUE HERE: condition computation on availability of a column */ 
-
-%macro report(data,title);
-	proc report data=&data. spanrows;
-		%color(data);
-		define RID/order;
-		define VISIT/order;
-		define _NAME_/noprint;
-		title &title.;
-	run;
-%mend;
-
-%report(wide,title="patients with abnormal NCS - screening visits");
+%report(wide,title="patients with abnormal NCS - screening visits",name='VS');
 
 /* lead ECG */
 
@@ -395,31 +410,11 @@ proc transpose data=long out=wide;
 	var EGORRES;
 run;
 
-%report(wide,title="patients with abnormal ECG - screening visits");
+%report(wide,title="patients with abnormal ECG - screening visits",name='EG');
 
 /* hematology: data formatting will be different in actual clinical trial */
 
 /* vital signs - values */
-
-%macro add_period(code);
-	data &code.;
-		set &code.;
-		if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
-		else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
-		else period = '';
-	run;
-%mend add_period;
-
-%macro add_treat(code);
-	data &code.;
-		set &code.;
-    	if period='1' and seq='1 (AB)' then treat='A';
-		else if period='1' and seq='2 (BA)' then treat='B';
-		else if period='2' and seq='1 (AB)' then treat='B';
-		else if period='2' and seq='2 (BA)' then treat='A';
-		else treat = '';
-	run;
-%mend add_treat;
 
 %add_period(VS);
 %add_treat(VS);
@@ -567,7 +562,7 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%report(wide,title="patients with abnormal NCS - scheduled visits");
+%report(wide,title="patients with abnormal NCS - scheduled visits",name='VS');
 
 /* vital signs - sample identifiers . */
 
@@ -596,7 +591,7 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%report(wide,title="patients with abnormal NCS - unscheduled visits");
+%report(wide,title="patients with abnormal NCS - unscheduled visits",name='VS');
 
 /* vital signs - trajectory */
 
@@ -700,7 +695,7 @@ proc transpose data=long out=wide;
 	var EGORRES;
 run;
 
-%report(wide,title="patients with abnormal ECG - treatment period");
+%report(wide,title="patients with abnormal ECG - treatment period",name='EG');
 /* ISSUE: wrong order of PAGENAME levels */
 
 /* abnormal ECG results post study (CONTINUE HERE) */
@@ -723,7 +718,7 @@ proc transpose data=long out=wide;
 	var EGORRES;
 run;
 
-%report(wide,title="patients with abnormal ECG - treatment period");
+%report(wide,title="patients with abnormal ECG - treatment period",name='EG');
 
 /* adverse events */ 
 
