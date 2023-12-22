@@ -296,9 +296,11 @@ proc format;
 run; 
 
 %macro color;
+	/*%if data=VS %then %do;*/
 	compute Temperature;
 		call define(_col_,'style','style={background=temp.}');
 	endcomp;
+	/*%end;*/
 	compute Systolic_Blood_Pressure;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_sys.}');
