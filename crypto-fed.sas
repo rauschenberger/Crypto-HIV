@@ -297,12 +297,11 @@ proc format;
 						130-high=&high.;
 run; 
 
-%macro color;
-	/*%if data=VS %then %do;*/
+%macro color(data);
+	%if data=VS %then %do;
 	compute Temperature;
 		call define(_col_,'style','style={background=temp.}');
 	endcomp;
-	/*%end;*/
 	compute Systolic_Blood_Pressure;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_sys.}');
@@ -327,6 +326,8 @@ run;
 			call define(_col_,'style','style={background=sta_pul.}');
 		end;
 	endcomp;
+	%end;
+	%if data=EG %then %do;
 	compute Heart_Rate;
 		call define(_col_,'style','style={background=ECG_HR.}');
 	endcomp;
@@ -342,13 +343,14 @@ run;
 	compute P_Wave_Duration__Aggregate;
 		call define(_col_,'style','style={background=ECG_wave.}');
 	endcomp;
+	%end;
 %mend color;
 
 /* CONTINUE HERE: condition computation on availability of a column */ 
 
 %macro report(data,title);
 	proc report data=&data. spanrows;
-		%color;
+		%color(data);
 		define RID/order;
 		define VISIT/order;
 		define _NAME_/noprint;
