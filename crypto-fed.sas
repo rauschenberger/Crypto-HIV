@@ -347,7 +347,7 @@ run;
 %macro showncs(code,visit,name);
 	%if &name.='VS' %then %do;
 		%let var_id=VSTEST;
-		%let state_by=RID VISIT VSPOS;
+		%let state_by=RID VISIT VSPOS FORM;
 		%let var=VSORRES;
 	%end;
 	%else %if &name.='EG' %then %do;
@@ -389,26 +389,6 @@ CONTINUE HERE: Combine all three macros, allow for PAGENAME.
 - arguments: data, check_visit, show_visit
 */ 
 
-/*
-data long;
-	set VS;
-	if RID in (&ids_ncs.);
-	if VISIT in ('Screening Visit','Unscheduled Screening');
-run; 
-
-proc sort data=long;
-	by RID VISIT VSPOS;
-run;
-
-proc transpose data=long out=wide;
-	by RID VISIT VSPOS;
-	id VSTEST;
-	var VSORRES;
-run;
-
-%report(wide,title="patients with abnormal NCS - screening visits",name='VS');
-*/
-
 /* lead ECG */
 
 %asnumeric(EG,EGORRES);
@@ -433,31 +413,6 @@ run;
 %listncs(code=EG,visit='SCREENING');
 %showncs(code=EG,visit='SCREENING' 'Unscheduled Screening',name='EG');
 %report(wide,title="patients with abnormal ECG - screening visits",name='EG');
-
-/*
-data long;
-	set EG;
-	if RID in (&ids_ncs.);
-	if VISIT in ('SCREENING','Unscheduled Screening');
-run; 
-
-proc print data=long;
-run;
-
-proc sql;
-  select distinct PAGENAME
-  into :unique_value
-  from YourDataset;
-quit;
-
-proc transpose data=long out=wide;
-	by RID VISIT;
-	id EGTEST;
-	var EGORRES;
-run;
-
-%report(wide,title="patients with abnormal ECG - screening visits",name='EG');
-*/
 
 /* hematology: data formatting will be different in actual clinical trial */
 
@@ -595,12 +550,25 @@ proc tabulate data=temp;
 	title 'vital signs results';
 run;
 
+
+/* START TRIAL
+
+%listncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
+%showncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',name='VS');
+%report(wide,title="patients with abnormal NCS - scheduled visits",name='VS');
+
+END TRIAL */ 
+
 /* vital signs - listing abnormal */
 
 data long;
 	set VS;
-	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM) and VSPOS='Supine';
+	where VSSTRESC='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD'); /* and not missing(FORM) and VSPOS='Supine';*/
 	/*keep VISIT RID treat period FORM VSTEST VSPOS VSORRES;*/
+run;
+
+proc sort data=VS;
+	by RID treat period VISIT FORM VSPOS;
 run;
 
 proc transpose data=long out=wide;
@@ -611,34 +579,9 @@ run;
 
 %report(wide,title="patients with abnormal NCS - scheduled visits",name='VS');
 
-/* vital signs - sample identifiers . */
-
-data temp;	
-	set VS;
-	where VSSTRESC='NCS' and not missing(RID) and not missing(FORM);
-run;
-
-proc sql noprint;
-  select distinct RID
-  into :ids_ncs separated by ','
-  from temp;
-quit;
-
-/* vital signs - unscheduled visits */
-
-data long;
-	set VS;
-	if RID in (&ids_ncs.);
-	if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2');
-run; 
-
-proc transpose data=long out=wide;
-	by RID treat period VISIT VSPOS;
-	id VSTEST;
-	var VSORRES;
-run;
-
-%report(wide,title="patients with abnormal NCS - unscheduled visits",name='VS');
+%listncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
+%showncs(code=VS,visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',name='VS');
+%report(wide,title="patients with abnormal NCS - scheduled visits",name='VS');
 
 /* vital signs - trajectory */
 
@@ -728,26 +671,6 @@ run;
 %showncs(code=EG,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',name='EG');
 %report(wide,title="patients with abnormal ECG - treatment period",name='EG');
 
-/*
-data long;
-	set EG;
-	if RID in (&ids_ncs);
-	if VISIT in ('Treatment Period 1: 30 hrs PD','Treatment Period 2: 30 hrs PD');
-run; 
-
-proc sort data=long;
-	by RID VISIT PAGENAME;
-run;
-
-proc transpose data=long out=wide;
-	by RID VISIT PAGENAME;
-	id EGTEST;
-	var EGORRES;
-run;
-
-%report(wide,title="patients with abnormal ECG - treatment period",name='EG');
-*/
-
 /* ISSUE: wrong order of PAGENAME levels */
 
 /* abnormal ECG results post study (CONTINUE HERE) */
@@ -755,26 +678,6 @@ run;
 %listncs(code=EG,visit='Post Study');
 %showncs(code=EG,visit='Post Study',name='EG');
 %report(wide,title="patients with abnormal ECG - treatment period",name='EG');
-
-/*
-data long;
-	set EG;
-	if RID in (&ids_ncs);
-	if VISIT in ('Post Study');
-run; 
-
-proc sort data=long;
-	by RID VISIT PAGENAME;
-run;
-
-proc transpose data=long out=wide;
-	by RID VISIT PAGENAME;
-	id EGTEST;
-	var EGORRES;
-run;
-
-%report(wide,title="patients with abnormal ECG - treatment period",name='EG');
-*/
 
 /* adverse events */ 
 
