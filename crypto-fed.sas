@@ -758,7 +758,7 @@ run;
 
 data temp;
 	set merged;
-	time = SAMPLETIME - PC_DELAY/60;
+	time = SAMPLETIME - PC_DELAY/60; /* double-check unit and sign in R */
 	conc = CONCENTRATION;
 	keep RID period treat time conc;
 run;
@@ -768,6 +768,7 @@ proc export data=temp
 	dbms=csv
 	replace;
 run;
+
 
 /* correction should be done for each combination of RID, period and sampletime */ 
 
