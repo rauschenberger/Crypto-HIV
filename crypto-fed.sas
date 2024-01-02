@@ -729,6 +729,8 @@ X<'"C:\Program Files\R\R-4.3.1\bin\Rscript.exe" C:\Users\arauschenberger\Desktop
 %let RCommand = "C:\Program Files\R\R-4.3.1\bin\Rscript.exe" "C:\Users\arauschenberger\Desktop\Crypto-HIV\trial.R";
 x "&RCommand";
 
+Run everything with a single script from the command line (first SAS, then WinNonLin, then SAS, then LaTeX)?
+
 */
 
 proc import datafile="I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\9 - Final analysis\Data\Final Parameters_NCA_primary analysis"
@@ -809,14 +811,14 @@ Things to do:
 
 - mixed models: combine tables
 - vital signs: solve date/time issue
-- order labels for category levels
 - security analysis
 - integration with WinNonlin
-
 
 Consider computing PK parameters in SAS:
 - https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
 
+Consider using WinNonLin with SAS:
+- https://www.lexjansen.com/pharmasug/2001/Proceed/Posters/P06_russell.pdf
 
 Mann-Whitney U test:
 
