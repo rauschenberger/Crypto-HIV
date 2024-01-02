@@ -735,29 +735,39 @@ run;
 data PC;
 	set PC;
 	if VISIT='Treatment Period 1: 30 hrs PD' then
-        period=1;
-    else if VISIT='Treatment Period 2: 30 hrs PD' then
-        period=2;
-    else
-        period='';
-	if PC_SAMPLING_TIME='0,5' then
+		period=1;
+	else if VISIT='Treatment Period 2: 30 hrs PD' then
+	period=2;
+	if PC_SAMPLING_TIME='Pre-dose' then
+		SAMPLETIME=0;
+	else if PC_SAMPLING_TIME='0,5' then
 		SAMPLETIME=0.5;
-	else if PC_SAMPLING_TIME='' /*CONTINUE HERE !*/
+	else
+	SAMPLETIME=input(PC_SAMPLING_TIME,best32.);
 run;
 
-proc print data=PC(obs=20);
-	title "file PC";
+data PK;
+	set PK;
+	where not missing(CONCENTRATION);
 run;
 
-proc tabulate data=PC;
-	class VISIT;
-	table VISIT;
+data merged;
+	merge PC(in=a) PK(in=b);
+	by RID period SAMPLETIME;
 run;
 
-proc print data=PK(obs=20);
-	title "file PK";
+data temp;
+	set merged;
+	time = SAMPLETIME - PC_DELAY/60;
+	conc = CONCENTRATION;
+	keep RID period treat time conc;
 run;
 
+proc export data=temp
+	outfile="&pathOut./pk_temp.csv"
+	dbms=csv
+	replace;
+run;
 
 /* correction should be done for each combination of RID, period and sampletime */ 
 
