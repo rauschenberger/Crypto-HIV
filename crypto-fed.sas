@@ -75,7 +75,7 @@ run;
 /* import and process clinical data */
 
 %macro prepare;
-   %let code = IE AE DM DS DV SU MH VS EG LB; /* add other abbreviations*/
+   %let code = IE AE DM DS DV SU MH VS EG LB PC; /* add other abbreviations*/
    %do i = 1 %to %sysfunc(countw(&code));
       %import(&pathClin,%scan(&code,&i));
 	  %add_rid(%scan(&code,&i));
@@ -727,6 +727,39 @@ proc sgplot data=PK_mean;
     keylegend / title='treatment';
 run;
 /*ods pdf close;*/
+
+/* prepare data for WinNonLin */ 
+
+%asnumeric(PC,PC_DELAY);
+
+data PC;
+	set PC;
+	if VISIT='Treatment Period 1: 30 hrs PD' then
+        period=1;
+    else if VISIT='Treatment Period 2: 30 hrs PD' then
+        period=2;
+    else
+        period='';
+	if PC_SAMPLING_TIME='0,5' then
+		SAMPLETIME=0.5;
+	else if PC_SAMPLING_TIME='' /*CONTINUE HERE !*/
+run;
+
+proc print data=PC(obs=20);
+	title "file PC";
+run;
+
+proc tabulate data=PC;
+	class VISIT;
+	table VISIT;
+run;
+
+proc print data=PK(obs=20);
+	title "file PK";
+run;
+
+
+/* correction should be done for each combination of RID, period and sampletime */ 
 
 /*
 integration of WinNonLin and SAS:
