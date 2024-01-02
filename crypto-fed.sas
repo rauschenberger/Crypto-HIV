@@ -370,15 +370,40 @@ run;
 	run;
 %mend;
 
+proc format; 
+	value dose 
+	0='ECG' 
+ 	1='ECG - 2 hours post-dose - only for Ancotil'
+ 	2='ECG - 4 hours post-dose - only for Flucitosine'
+ 	3='ECG - 8 hours (2 hours after 2nd dose Ancotil)'
+	4='ECG - 48 hours post-dose'; 
+run; 
+
 %macro report(data,title,name);
 	proc report data=&data. spanrows;
 		%color(name=&name.);
-		define RID/order;
-		define VISIT/order;
+		define RID / order order=internal;
+		define VISIT / order order=internal;
+		%if &name.='EG' %then %do;
+			define PAGENAME / order order=internal; /* ISSUE: Why does adding format=dose. lead to the error 'PAGENAME must use a character format.' ? */ 
+		%end;
 		define _NAME_/noprint;
 		title &title.;
 	run;
 %mend;
+
+/*
+proc print data=EG;
+run;
+
+proc tabulate data=EG;
+	class PAGENAME;
+	table PAGENAME;
+run;
+
+proc contents data=EG;
+run;
+*/
 
 %listncs(code=VS,visit='Screening Visit');
 %showncs(code=VS,visit='Screening Visit' 'Unscheduled Screening',name='VS');
@@ -636,7 +661,7 @@ run;
 
 %listncs(code=EG,visit='Post Study');
 %showncs(code=EG,visit='Post Study',name='EG');
-%report(wide,title="patients with abnormal ECG - treatment period",name='EG');
+%report(wide,title="patients with abnormal ECG - post study",name='EG');
 
 /* adverse events */ 
 
