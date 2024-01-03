@@ -769,10 +769,9 @@ proc export data=temp
 	replace;
 run;
 
-%put Note: Execute intermediate analysis in Phoenix WinNonlin! See comments in SAS file.;
+%put Note: Execute intermediate analysis in Phoenix WinNonlin! See details in SAS file.;
 
 /*
-
 1. 	Run the SAS code above here (i.e., ending with proc export),
 	which exports the file "concentration-data_XXX.csv" to Phoenix WinNonlin.
 
@@ -796,7 +795,6 @@ run;
 
 3. 	Run the SAS code below here (i.e., starting with proc import),
 	which imports the file "final-parameters-pivoted_XXX.csv" from Phoenix WinNonlin.
-
 */
 
 filename temp "&pathOut.\final-parameters-pivoted_&version..csv";
