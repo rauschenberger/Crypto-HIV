@@ -914,7 +914,7 @@ ods pdf close;
 /* randomisation */ 
 
 proc format;
-	value group 	1='control'
+	value treatment 1='control'
  					2='experimental';
 	value country 	1='Tanzania'
 					2='Malawi';
@@ -924,9 +924,9 @@ proc format;
 run;
 
 proc plan seed=20240103;
-	factors hospital=3 block=2 random group=6 random/noprint; /* increase to block=12*/ 
+	factors hospital=3 block=2 random treatment=6 random/noprint; /* increase to block=12*/ 
 	output out=rand
-	group nvals=(1 1 1 2 2 2)
+	treatment nvals=(1 1 1 2 2 2)
 	random;
 run;
 
@@ -939,15 +939,22 @@ data rand;
 	RID=_N_;
 run;
 
+ods pdf file="&pathOut./randomisation-list.pdf" style=sasdocprinter;
+OPTIONS CENTER ORIENTATION=PORTRAIT PAGENO=1;
+title1 font=timesroman justify=c "Randomisation scheme for";
+title2 "'A 10 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability,
+efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis'";
+title3 font=timesroman justify=c "Armin Rauschenberger";
+title4 font=timesroman justify=c "control treatment: immediate-release";
+title5 font=timesroman justify=c "experimental treatment: sustained-release";
+
 proc report data=rand spanrows;
-	column hospital block RID group;
+	column hospital block RID treatment;
 	define hospital/order order=internal format=hospital.;
 	define block/order;
-	define group/format=group.;
-	title 'randomisation schedule';
+	define treatment/format=treatment.;
 run;
-
-
+ods pdf close;
 
 
 
