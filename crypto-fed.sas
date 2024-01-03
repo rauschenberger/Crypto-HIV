@@ -924,7 +924,7 @@ proc format;
 run;
 
 proc plan seed=20240103;
-	factors hospital=3 block=2 random treatment=6 random/noprint; /* increase to block=12*/ 
+	factors hospital=3 block=10 random treatment=6 random/noprint;
 	output out=rand
 	treatment nvals=(1 1 1 2 2 2)
 	random;
@@ -939,22 +939,25 @@ data rand;
 	RID=_N_;
 run;
 
-ods pdf file="&pathOut./randomisation-list.pdf" style=sasdocprinter;
-OPTIONS CENTER ORIENTATION=PORTRAIT PAGENO=1;
-title1 font=timesroman justify=c "Randomisation scheme for";
-title2 "'A 10 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability,
+%macro scheme(first_name,last_name);
+ods pdf file="&pathOut./randomisation_&last_name..pdf" style=grayscaleprinter;
+OPTIONS CENTER ORIENTATION=PORTRAIT;
+title1 font=timesroman "Randomisation scheme for";
+title2 font=timesroman bold "'A 10 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, 
 efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis'";
-title3 font=timesroman justify=c "Armin Rauschenberger";
-title4 font=timesroman justify=c "control treatment: immediate-release";
-title5 font=timesroman justify=c "experimental treatment: sustained-release";
-
+title3 font=timesroman "(confidential copy for &first_name. &last_name.)";
 proc report data=rand spanrows;
 	column hospital block RID treatment;
 	define hospital/order order=internal format=hospital.;
 	define block/order;
 	define treatment/format=treatment.;
 run;
+footnote1 font=timesroman "control treatment: immediate-release, experimental treatment: sustained-release";
 ods pdf close;
+%mend scheme;
+
+%scheme(first_name=Armin,last_name=Rauschenberger);
+%scheme(first_name=Michel,last_name=Vaillant);
 
 
 
