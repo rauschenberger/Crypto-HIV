@@ -682,10 +682,10 @@ run;
 data PK;
 	set PK;
 	rename SUBJECTID=RID;
-	rename SAMPLETIME__HR_=SAMPLETIME;
 	if SAMPLETIME__HR_='Pre-dose (0)' then SAMPLETIME__HR_=0;
 	if CONCENTRATION='BLQ' then CONCENTRATION=0;
 	if CONCENTRATION='NS' then CONCENTRATION=.; /* verify this */
+	rename SAMPLETIME__HR_=SAMPLETIME;
 run;
 
 %add_seq(PK);
@@ -803,10 +803,11 @@ proc import datafile=temp
 	dbms=csv;
 run;
 
+/*
 proc print data=PKpars;
 	title 'test';
 run;
-
+*/
 
 data PKpars;
 	set PKpars;
@@ -882,12 +883,10 @@ Things to do:
 - integration with WinNonlin
 
 
-
 Consider computing PK parameters in SAS:
 - https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
 - https://www.lexjansen.com/pharmasug/2005/StatisticsPharmacokinetics/sp07.pdf
 - https://www.pharmasug.org/proceedings/2023/SA/PharmaSUG-2023-SA-284.pdf
-
 
 
 Consider using WinNonLin with SAS:
