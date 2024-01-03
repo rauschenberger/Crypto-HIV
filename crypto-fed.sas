@@ -17,6 +17,8 @@ options nonotes;
 %let pathPhar=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Import files\15032023_Pharmetheus\0131FRM18_DNDi-5FC-02-CM_PK_20230315\0131FRM18_DNDi-5FC-02-CM_PK_20230315;
 %let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS;
 
+/* ods pdf file="&pathOut./trial_report.pdf" style=grayscaleprinter startpage=no; */ /* deactivate this line */ 
+
 /* import randomisation list */ 
 
 proc import datafile="&pathRand.\Randomizationlist"
@@ -803,12 +805,6 @@ proc import datafile=temp
 	dbms=csv;
 run;
 
-/*
-proc print data=PKpars;
-	title 'test';
-run;
-*/
-
 data PKpars;
 	set PKpars;
 	if seqence=1 then
@@ -874,6 +870,8 @@ run;
 %PKmixmod(logAUCall);
 %PKmixmod(logAUCinf);
 
+/* ods pdf close;*/ /* deactive this line */ 
+
 /*
 Things to do:
 
@@ -910,8 +908,7 @@ ods pdf close;
 */
 
 
-
-/* randomisation */ 
+/* randomisation schedule */ 
 
 proc format;
 	value treatment 1='control'
@@ -961,7 +958,17 @@ ods pdf close;
 
 
 
+/* export tables and figures to LaTeX */
 
+/*
+ods tagsets.latex file="&pathOut.\sas2latex.tex" stylesheet="sas.sty"(url="sas");
+proc report data=AE spanrows;
+	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
+	define RID/order;
+	title 'adverse events';
+run;
+ods tagsets.latex close;
+*/
 
 /*
 integration of WinNonLin and SAS:
