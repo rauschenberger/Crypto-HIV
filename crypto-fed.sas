@@ -910,6 +910,49 @@ ods pdf close;
 */
 
 
+
+/* randomisation */ 
+
+proc format;
+	value group 	1='control'
+ 					2='experimental';
+	value country 	1='Tanzania'
+					2='Malawi';
+	value hospital 	1='Mwananyamala Hospital (Dar es Salaam, Tanzania)'
+					2='Amana Hospital (Dar es Salaam, Tanzania)'
+					3='Kamuzu Central Hospital (Lilongwe, Malawi)';
+run;
+
+proc plan seed=20240103;
+	factors hospital=3 block=2 random group=6 random/noprint; /* increase to block=12*/ 
+	output out=rand
+	group nvals=(1 1 1 2 2 2)
+	random;
+run;
+
+proc sort data=rand;
+	by hospital block;
+run;
+
+data rand;
+	set rand;
+	RID=_N_;
+run;
+
+proc report data=rand spanrows;
+	column hospital block RID group;
+	define hospital/order order=internal format=hospital.;
+	define block/order;
+	define group/format=group.;
+	title 'randomisation schedule';
+run;
+
+
+
+
+
+
+
 /*
 integration of WinNonLin and SAS:
 
