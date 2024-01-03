@@ -760,17 +760,20 @@ data temp;
 	set merged;
 	time = SAMPLETIME - PC_DELAY/60; /* double-check unit and sign in R */
 	conc = CONCENTRATION;
-	keep RID period treat time conc;
+	keep RID period treat time conc seqence;
 run;
 
+/*
+proc print data=temp;
+run;
+*/
+
 proc export data=temp
-	outfile="&pathOut./pk_temp.csv"
+	outfile="&pathOut./concentration-data_2024-01-03.csv"
 	dbms=csv
 	replace;
 run;
 
-
-/* correction should be done for each combination of RID, period and sampletime */ 
 
 /*
 integration of WinNonLin and SAS:
@@ -799,13 +802,26 @@ X<'"C:\Program Files\R\R-4.3.1\bin\Rscript.exe" C:\Users\arauschenberger\Desktop
 x "&RCommand";
 
 Run everything with a single script from the command line (first SAS, then WinNonLin, then SAS, then LaTeX)?
-
 */
 
+/*
 proc import datafile="I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\9 - Final analysis\Data\Final Parameters_NCA_primary analysis"
 	out=PKpars
 	dbms=xls;
 run;
+*/
+
+/*proc import datafile="C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS\final-parameters-pivoted_2024-01-03"*/
+proc import datafile="&pathOut.\final-parameters-pivoted_2024-01-03.csv"
+	out=PKpars
+	dbms=csv;
+run;
+
+/*
+proc print data=PKpars;
+	title 'PK parameters';
+run;
+*/
 
 data PKpars;
 	set PKpars;
@@ -817,7 +833,9 @@ data PKpars;
         seq='';
 run;
 
+/*
 %add_treat(PKpars);
+*/
 
 data PKpars;
  	set PKpars;
@@ -830,11 +848,11 @@ run;
 
 %macro PKmixmod(outcome);
 	proc mixed data=PKpars;
-		Class subjectid seqence period trt;
-		Model &outcome.= seqence period trt /ddfm =kr;
-		Random subjectid(seqence) /type=vc;
-		lsmeans trt/cl alpha=0.10;
-		Estimate 'diff B-A' trt -1 1/cl alpha = 0.10;
+		Class rid seq period treat; /* was subjectid seqence trt */ 
+		Model &outcome.= seq period treat /ddfm =kr; /* was seqence trt */ 
+		Random rid(seq) /type=vc; /* was subjectid(seqence) */ 
+		lsmeans treat/cl alpha=0.10; /* was trt */ 
+		Estimate 'diff B-A' treat -1 1/cl alpha = 0.10; /* was treat*/ 
 		ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
 		ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
 	run;
@@ -855,7 +873,7 @@ run;
 		expUpper=exp(Upper);
 	run;
 	proc print data=means;
-		id trt;
+		id treat; /* was trt */ 
 		var expEstim expLower expUpper;
 	run;
 	data diff;
@@ -875,7 +893,6 @@ run;
 %PKmixmod(logAUCinf);
 
 /*
-
 Things to do:
 
 - mixed models: combine tables
@@ -885,9 +902,12 @@ Things to do:
 
 Consider computing PK parameters in SAS:
 - https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
+- https://www.lexjansen.com/pharmasug/2005/StatisticsPharmacokinetics/sp07.pdf
+
 
 Consider using WinNonLin with SAS:
 - https://www.lexjansen.com/pharmasug/2001/Proceed/Posters/P06_russell.pdf
+
 
 Mann-Whitney U test:
 
@@ -903,5 +923,4 @@ ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
 run;
 SOME CODE
 ods pdf close;
-
 */
