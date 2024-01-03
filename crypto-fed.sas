@@ -673,8 +673,6 @@ run;
 
 /*--- PHARMACOKINETICS ---*/ 
 
-/* https://www.pharmasug.org/proceedings/2023/SA/PharmaSUG-2023-SA-284.pdf */
-
 filename temp "&pathPhar.\0131FRM18_Flucytosine_20230314.csv";
 proc import datafile=temp
 		out=PK
@@ -763,16 +761,156 @@ data temp;
 	keep RID period treat time conc seqence;
 run;
 
-/*
-proc print data=temp;
-run;
-*/
+%let version=2024-01-03_T09-45; /* Adapt this line. */ 
 
 proc export data=temp
-	outfile="&pathOut./concentration-data_2024-01-03.csv"
+	outfile="&pathOut.\concentration-data_&version..csv"
 	dbms=csv
 	replace;
 run;
+
+%put Note: Execute intermediate analysis in Phoenix WinNonlin! See comments in SAS file.;
+
+/*
+
+1. 	Run the SAS code above here (i.e., ending with proc export),
+	which exports the file "concentration-data_XXX.csv" to Phoenix WinNonlin.
+
+	NB: After choosing a meaningful version identififier (e.g., current date),
+	define this identifier some lines above ("%let version=XXX;"),
+	and use this identifier below ("_XXX.csv").
+
+2. 	Phoenix WinNonlin:
+
+	- 	Import data set: Click on 'file' (in the menu), click on 'import', select "concentration-data_XXX.csv", click on 'open', click on 'finish'.
+		You should now see a table with the columns RID, seqence, period, treat, time and conc.
+
+	- 	Perform analysis: Click on 'send to' (in the menu), click on 'NonCompartmental Analysis', click on 'NCA'.
+		In the mappings, select 'sort' for the columns RID, seqence, period and treat,
+		select 'time' for time, and select 'concentration' for conc.
+		In the options, select the calculation method 'linear up - log down'.
+		Execute the workflow by clicking on the green arrow (below the menu).
+
+	- 	Export data set: Go to 'results - output data - final parameters pivoted', right-click 'final parameters pivoded',
+		select export, and save as "final-parameters-pivoted_XXX.csv"
+
+3. 	Run the SAS code below here (i.e., starting with proc import),
+	which imports the file "final-parameters-pivoted_XXX.csv" from Phoenix WinNonlin.
+
+*/
+
+filename temp "&pathOut.\final-parameters-pivoted_&version..csv";
+proc import datafile=temp
+	out=PKpars
+	dbms=csv;
+run;
+
+proc print data=PKpars;
+	title 'test';
+run;
+
+
+data PKpars;
+	set PKpars;
+	if seqence=1 then
+        seq='1 (AB)';
+    else if seqence=2 then
+        seq='2 (BA)';
+    else
+        seq='';
+run;
+
+data PKpars;
+ 	set PKpars;
+	logCmax = log(Cmax);
+	logAUCall = log(AUCall); /* multiple choices - check Anouk's code */
+	logAUCinf = log(AUCINF_obs); /* multiple choices - check Anouk's code */ 
+run;
+
+/* mixed model */
+
+%macro PKmixmod(outcome);
+	proc mixed data=PKpars;
+		Class rid seq period treat;
+		Model &outcome.= seq period treat /ddfm =kr; 
+		Random rid(seq) /type=vc;
+		lsmeans treat/cl alpha=0.10;
+		Estimate 'diff B-A' treat -1 1/cl alpha = 0.10;
+		ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
+		ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
+	run;
+	proc print data=random;
+		id CovParm;
+		var Estimate;
+		title "&outcome.";
+	run;
+	title;
+	proc print data=fixed;
+		id Effect;
+		var FValue ProbF;
+	run;
+	data means;
+		set means;
+		expEstim=exp(Estimate);
+		expLower=exp(Lower);
+		expUpper=exp(Upper);
+	run;
+	proc print data=means;
+		id treat;
+		var expEstim expLower expUpper;
+	run;
+	data diff;
+		set diff;
+		expEstim=exp(Estimate);
+		expLower=exp(Lower);
+		expUpper=exp(Upper);
+	run;
+	proc print data=diff;
+		id Label;
+		var expEstim expLower expUpper;
+	run;
+%mend PKmixmod;
+
+%PKmixmod(logCmax);
+%PKmixmod(logAUCall);
+%PKmixmod(logAUCinf);
+
+/*
+Things to do:
+
+- mixed models: combine tables
+- vital signs: solve date/time issue
+- security analysis
+- integration with WinNonlin
+
+
+
+Consider computing PK parameters in SAS:
+- https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
+- https://www.lexjansen.com/pharmasug/2005/StatisticsPharmacokinetics/sp07.pdf
+- https://www.pharmasug.org/proceedings/2023/SA/PharmaSUG-2023-SA-284.pdf
+
+
+
+Consider using WinNonLin with SAS:
+- https://www.lexjansen.com/pharmasug/2001/Proceed/Posters/P06_russell.pdf
+
+
+Mann-Whitney U test:
+
+proc npar1way data=PKpars wilcoxon;
+	class treat;
+	var Cmax Tmax Lambda_z;
+run;
+
+
+Saving output to PDF or RTF:
+
+ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
+run;
+SOME CODE
+ods pdf close;
+*/
 
 
 /*
@@ -802,125 +940,6 @@ X<'"C:\Program Files\R\R-4.3.1\bin\Rscript.exe" C:\Users\arauschenberger\Desktop
 x "&RCommand";
 
 Run everything with a single script from the command line (first SAS, then WinNonLin, then SAS, then LaTeX)?
-*/
 
-/*
-proc import datafile="I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\9 - Final analysis\Data\Final Parameters_NCA_primary analysis"
-	out=PKpars
-	dbms=xls;
-run;
-*/
-
-/*proc import datafile="C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS\final-parameters-pivoted_2024-01-03"*/
-proc import datafile="&pathOut.\final-parameters-pivoted_2024-01-03.csv"
-	out=PKpars
-	dbms=csv;
-run;
-
-/*
-proc print data=PKpars;
-	title 'PK parameters';
-run;
-*/
-
-data PKpars;
-	set PKpars;
-	if seqence=1 then
-        seq='1 (AB)';
-    else if seqence=2 then
-        seq='2 (BA)';
-    else
-        seq='';
-run;
-
-/*
-%add_treat(PKpars);
-*/
-
-data PKpars;
- 	set PKpars;
-	logCmax = log(Cmax);
-	logAUCall = log(AUCall); /* multiple choices - check Anouk's code */
-	logAUCinf = log(AUCINF_obs); /* multiple choices - check Anouk's code */ 
-run;
-
-/* mixed model */
-
-%macro PKmixmod(outcome);
-	proc mixed data=PKpars;
-		Class rid seq period treat; /* was subjectid seqence trt */ 
-		Model &outcome.= seq period treat /ddfm =kr; /* was seqence trt */ 
-		Random rid(seq) /type=vc; /* was subjectid(seqence) */ 
-		lsmeans treat/cl alpha=0.10; /* was trt */ 
-		Estimate 'diff B-A' treat -1 1/cl alpha = 0.10; /* was treat*/ 
-		ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
-		ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
-	run;
-	proc print data=random;
-		id CovParm;
-		var Estimate;
-		title "&outcome.";
-	run;
-	title;
-	proc print data=fixed;
-		id Effect;
-		var FValue ProbF;
-	run;
-	data means;
-		set means;
-		expEstim=exp(Estimate);
-		expLower=exp(Lower);
-		expUpper=exp(Upper);
-	run;
-	proc print data=means;
-		id treat; /* was trt */ 
-		var expEstim expLower expUpper;
-	run;
-	data diff;
-		set diff;
-		expEstim=exp(Estimate);
-		expLower=exp(Lower);
-		expUpper=exp(Upper);
-	run;
-	proc print data=diff;
-		id Label;
-		var expEstim expLower expUpper;
-	run;
-%mend PKmixmod;
-
-%PKmixmod(logCmax);
-%PKmixmod(logAUCall);
-%PKmixmod(logAUCinf);
-
-/*
-Things to do:
-
-- mixed models: combine tables
-- vital signs: solve date/time issue
-- security analysis
-- integration with WinNonlin
-
-Consider computing PK parameters in SAS:
-- https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
-- https://www.lexjansen.com/pharmasug/2005/StatisticsPharmacokinetics/sp07.pdf
-
-
-Consider using WinNonLin with SAS:
-- https://www.lexjansen.com/pharmasug/2001/Proceed/Posters/P06_russell.pdf
-
-
-Mann-Whitney U test:
-
-proc npar1way data=PKpars wilcoxon;
-	class treat;
-	var Cmax Tmax Lambda_z;
-run;
-
-
-Saving output to PDF or RTF:
-
-ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
-run;
-SOME CODE
-ods pdf close;
+Start-Process -FilePath "C:\Program Files (x86)\Certara\Phoenix\application\phoenix.exe"
 */
