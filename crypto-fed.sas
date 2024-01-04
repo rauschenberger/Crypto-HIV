@@ -939,17 +939,18 @@ data rand;
   output;
 run;
 
-/*
 data rand;
 	set rand;
-	RID=_N_;
-run;
-*/
-
-data rand;
-	set rand;
-	RID=catx('.',hospital,count);
+	RID=catx('.',hospital,put(count,z2.));
 	output;
+run;
+
+proc sort data=rand;
+	by RID;
+run;
+
+proc print data=rand;
+	title 'sorted';
 run;
 
 %macro scheme(first_name,last_name);
