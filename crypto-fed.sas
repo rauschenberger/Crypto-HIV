@@ -932,12 +932,28 @@ proc sort data=rand;
 run;
 
 data rand;
+  set rand;
+  by hospital;
+  if first.hospital then count = 0;
+  count + 1;
+  output;
+run;
+
+/*
+data rand;
 	set rand;
 	RID=_N_;
 run;
+*/
+
+data rand;
+	set rand;
+	RID=catx('.',hospital,count);
+	output;
+run;
 
 %macro scheme(first_name,last_name);
-ods pdf file="&pathOut./randomisation_&last_name..pdf" style=grayscaleprinter;
+/*ods pdf file="&pathOut./randomisation_&last_name..pdf" style=grayscaleprinter;*/
 OPTIONS CENTER ORIENTATION=PORTRAIT;
 title1 font=timesroman "Randomisation scheme for";
 title2 font=timesroman bold "'A 10 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, 
@@ -950,12 +966,11 @@ proc report data=rand spanrows;
 	define treatment/format=treatment.;
 run;
 footnote1 font=timesroman "control treatment: immediate-release, experimental treatment: sustained-release";
-ods pdf close;
+/*ods pdf close;*/
 %mend scheme;
 
 %scheme(first_name=Armin,last_name=Rauschenberger);
 %scheme(first_name=Michel,last_name=Vaillant);
-
 
 
 /* export tables and figures to LaTeX */
