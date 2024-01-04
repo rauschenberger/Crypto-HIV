@@ -818,8 +818,8 @@ run;
 data PKpars;
  	set PKpars;
 	logCmax = log(Cmax);
-	logAUCall = log(AUCall); /* multiple choices - check Anouk's code */
-	logAUCinf = log(AUCINF_obs); /* multiple choices - check Anouk's code */ 
+	logAUClast = log(AUClast); /* Note difference between AUClast (last positive measurement) and AUCall (last measurement) */
+	logAUCinf = log(AUCINF_obs); 
 run;
 
 /* mixed model */
