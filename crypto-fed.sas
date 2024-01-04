@@ -571,6 +571,20 @@ run;
 
 /* vital signs - trajectory */
 
+/* CONTINUE HERE: use datetime instead of VSDTC, format datetime to time object */
+
+data VS;
+	set VS;
+	date_temp = input(VSDAT, ddmmyy10.);
+	date = put(date_temp, yymmdd10.);
+	time_temp = VSTIM; /* use input format */
+	time = time_temp;  /* use put format */
+	/*if missing(VSDTC) then do;*/
+		VSDTC = catx("T",date,VSTIM);
+	/*end;*/
+	drop date_temp time_temp;
+run;
+
 %macro plotvs(test);
 	data temp;
 		set VS;
@@ -867,7 +881,7 @@ run;
 %mend PKmixmod;
 
 %PKmixmod(logCmax);
-%PKmixmod(logAUCall);
+%PKmixmod(logAUClast);
 %PKmixmod(logAUCinf);
 
 /* ods pdf close;*/ /* deactive this line */ 
@@ -942,15 +956,6 @@ run;
 data rand;
 	set rand;
 	RID=catx('.',hospital,put(count,z2.));
-	output;
-run;
-
-proc sort data=rand;
-	by RID;
-run;
-
-proc print data=rand;
-	title 'sorted';
 run;
 
 %macro scheme(first_name,last_name);
@@ -968,6 +973,7 @@ proc report data=rand spanrows;
 run;
 footnote1 font=timesroman "control treatment: immediate-release, experimental treatment: sustained-release";
 /*ods pdf close;*/
+footnote;
 %mend scheme;
 
 %scheme(first_name=Armin,last_name=Rauschenberger);
