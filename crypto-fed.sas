@@ -458,10 +458,41 @@ data VS;
 	else if FORM='6 hours post-dose' then time=cat('P',period,'T4');
 	else if FORM='48 hours post-dose' then time=cat('P',period,'T5');
 	else if VISIT='Post Study' then time='P3';
-	else if VISIT='Unscheduled Treatment Period 1' then time='P1X';
-	else if VISIT='Unscheduled Treatment Period 2' then time='P2X';
+	/*else if VISIT='Unscheduled Treatment Period 1' then time='P1X';*/
+	/*else if VISIT='Unscheduled Treatment Period 2' then time='P2X';*/
 	else time=.;
 run;
+
+/*
+data VS;
+	set VS;
+	length time $40;
+	if VISIT='Screening Visit' then time='screen';
+	else if FORM='Pre-dose' then time=cat('P',period,': pre-dose');
+	else if FORM='2 hours post-dose' then time=cat('P',period,': 2h');
+	else if FORM='4 hours post-dose' then time=cat('P',period,': 4h');
+	else if FORM='6 hours post-dose' then time=cat('P',period,': 6h');
+	else if FORM='48 hours post-dose' then time=cat('P',period,': 48h');
+	else if VISIT='Post Study' then time='post-study';
+	else time=.;
+run;
+*/
+
+proc format; 
+	value visit 
+	0.00='screen'
+	1.00='P1: pre-dose'
+	1.02='P1: 2h'
+	1.04='P1: 4h'
+	1.06='P1: 6h'
+	1.48='P1: 48h'
+	2.00='P2: pre-dose'
+	2.02='P2: 2h'
+	2.04='P2: 4h'
+	2.06='P2: 6h'
+	2.48='P2: 48h'
+	3.00='post-study'; 
+run; 
 
 /* TO DO: Use nicer labels but maintain order in tables and figures. */ 
 
