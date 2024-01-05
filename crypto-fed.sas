@@ -448,6 +448,7 @@ run;
 %add_period(VS);
 %add_treat(VS);
 
+/*
 data VS;
 	set VS;
 	length time $40;
@@ -458,12 +459,10 @@ data VS;
 	else if FORM='6 hours post-dose' then time=cat('P',period,'T4');
 	else if FORM='48 hours post-dose' then time=cat('P',period,'T5');
 	else if VISIT='Post Study' then time='P3';
-	/*else if VISIT='Unscheduled Treatment Period 1' then time='P1X';*/
-	/*else if VISIT='Unscheduled Treatment Period 2' then time='P2X';*/
 	else time=.;
 run;
+*/
 
-/*
 data VS;
 	set VS;
 	length time $40;
@@ -474,9 +473,8 @@ data VS;
 	else if FORM='6 hours post-dose' then time=cat('P',period,': 6h');
 	else if FORM='48 hours post-dose' then time=cat('P',period,': 48h');
 	else if VISIT='Post Study' then time='post-study';
-	else time=.;
+	else time='other';
 run;
-*/
 
 proc format; 
 	value visit 
@@ -642,6 +640,53 @@ run;
 
 %plotvs('Systolic Blood Pressure');
 %plotvs('Diastolic Blood Pressure');
+
+
+%macro plottest(test);
+	data temp;
+		set VS;
+		where VSTEST=&test. and VSPOS='Supine' and time ne 'other';
+		if RID in (&ids_ncs.);
+	run;
+	proc sort data=temp;
+		by VSDTC RID;
+	run;
+	proc sgplot data=temp;
+		series x=time y=VSORRES / group=RID markers; 
+    	title "Supine &test.";
+    	xaxis label='time';
+    	yaxis label='value';
+   		keylegend / title='RID';
+	run;
+%mend plottest;
+
+%plottest('Systolic Blood Pressure');
+%plottest('Diastolic Blood Pressure');
+
+/*
+proc tabulate data=VS;
+	class time;
+	table time;
+	title 'before';
+run;
+
+data temp;
+	set VS;
+	where not missing(time);
+	where length(time)>1;
+	where visit
+run;
+
+proc tabulate data=temp;
+	class time;
+	table time;
+	title 'after';
+run;
+
+proc print data=VS;
+run;
+*/
+
 
 /*
 ISSUE: Define order of time. Format time object.
