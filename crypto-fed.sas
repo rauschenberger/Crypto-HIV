@@ -395,7 +395,7 @@ run;
 		define RID / order order=internal;
 		define VISIT / order order=internal;
 		%if &name.='EG' %then %do;
-			define PAGENAME / order order=internal;
+			define PAGENAME / order order=internal; /* Try to use format=$PAGENAME_order. for ordering*/
 		%end;
 		define _NAME_/noprint;
 		title &title.;
