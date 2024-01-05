@@ -476,22 +476,6 @@ data VS;
 	else time='other';
 run;
 
-proc format; 
-	value visit 
-	0.00='screen'
-	1.00='P1: pre-dose'
-	1.02='P1: 2h'
-	1.04='P1: 4h'
-	1.06='P1: 6h'
-	1.48='P1: 48h'
-	2.00='P2: pre-dose'
-	2.02='P2: 2h'
-	2.04='P2: 4h'
-	2.06='P2: 6h'
-	2.48='P2: 48h'
-	3.00='post-study'; 
-run; 
-
 /* TO DO: Use nicer labels but maintain order in tables and figures. */ 
 
 %macro tabval(test);
@@ -664,33 +648,60 @@ run;
 %plottest('Diastolic Blood Pressure');
 
 /*
-proc tabulate data=VS;
-	class time;
-	table time;
-	title 'before';
-run;
+ISSUE: Define order of time. Format time object.
+*/
+
+/* vital signs - sample means (and change) */
+
+%let test='Systolic Blood Pressure';
 
 data temp;
 	set VS;
-	where not missing(time);
-	where length(time)>1;
-	where visit
+	where VSTEST=&test. and VSPOS='Supine' and time ne 'other';
+	if RID in (&ids_ncs.);
 run;
 
-proc tabulate data=temp;
-	class time;
-	table time;
-	title 'after';
+proc format; 
+	value $visit 
+	'screen'=0.00
+	'P1: pre-dose'=1.00
+	'P1: 2h'=1.02
+	'P1: 4h'=1.04
+	'P1: 6h'=1.06
+	'P1: 48h'=1.48
+	'P2: pre-dose'=2.00
+	'P2: 2h'=2.02
+	'P2: 4h'=2.04
+	'P2: 6h'=2.06
+	'P2: 48h'=2.48
+	'post-study'=3.00; 
+run; 
+
+proc means data=VS mean clm alpha=0.05;
+	var VSORRES;
+	class time treat;
+	output out=VS_mean mean=meanval;
 run;
 
-proc print data=VS;
+data VS_mean;
+	set VS_mean;
+	where not missing(time) and not missing (treat) and time ne 'other';
+	visit_format = put(time,$visit.);
 run;
-*/
+
+proc sort data=VS_mean;
+	by visit_format;
+run;
+
+proc sgplot data=VS_mean;
+	series x=time y=meanval / group=treat markers;
+    title 'value against time by treatment';
+    xaxis label='time';
+    yaxis label='value';
+    keylegend / title='treatment';
+run;
 
 
-/*
-ISSUE: Define order of time. Format time object.
-*/
 
 /* vital signs - post study */ 
 
