@@ -584,6 +584,8 @@ run;
 /* vital signs - trajectory */
 
 /*
+use propose time formatting (keep this code)
+
 data VS;
 	set VS;
 	temp = input(VSDAT, ddmmyy10.);
@@ -626,6 +628,8 @@ run;
 %plotvs('Diastolic Blood Pressure');
 
 
+
+
 %macro plottest(test);
 	data temp;
 		set VS;
@@ -641,6 +645,12 @@ run;
     	xaxis label='time';
     	yaxis label='value';
    		keylegend / title='RID';
+		%if &test.='Systolic Blood Pressure' %then %do;
+			refline 90 140 / axis=y;
+		%end;
+		%if &test.='Diastolic Blood Pressure' %then %do;
+			refline 45 90 / axis=y;
+		%end;
 	run;
 %mend plottest;
 
