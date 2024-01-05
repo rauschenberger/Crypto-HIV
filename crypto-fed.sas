@@ -700,15 +700,7 @@ run;
 
 /* CONTINUE HERE: Plot mean as well as mean change. */ 
 
-%macro plotmean(test,diff);
-	
-	proc means data=VS mean clm alpha=0.05 noprint;
-		where VSTEST=&test. and VSPOS='Supine';
-		var VSORRES;
-		class treat FORM;
-		output out=VS_means mean=mean lclm=lclm uclm=uclm;
-	run;
-
+%macro temporary(test);
 	data VS_means;
 		set VS_means;
 		where not missing(treat) and not missing(FORM);
@@ -726,14 +718,23 @@ run;
     	yaxis label='value';
     	keylegend / title='treatment';
 		highlow x=FORM low=lclm high=uclm / group=treat;
-		scatter x=FORM y=lclm / group=treat  markerattrs=(symbol=TriangleFilled);
-    	scatter x=FORM y=uclm / group=treat markerattrs=(symbol=TriangleDownFilled);
+		scatter x=FORM y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
 	run;
+%mend temporary;
+
+
+%macro plotmean(test,diff);
+	proc means data=VS mean clm alpha=0.05 noprint;
+		where VSTEST=&test. and VSPOS='Supine';
+		var VSORRES;
+		class treat FORM;
+		output out=VS_means mean=mean lclm=lclm uclm=uclm;
+	run;
+	%temporary(&test.);
 %mend plotmean;
 
 
 %macro plotmeandiff(test,diff);
-	
 	%calcdiff(&test.);
 	proc means data=temp mean clm alpha=0.05 noprint;
 		where VSTEST=&test. and VSPOS='Supine';
@@ -741,27 +742,7 @@ run;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-
-	data VS_means;
-		set VS_means;
-		where not missing(treat) and not missing(FORM);
-		visit_format = put(FORM,$form.);
-	run;
-	
-	proc sort data=VS_means;
-		by visit_format;
-	run;
-	
-	proc sgplot data=VS_means;
-		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
-    	title "Supine &test. against time by treatment";
-    	xaxis label='time';
-    	yaxis label='value';
-    	keylegend / title='treatment';
-		highlow x=FORM low=lclm high=uclm / group=treat;
-		scatter x=FORM y=lclm / group=treat  markerattrs=(symbol=TriangleFilled);
-    	scatter x=FORM y=uclm / group=treat markerattrs=(symbol=TriangleDownFilled);
-	run;
+	%temporary(&test.);
 %mend plotmeandiff;
 
 %plotmean('Systolic Blood Pressure');
@@ -879,10 +860,10 @@ run;
 
 /* one common scatterplot for all samples */
 
-proc means data=PK noprint;
+proc means data=PK clm alpha=0.05 noprint;
 	var CONCENTRATION;
 	class SAMPLETIME treat;
-	output out=PK_mean mean=meanconc;
+	output out=PK_mean mean=mean;
 run;
 
 data PK_mean;
@@ -893,7 +874,7 @@ run;
 /*ods pdf file="&pathOut.\mixedmodel.pdf";
 run;*/
 proc sgplot data=PK_mean;
-	series x=SAMPLETIME y=meanconc / group=treat markers;
+	series x=SAMPLETIME y=mean / group=treat markers;
     title 'concentration against time by treatment';
     xaxis label='time';
     yaxis label='concentration';
