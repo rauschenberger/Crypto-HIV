@@ -959,26 +959,26 @@ data rand;
 run;
 
 %macro scheme(first_name,last_name);
-/*ods pdf file="&pathOut./randomisation_&last_name..pdf" style=grayscaleprinter;*/
-OPTIONS CENTER ORIENTATION=PORTRAIT;
-title1 font=timesroman "Randomisation scheme for";
+ods pdf file="&pathOut./randomisation_&last_name..pdf" style=grayscaleprinter;
+title1 font=timesroman "Randomisation list for";
 title2 font=timesroman bold "'A 10 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, 
 efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis'";
 title3 font=timesroman "(confidential copy for &first_name. &last_name.)";
+title4 font=timesroman color=red "THESE ARE DUMMY DATA - NOT MEANT FOR REAL USE";
+footnote1 justify=left font=timesroman "control treatment: immediate release, experimental treatment: sustained release";
+footnote2 justify=left font=timesroman "Please note that this copy is watermarked.";
 proc report data=rand spanrows;
 	column hospital block RID treatment;
 	define hospital/order order=internal format=hospital.;
 	define block/order;
 	define treatment/format=treatment.;
 run;
-footnote1 font=timesroman "control treatment: immediate-release, experimental treatment: sustained-release";
-/*ods pdf close;*/
+ods pdf close;
 footnote;
 %mend scheme;
 
-%scheme(first_name=Armin,last_name=Rauschenberger);
+/*%scheme(first_name=Armin,last_name=Rauschenberger);*/
 %scheme(first_name=Michel,last_name=Vaillant);
-
 
 /* export tables and figures to LaTeX */
 
