@@ -647,12 +647,17 @@ run;
 %plottest('Systolic Blood Pressure');
 %plottest('Diastolic Blood Pressure');
 
+
+/* TO DO: Add horizontal line for threshold. Add unscheduled visit between schedules visits. */ 
+
 /*
 ISSUE: Define order of time. Format time object.
 */
 
 /* vital signs - sample means (and change) */
 
+
+/*
 %let test='Systolic Blood Pressure';
 
 data temp;
@@ -700,7 +705,7 @@ proc sgplot data=VS_mean;
     yaxis label='value';
     keylegend / title='treatment';
 run;
-
+*/
 
 
 /* vital signs - post study */ 
