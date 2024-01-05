@@ -700,16 +700,15 @@ run;
 
 /* CONTINUE HERE: Plot mean as well as mean change. */ 
 
-%macro plotmean(test);
-	%calcdiff(&test.); /* should be without this line */
-
-	proc means data=temp mean clm alpha=0.05 noprint; /* should be data=VS */ 
+%macro plotmean(test,diff);
+	
+	proc means data=VS mean clm alpha=0.05 noprint;
 		where VSTEST=&test. and VSPOS='Supine';
-		var diff; /* should be var VSORRES*/ 
+		var VSORRES;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	
+
 	data VS_means;
 		set VS_means;
 		where not missing(treat) and not missing(FORM);
@@ -732,10 +731,43 @@ run;
 	run;
 %mend plotmean;
 
-%plotmean('Systolic Blood Pressure');
-%plotmean('Diastolic Blood Pressure');
-%plotmean('Pulse Rate');
 
+%macro plotmeandiff(test,diff);
+	
+	%calcdiff(&test.);
+	proc means data=temp mean clm alpha=0.05 noprint;
+		where VSTEST=&test. and VSPOS='Supine';
+		var diff;
+		class treat FORM;
+		output out=VS_means mean=mean lclm=lclm uclm=uclm;
+	run;
+
+	data VS_means;
+		set VS_means;
+		where not missing(treat) and not missing(FORM);
+		visit_format = put(FORM,$form.);
+	run;
+	
+	proc sort data=VS_means;
+		by visit_format;
+	run;
+	
+	proc sgplot data=VS_means;
+		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
+    	title "Supine &test. against time by treatment";
+    	xaxis label='time';
+    	yaxis label='value';
+    	keylegend / title='treatment';
+		highlow x=FORM low=lclm high=uclm / group=treat;
+		scatter x=FORM y=lclm / group=treat  markerattrs=(symbol=TriangleFilled);
+    	scatter x=FORM y=uclm / group=treat markerattrs=(symbol=TriangleDownFilled);
+	run;
+%mend plotmeandiff;
+
+%plotmean('Systolic Blood Pressure');
+%plotmeandiff('Systolic Blood Pressure');
+
+/* CONTINUE HERE: Similar calls for Diastolic Blood Pressure and Pulse Rate */ 
 
 /* vital signs - post study */ 
 
