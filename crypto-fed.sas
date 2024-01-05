@@ -565,7 +565,7 @@ data long;
 	where VSSTRESC='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
 run;
 
-proc sort data=VS;
+proc sort data=long;
 	by RID treat period VISIT FORM VSPOS;
 run;
 
@@ -691,10 +691,21 @@ proc format;
 run; 
 
 
+%calcdiff('Systolic Blood Pressure')
+
+proc print data=temp;
+	title 'temporary';
+run;
+
+
+/* CONTINUE HERE: Plot mean as well as mean change. */ 
+
 %macro plotmean(test);
-	proc means data=VS mean clm alpha=0.05 noprint;
+	%calcdiff(&test.); /* should be without this line */
+
+	proc means data=temp mean clm alpha=0.05 noprint; /* should be data=VS */ 
 		where VSTEST=&test. and VSPOS='Supine';
-		var VSORRES;
+		var diff; /* should be var VSORRES*/ 
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
@@ -724,7 +735,6 @@ run;
 %plotmean('Systolic Blood Pressure');
 %plotmean('Diastolic Blood Pressure');
 %plotmean('Pulse Rate');
-
 
 
 /* vital signs - post study */ 
