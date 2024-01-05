@@ -570,26 +570,24 @@ run;
 
 /* vital signs - trajectory */
 
+/*
 data VS;
 	set VS;
 	temp = input(VSDAT, ddmmyy10.);
 	date = put(temp, yymmdd10.);
-	VSDTC = catx("T",date,VSTIM);
+	datetime = catx("T",date,VSTIM);
 	drop temp;
 run;
 
-/*
-proc print data=VS(obs=10);
-	title 'temporary';
-run;
-
-data temp;
+data VS;
 	set VS;
-	datetime = input(VSDTC, datetime.);
-run;
-
-proc print data=temp(obs=10);
-	title 'temporary';
+	if length(datetime)<10 then do;
+		date_time=.;
+	end;
+	else do;
+		date_time = input(datetime, E8601DT.);
+	end;
+	format date_time E8601DT.;
 run;
 */
 
