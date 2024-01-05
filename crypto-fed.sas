@@ -627,8 +627,23 @@ run;
 %plotvs('Systolic Blood Pressure');
 %plotvs('Diastolic Blood Pressure');
 
-
-
+/*
+proc format; 
+	value $visit 
+	'screen'=0.00
+	'P1: pre-dose'=1.00
+	'P1: 2h'=1.02
+	'P1: 4h'=1.04
+	'P1: 6h'=1.06
+	'P1: 48h'=1.48
+	'P2: pre-dose'=2.00
+	'P2: 2h'=2.02
+	'P2: 4h'=2.04
+	'P2: 6h'=2.06
+	'P2: 48h'=2.48
+	'post-study'=3.00; 
+run;
+*/
 
 %macro plottest(test);
 	data temp;
@@ -666,56 +681,49 @@ ISSUE: Define order of time. Format time object.
 
 /* vital signs - sample means (and change) */
 
-
-/*
 %let test='Systolic Blood Pressure';
 
-data temp;
-	set VS;
-	where VSTEST=&test. and VSPOS='Supine' and time ne 'other';
-	if RID in (&ids_ncs.);
-run;
 
 proc format; 
-	value $visit 
-	'screen'=0.00
-	'P1: pre-dose'=1.00
-	'P1: 2h'=1.02
-	'P1: 4h'=1.04
-	'P1: 6h'=1.06
-	'P1: 48h'=1.48
-	'P2: pre-dose'=2.00
-	'P2: 2h'=2.02
-	'P2: 4h'=2.04
-	'P2: 6h'=2.06
-	'P2: 48h'=2.48
-	'post-study'=3.00; 
+	value $form 
+	'Pre-dose'=0
+	'2 hours post-dose'=1
+	'4 hours post-dose'=2
+	'6 hours post-dose'=3
+	'48 hours post-dose'=4; 
 run; 
 
+
+
 proc means data=VS mean clm alpha=0.05;
+	where VSTEST=&test. and VSPOS='Supine';
 	var VSORRES;
-	class time treat;
-	output out=VS_mean mean=meanval;
+	class treat FORM;
+	output out=VS_means mean=mean lclm=lclm uclm=uclm;
 run;
 
-data VS_mean;
-	set VS_mean;
-	where not missing(time) and not missing (treat) and time ne 'other';
-	visit_format = put(time,$visit.);
+data VS_means;
+	set VS_means;
+	where not missing(treat) and not missing(FORM);
+	visit_format = put(FORM,$form.);
 run;
 
-proc sort data=VS_mean;
+proc sort data=VS_means;
 	by visit_format;
 run;
 
-proc sgplot data=VS_mean;
-	series x=time y=meanval / group=treat markers;
-    title 'value against time by treatment';
+proc sgplot data=VS_means;
+	series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
+	highlow x=FORM low=lclm high=uclm / group=treat;
+	scatter x=FORM y=lclm / group=treat;
+    scatter x=FORM y=uclm / group=treat;
+    title 'Supine &test. against time by treatment';
     xaxis label='time';
     yaxis label='value';
     keylegend / title='treatment';
 run;
-*/
+
+
 
 
 /* vital signs - post study */ 
