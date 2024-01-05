@@ -17,7 +17,6 @@ options nonotes;
 %let pathPhar=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Import files\15032023_Pharmetheus\0131FRM18_DNDi-5FC-02-CM_PK_20230315\0131FRM18_DNDi-5FC-02-CM_PK_20230315;
 %let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS;
 
-/* ods pdf file="&pathOut./trial_report.pdf" style=grayscaleprinter startpage=no; */ /* deactivate this line */ 
 
 /* import randomisation list */ 
 
@@ -373,12 +372,12 @@ run;
 %mend;
 
 proc format; 
-	value dose 
-	0='ECG' 
- 	1='ECG - 2 hours post-dose - only for Ancotil'
- 	2='ECG - 4 hours post-dose - only for Flucitosine'
- 	3='ECG - 8 hours (2 hours after 2nd dose Ancotil)'
-	4='ECG - 48 hours post-dose'; 
+	value $PAGENAME_order
+	'ECG'='0.00'
+ 	'ECG - 2 hours post-dose - only for Ancotil'='0.02'
+ 	'ECG - 4 hours post-dose - only for Flucitosine'='0.04'
+ 	'ECG - 8 hours (2 hours after 2nd dose Ancotil)'='0.08'
+	'ECG - 48 hours post-dose'='0.48'; 
 run; 
 
 %macro report(data,title,name);
@@ -387,7 +386,7 @@ run;
 		define RID / order order=internal;
 		define VISIT / order order=internal;
 		%if &name.='EG' %then %do;
-			define PAGENAME / order order=internal; /* ISSUE: Why does adding format=dose. lead to the error 'PAGENAME must use a character format.' ? */ 
+			define PAGENAME / order order=internal;
 		%end;
 		define _NAME_/noprint;
 		title &title.;
@@ -395,12 +394,14 @@ run;
 %mend;
 
 /*
-proc print data=EG;
+data test;
+	set EG;
+	PAGENAME_order = put(PAGENAME,$PAGENAME_order.);
 run;
 
-proc tabulate data=EG;
-	class PAGENAME;
-	table PAGENAME;
+proc tabulate data=test;
+	class dose_order;
+	table dose_order;
 run;
 
 proc contents data=EG;
@@ -448,21 +449,6 @@ run;
 %add_period(VS);
 %add_treat(VS);
 
-/*
-data VS;
-	set VS;
-	length time $40;
-	if VISIT='Screening Visit' then time='P0';
-	else if FORM='Pre-dose' then time=cat('P',period,'T1');
-	else if FORM='2 hours post-dose' then time=cat('P',period,'T2');
-	else if FORM='4 hours post-dose' then time=cat('P',period,'T3');
-	else if FORM='6 hours post-dose' then time=cat('P',period,'T4');
-	else if FORM='48 hours post-dose' then time=cat('P',period,'T5');
-	else if VISIT='Post Study' then time='P3';
-	else time=.;
-run;
-*/
-
 data VS;
 	set VS;
 	length time $40;
@@ -475,8 +461,6 @@ data VS;
 	else if VISIT='Post Study' then time='post-study';
 	else time='other';
 run;
-
-/* TO DO: Use nicer labels but maintain order in tables and figures. */ 
 
 %macro tabval(test);
 	proc tabulate data=VS;
@@ -541,14 +525,35 @@ run;
 
 /* vital signs - normal/abnormal */
 
+proc format; 
+	value $visit_order
+	'screen'='0.00'
+	'P1: pre-dose'='1.00'
+	'P1: 2h'='1.02'
+	'P1: 4h'='1.04'
+	'P1: 6h'='1.06'
+	'P1: 48h'='1.48'
+	'P2: pre-dose'='2.00'
+	'P2: 2h'='2.02'
+	'P2: 4h'='2.04'
+	'P2: 6h'='2.06'
+	'P2: 48h'='2.48'
+	'post-study'='3.00'; 
+run;
+
 proc summary data=VS nway;
 	where not missing(RID) and not missing(period);
 	class VSSTRESC RID FORM treat time;
 	output out=temp;
 run;
 
+data temp;
+	set temp;
+	visit_order = put(time,$visit_order.);
+run;
+
 proc sort data=temp;
-	by time;
+	by visit_order;
 run;
 
 proc tabulate data=temp;
@@ -627,23 +632,6 @@ run;
 %plotvs('Systolic Blood Pressure');
 %plotvs('Diastolic Blood Pressure');
 
-/*
-proc format; 
-	value $visit 
-	'screen'=0.00
-	'P1: pre-dose'=1.00
-	'P1: 2h'=1.02
-	'P1: 4h'=1.04
-	'P1: 6h'=1.06
-	'P1: 48h'=1.48
-	'P2: pre-dose'=2.00
-	'P2: 2h'=2.02
-	'P2: 4h'=2.04
-	'P2: 6h'=2.06
-	'P2: 48h'=2.48
-	'post-study'=3.00; 
-run;
-*/
 
 %macro plotind(test);
 	data temp;
@@ -672,33 +660,22 @@ run;
 %plotind('Systolic Blood Pressure');
 %plotind('Diastolic Blood Pressure');
 
+/* TO DO:  Add unscheduled visit between schedules visits. */ 
 
-/* TO DO: Add horizontal line for threshold. Add unscheduled visit between schedules visits. */ 
-
-/*
-ISSUE: Define order of time. Format time object.
-*/
+/* ISSUE: Define order of time. Format time object. */
 
 /* vital signs - sample means (and change) */
 
 proc format; 
 	value $form 
-	'Pre-dose'=0
-	'2 hours post-dose'=1
-	'4 hours post-dose'=2
-	'6 hours post-dose'=3
-	'48 hours post-dose'=4; 
+	'Pre-dose'='00'
+	'2 hours post-dose'='02'
+	'4 hours post-dose'='04'
+	'6 hours post-dose'='06'
+	'48 hours post-dose'='48'; 
 run; 
 
-
-%calcdiff('Systolic Blood Pressure')
-
-proc print data=temp;
-	title 'temporary';
-run;
-
-
-/* CONTINUE HERE: Plot mean as well as mean change. */ 
+/* CONTINUE HERE: Tidy up plots for mean and mean change. */ 
 
 %macro temporary(test);
 	data VS_means;
@@ -722,7 +699,6 @@ run;
 	run;
 %mend temporary;
 
-
 %macro plotmean(test,diff);
 	proc means data=VS mean clm alpha=0.05 noprint;
 		where VSTEST=&test. and VSPOS='Supine';
@@ -732,7 +708,6 @@ run;
 	run;
 	%temporary(&test.);
 %mend plotmean;
-
 
 %macro plotmeandiff(test,diff);
 	%calcdiff(&test.);
@@ -873,8 +848,6 @@ data PK_mean;
 	upper=mean+std;
 run;
 
-/*ods pdf file="&pathOut.\mixedmodel.pdf";
-run;*/
 proc sgplot data=PK_mean;
 	series x=SAMPLETIME y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     title 'concentration against time by treatment';
@@ -883,7 +856,6 @@ proc sgplot data=PK_mean;
     keylegend / title='treatment';
 	scatter x=SAMPLETIME y=mean/yerrorlower=lower yerrorupper=upper group=treat;
 run;
-/*ods pdf close;*/
 
 /* prepare data for WinNonLin */ 
 
@@ -920,7 +892,7 @@ data temp;
 	keep RID period treat time conc seqence;
 run;
 
-%let version=2024-01-03_T09-45; /* Adapt this line. */ 
+%let version=2024-01-03_T09-45; /* Adapt this line (see below) */ 
 
 proc export data=temp
 	outfile="&pathOut.\concentration-data_&version..csv"
@@ -1027,44 +999,20 @@ run;
 %PKmixmod(logAUClast);
 %PKmixmod(logAUCinf);
 
-/* ods pdf close;*/ /* deactive this line */ 
+
+/* ---------------------- */
+/* --- PHASE II STUDY --- */
+/* ---------------------- */
+
+
+/* Mann-Whitney U test */
 
 /*
-Things to do:
-
-- mixed models: combine tables
-- vital signs: solve date/time issue
-- security analysis
-- integration with WinNonlin
-- use vertical column labels for wide tables
-
-
-Consider computing PK parameters in SAS:
-- https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
-- https://www.lexjansen.com/pharmasug/2005/StatisticsPharmacokinetics/sp07.pdf
-- https://www.pharmasug.org/proceedings/2023/SA/PharmaSUG-2023-SA-284.pdf
-
-
-Consider using WinNonLin with SAS:
-- https://www.lexjansen.com/pharmasug/2001/Proceed/Posters/P06_russell.pdf
-
-
-Mann-Whitney U test:
-
 proc npar1way data=PKpars wilcoxon;
 	class treat;
 	var Cmax Tmax Lambda_z;
 run;
-
-
-Saving output to PDF or RTF:
-
-ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
-run;
-SOME CODE
-ods pdf close;
 */
-
 
 /* randomisation schedule */ 
 
@@ -1125,6 +1073,37 @@ footnote;
 /*%scheme(first_name=Michel,last_name=Vaillant);*/
 
 
+/* ------------- */
+/* --- NOTES --- */
+/* ------------- */
+
+
+/*
+Things to do:
+
+- mixed models: combine tables
+- vital signs: solve date/time issue
+- security analysis
+- integration with WinNonlin
+- use vertical column labels for wide tables
+
+Consider computing PK parameters in SAS:
+- https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
+- https://www.lexjansen.com/pharmasug/2005/StatisticsPharmacokinetics/sp07.pdf
+- https://www.pharmasug.org/proceedings/2023/SA/PharmaSUG-2023-SA-284.pdf
+
+
+Consider using WinNonLin with SAS:
+- https://www.lexjansen.com/pharmasug/2001/Proceed/Posters/P06_russell.pdf
+
+Saving output to PDF or RTF:
+
+ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
+run;
+SOME CODE
+ods pdf close;
+*/
+
 /* export tables and figures to LaTeX */
 
 /*
@@ -1135,7 +1114,11 @@ proc report data=AE spanrows;
 	title 'adverse events';
 run;
 ods tagsets.latex close;
-*/
+
+/*
+ods pdf file="&pathOut./trial_report.pdf" style=grayscaleprinter startpage=no;
+ods pdf close;
+*/ 
 
 /*
 integration of WinNonLin and SAS:
