@@ -303,6 +303,24 @@ run;
 
 /* vital signs */
 
+proc format; 
+	value $PAGENAME_order
+	'ECG'='0.00'
+ 	'ECG - 2 hours post-dose - only for Ancotil'='0.02'
+ 	'ECG - 4 hours post-dose - only for Flucitosine'='0.04'
+ 	'ECG - 8 hours (2 hours after 2nd dose Ancotil)'='0.08'
+	'ECG - 48 hours post-dose'='0.48'; 
+run; 
+
+data EG;
+	set EG;
+	PAGENAME_order = put(PAGENAME,$PAGENAME_order.);
+run;
+
+proc sort data=EG;
+	by PAGENAME_order;
+run;
+
 %asnumeric(VS,VSORRES);
 
 data VS;
@@ -371,15 +389,6 @@ run;
 	run;
 %mend;
 
-proc format; 
-	value $PAGENAME_order
-	'ECG'='0.00'
- 	'ECG - 2 hours post-dose - only for Ancotil'='0.02'
- 	'ECG - 4 hours post-dose - only for Flucitosine'='0.04'
- 	'ECG - 8 hours (2 hours after 2nd dose Ancotil)'='0.08'
-	'ECG - 48 hours post-dose'='0.48'; 
-run; 
-
 %macro report(data,title,name);
 	proc report data=&data. spanrows;
 		%color(name=&name.);
@@ -392,21 +401,6 @@ run;
 		title &title.;
 	run;
 %mend;
-
-/*
-data test;
-	set EG;
-	PAGENAME_order = put(PAGENAME,$PAGENAME_order.);
-run;
-
-proc tabulate data=test;
-	class dose_order;
-	table dose_order;
-run;
-
-proc contents data=EG;
-run;
-*/
 
 %listncs(code=VS,visit='Screening Visit');
 %showncs(code=VS,visit='Screening Visit' 'Unscheduled Screening',name='VS');
@@ -773,7 +767,7 @@ run;
 
 proc tabulate data=EG;
 	where not missing(RID) and PAGENAME ne 'ECG';
-	class treat EGTEST PAGENAME;
+	class treat EGTEST PAGENAME / mlf order=data;
 	var EGORRES;
 	table EGTEST*EGORRES * (mean std median min max N), treat*PAGENAME;
 	title 'ECG during treatment';
