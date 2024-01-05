@@ -860,25 +860,28 @@ run;
 
 /* one common scatterplot for all samples */
 
-proc means data=PK clm alpha=0.05 noprint;
+proc means data=PK noprint;
 	var CONCENTRATION;
 	class SAMPLETIME treat;
-	output out=PK_mean mean=mean;
+	output out=PK_mean mean=mean std=std;
 run;
 
 data PK_mean;
 	set PK_mean;
 	if not missing(SAMPLETIME) and not missing (treat);
+	lower=mean-std;
+	upper=mean+std;
 run;
 
 /*ods pdf file="&pathOut.\mixedmodel.pdf";
 run;*/
 proc sgplot data=PK_mean;
-	series x=SAMPLETIME y=mean / group=treat markers;
+	series x=SAMPLETIME y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     title 'concentration against time by treatment';
     xaxis label='time';
     yaxis label='concentration';
     keylegend / title='treatment';
+	scatter x=SAMPLETIME y=mean/yerrorlower=lower yerrorupper=upper group=treat;
 run;
 /*ods pdf close;*/
 
