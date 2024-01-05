@@ -545,7 +545,6 @@ proc tabulate data=temp;
 	title 'vital signs results';
 run;
 
-
 /* vital signs - listing abnormal */
 
 data long;
@@ -571,19 +570,28 @@ run;
 
 /* vital signs - trajectory */
 
-/* CONTINUE HERE: use datetime instead of VSDTC, format datetime to time object */
-
 data VS;
 	set VS;
-	date_temp = input(VSDAT, ddmmyy10.);
-	date = put(date_temp, yymmdd10.);
-	time_temp = VSTIM; /* use input format */
-	time = time_temp;  /* use put format */
-	/*if missing(VSDTC) then do;*/
-		VSDTC = catx("T",date,VSTIM);
-	/*end;*/
-	drop date_temp time_temp;
+	temp = input(VSDAT, ddmmyy10.);
+	date = put(temp, yymmdd10.);
+	VSDTC = catx("T",date,VSTIM);
+	drop temp;
 run;
+
+/*
+proc print data=VS(obs=10);
+	title 'temporary';
+run;
+
+data temp;
+	set VS;
+	datetime = input(VSDTC, datetime.);
+run;
+
+proc print data=temp(obs=10);
+	title 'temporary';
+run;
+*/
 
 %macro plotvs(test);
 	data temp;
@@ -893,6 +901,7 @@ Things to do:
 - vital signs: solve date/time issue
 - security analysis
 - integration with WinNonlin
+- use vertical column labels for wide tables
 
 
 Consider computing PK parameters in SAS:
@@ -966,7 +975,7 @@ efficacy and safety of sustained-release flucytosine versus immediate-release fl
 title3 font=timesroman "(confidential copy for &first_name. &last_name.)";
 title4 font=timesroman color=red "THESE ARE DUMMY DATA - NOT MEANT FOR REAL USE";
 footnote1 justify=left font=timesroman "control treatment: immediate release, experimental treatment: sustained release";
-footnote2 justify=left font=timesroman "Please note that this copy is watermarked.";
+footnote2 justify=left font=timesroman "Please note that this is a watermarked copy.";
 proc report data=rand spanrows;
 	column hospital block RID treatment;
 	define hospital/order order=internal format=hospital.;
@@ -978,7 +987,8 @@ footnote;
 %mend scheme;
 
 /*%scheme(first_name=Armin,last_name=Rauschenberger);*/
-%scheme(first_name=Michel,last_name=Vaillant);
+/*%scheme(first_name=Michel,last_name=Vaillant);*/
+
 
 /* export tables and figures to LaTeX */
 
