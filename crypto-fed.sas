@@ -583,16 +583,18 @@ run;
 /* vital signs - trajectory */
 
 /*
-use propose time formatting (keep this code)
+use propose time formatting (keep this code) */
 
 data VS;
 	set VS;
 	temp = input(VSDAT, ddmmyy10.);
 	date = put(temp, yymmdd10.);
 	VSDTC = catx("T",date,VSTIM);
+	/*VSDTC = input(datetime, E8601DT.);*/
 	drop temp;
 run;
 
+/*
 data VS;
 	set VS;
 	if length(datetime)<10 then do;
