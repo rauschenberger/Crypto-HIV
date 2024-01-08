@@ -589,7 +589,7 @@ data VS;
 	set VS;
 	temp = input(VSDAT, ddmmyy10.);
 	date = put(temp, yymmdd10.);
-	datetime = catx("T",date,VSTIM);
+	VSDTC = catx("T",date,VSTIM);
 	drop temp;
 run;
 
@@ -634,7 +634,7 @@ run;
 		if RID in (&ids_ncs.);
 	run;
 	proc sort data=temp;
-		by VSDTC RID;
+		by RID VSDTC;
 	run;
 	proc sgplot data=temp;
 		series x=time y=VSORRES / group=RID markers; 
