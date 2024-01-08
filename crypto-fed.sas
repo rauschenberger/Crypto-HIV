@@ -673,7 +673,7 @@ run;
 
 /* CONTINUE HERE: Tidy up plots for mean and mean change. */ 
 
-%macro temporary(test);
+%macro plotvalue(test);
 	data VS_means;
 		set VS_means;
 		where not missing(treat) and not missing(FORM);
@@ -693,7 +693,7 @@ run;
 		highlow x=FORM low=lclm high=uclm / group=treat;
 		scatter x=FORM y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
 	run;
-%mend temporary;
+%mend plotvalue;
 
 %macro plotmean(test,diff);
 	proc means data=VS mean clm alpha=0.05 noprint;
@@ -702,7 +702,7 @@ run;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	%temporary(&test.);
+	%plotvalue(&test.);
 %mend plotmean;
 
 %macro plotmeandiff(test,diff);
@@ -713,7 +713,7 @@ run;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	%temporary(&test.);
+	%plotvalue(&test.);
 %mend plotmeandiff;
 
 %plotmean('Systolic Blood Pressure');
