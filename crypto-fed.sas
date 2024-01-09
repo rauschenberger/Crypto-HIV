@@ -736,8 +736,19 @@ run;
 %mend plotind;
 /*
 Arguments: Choose between 'Systolic Blood Pressure' and 'Diastolic Blood Pressure'.
-Description: 
+Description: Extracts data from the dataset 'VS'  for the individuals in 'ids_ncs',
+the position 'Supine' and the chosen test (see arguments).
+Sorts the extracted data by the sample identifier and the time point.
+Replaces missing visit names by the visit name of the lagged time point.
+Plots the measurements against the visit names, with one line for each patient.
 */ 
+
+/*
+CONTINUE HERE: Replace global variables in macros by macro variables.
+Check how default arguments can be specified.
+Macros should also show all arguments in the output (e.g., figure caption).
+*/
+
 
 %plotind('Systolic Blood Pressure');
 %plotind('Diastolic Blood Pressure');
