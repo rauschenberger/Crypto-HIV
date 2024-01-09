@@ -161,7 +161,6 @@ proc format;
 run; 
 
 %macro color(name);
-	%put name: &name.;
 	%if &name.='VS' %then %do;
 	compute Temperature;
 		call define(_col_,'style','style={background=temp.}');
@@ -381,10 +380,12 @@ run;
 	%if &code.=VS %then %do;
 		%let var_test=VSSTRESC;
 	%end;
-	%else %do;
+	%else %if &code.=EG %then %do;
 		%let var_test=EGSTRESC1;
 	%end;
-	%put var_test=&var_test.;
+	%else %do;
+		%put ERROR;
+	%end;
     data temp;
         set &code.;
         where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
@@ -505,7 +506,6 @@ run;
 /* vital signs - change */
 
 %macro calcdiff(test,position='Supine');
-	%put Calculating change in &position. &test..;
 	data temp;
 		set VS;
 		where VSTEST=&test. and VSPOS=&position. and not missing(RID) and not missing(period);
@@ -771,7 +771,7 @@ run;
 /* CONTINUE HERE: Tidy up plots for mean and mean change. */ 
 
 /* plot mean value or mean change */
-%macro plot_internal(test);
+%macro plot_internal(title);
 	data VS_means;
 		set VS_means;
 		where not missing(treat) and not missing(FORM);
@@ -784,7 +784,7 @@ run;
 	
 	proc sgplot data=VS_means;
 		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
-    	title "Supine &test. against time by treatment";
+    	title &title.;
     	xaxis label='time';
     	yaxis label='value';
     	keylegend / title='treatment';
@@ -799,7 +799,7 @@ run;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(&test.);
+	%plot_internal(title="Mean " &position. " " &test.);
 %mend plot_mean_value;
 %macro plot_mean_change(test,position='Supine');
 	%calcdiff(&test.);
@@ -809,7 +809,7 @@ run;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(&test.);
+	%plot_internal(title="Mean change in " &position. " " &test.);
 %mend plot_mean_change;
 /*
 Arguments: Set 'test' to 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate',
@@ -825,7 +825,15 @@ Plots the results.
 %plot_mean_value('Systolic Blood Pressure');
 %plot_mean_change('Systolic Blood Pressure');
 
-/* CONTINUE HERE: Similar calls for Diastolic Blood Pressure and Pulse Rate */ 
+/*
+omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
+
+%plot_mean_value('Diastolic Blood Pressure');
+%plot_mean_change('Diastolic Blood Pressure');
+
+%plot_mean_value('Pulse Rate');
+%plot_mean_change('Pulse Rate');
+*/
 
 /* vital signs - post study */ 
 
