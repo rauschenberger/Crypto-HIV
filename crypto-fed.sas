@@ -160,6 +160,7 @@ proc format;
 						130-high=&high.;
 run; 
 
+/* colour extreme values */ 
 %macro color(name);
 	%if &name.='VS' %then %do;
 	compute Temperature;
@@ -492,6 +493,7 @@ data VS;
 	else time='other';
 run;
 
+/* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
 	proc tabulate data=VS;
 		where VSPOS=&position. and VSTEST=&test.;
@@ -502,9 +504,13 @@ run;
 		title &position. &test. "- values";
 	run;
 %mend tabval;
+/*
+Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
+and select 'position' from 'Supine' and 'Standing'.
+Description: Summarises measurements for each time point (rows) and treatment (columns).
+*/ 
 
-/* vital signs - change */
-
+/* calcualte change */
 %macro calcdiff(test,position='Supine');
 	data temp;
 		set VS;
@@ -529,6 +535,8 @@ run;
 	run;
 %mend calcdiff;
 
+
+/* summarise vital signs - change */
 %macro tabdiff(test,position='Supine');
 proc tabulate data=temp;
 	class VISIT treat FORM / mlf order=data;
@@ -538,6 +546,11 @@ proc tabulate data=temp;
 	title &position. &test. "- change";
 run;
 %mend;
+/*
+Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
+and select 'position' from 'Supine' and 'Standing'.
+Description: Summarises change with respect to pre-dose for each time point (rows) and treatment (columns).
+*/ 
 
 /* vital signs - both */
 
@@ -768,8 +781,6 @@ proc format;
 	'48 hours post-dose'='48'; 
 run; 
 
-/* CONTINUE HERE: Tidy up plots for mean and mean change. */ 
-
 /* plot mean value or mean change */
 %macro plot_internal(title);
 	data VS_means;
@@ -777,11 +788,9 @@ run;
 		where not missing(treat) and not missing(FORM);
 		visit_format = put(FORM,$form.);
 	run;
-	
 	proc sort data=VS_means;
 		by visit_format;
 	run;
-	
 	proc sgplot data=VS_means;
 		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
