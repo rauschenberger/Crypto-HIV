@@ -439,7 +439,7 @@ run;
 
 %listncs(code=VS,visit='Screening Visit');
 %showncs(code=VS,visit='Screening Visit' 'Unscheduled Screening',name='VS');
-%report(wide,title="patients with abnormal NCS - screening visits",name='VS');
+%report(data=wide,title="patients with abnormal NCS - screening visits",name='VS');
 
 /*
 CONTINUE HERE: Combine all three macros, allow for PAGENAME.
@@ -491,23 +491,24 @@ data VS;
 	else time='other';
 run;
 
-%macro tabval(test);
+%macro tabval(test,position='Supine');
 	proc tabulate data=VS;
-		where VSPOS='Supine' and VSTEST=&test.;
+		where VSPOS=&position. and VSTEST=&test.;
 		class VISIT treat FORM / mlf order=data;
 		var VSORRES;
 		table 	FORM * VSORRES * (mean std median min max n),
 			treat;
-		title "supine &test. - values";
+		title &position. &test. "- values";
 	run;
 %mend tabval;
 
 /* vital signs - change */
 
-%macro calcdiff(test);
+%macro calcdiff(test,position='Supine');
+	%put Calculating change in &position. &test..;
 	data temp;
 		set VS;
-		where VSTEST=&test. and VSPOS='Supine' and not missing(RID) and not missing(period);
+		where VSTEST=&test. and VSPOS=&position. and not missing(RID) and not missing(period);
 	run;
 	data temp;
   		do until(last.RID);
@@ -528,13 +529,13 @@ run;
 	run;
 %mend calcdiff;
 
-%macro tabdiff(test);
+%macro tabdiff(test,position='Supine');
 proc tabulate data=temp;
 	class VISIT treat FORM / mlf order=data;
 	var diff;
 	table 	FORM * diff * (mean std median min max n),
 			treat;
-	title "supine &test. - change";
+	title &position. &test. "- change";
 run;
 %mend;
 
@@ -701,7 +702,7 @@ run;
 */
 
 /* plot trajectories of vital signs */
-%macro plotind(test,position="Supine");
+%macro plotind(test,position='Supine');
 	data temp;
 		set VS;
 		where VSTEST=&test. and VSPOS=&position.; /*and time ne 'other'*/
@@ -734,7 +735,8 @@ run;
 	run;
 %mend plotind;
 /*
-Arguments: Choose between 'Systolic Blood Pressure' and 'Diastolic Blood Pressure'.
+Arguments: Choose between test='Systolic Blood Pressure' and test='Diastolic Blood Pressure',
+and choose between position='Supine' (default) and position='Standing'.
 Description: Extracts data from the dataset 'VS'  for the individuals in 'ids_ncs',
 the position 'Supine' and the chosen test (see arguments).
 Sorts the extracted data by the sample identifier and the time point.
@@ -790,19 +792,19 @@ run;
 		scatter x=FORM y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
 	run;
 %mend plot_internal;
-%macro plot_mean_value(test);
+%macro plot_mean_value(test,position='Supine');
 	proc means data=VS mean clm alpha=0.05 noprint;
-		where VSTEST=&test. and VSPOS='Supine';
+		where VSTEST=&test. and VSPOS=&position.;
 		var VSORRES;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(&test.);
 %mend plot_mean_value;
-%macro plot_mean_change(test);
+%macro plot_mean_change(test,position='Supine');
 	%calcdiff(&test.);
 	proc means data=temp mean clm alpha=0.05 noprint;
-		where VSTEST=&test. and VSPOS='Supine';
+		where VSTEST=&test. and VSPOS=&position.;
 		var diff;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
@@ -810,8 +812,9 @@ run;
 	%plot_internal(&test.);
 %mend plot_mean_change;
 /*
-Arguments: Set 'test' to 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate'.
-Description: Extracts the data from dataset 'VS' for position 'Supine' and the specified category (see arguments).
+Arguments: Set 'test' to 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate',
+and set 'position' to 'Supine' (default) or 'Standing'.
+Description: Extracts the data from dataset 'VS' for the selected position and the selected test.
 Optionally (plot_mean_change), computes the differences with respect to the pre-dose measurement.
 Calculates the means of these measurement for the two treatments (A and B)
 and the different time points (pre-dose, 2/4/6/48 hours postdose),
