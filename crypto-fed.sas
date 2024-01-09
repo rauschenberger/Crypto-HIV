@@ -677,6 +677,7 @@ data VS;
 run;
 */
 
+/*
 %macro plotvs(test);
 	data temp;
 		set VS;
@@ -697,13 +698,13 @@ run;
 
 %plotvs('Systolic Blood Pressure');
 %plotvs('Diastolic Blood Pressure');
+*/
 
 /* plot trajectories of vital signs */
-%macro plotind(test);
-	/*%let test='Systolic Blood Pressure';*/
+%macro plotind(test,position="Supine");
 	data temp;
 		set VS;
-		where VSTEST=&test. and VSPOS='Supine'; /*and time ne 'other'*/
+		where VSTEST=&test. and VSPOS=&position.; /*and time ne 'other'*/
 		if RID in (&ids_ncs.);
 	run;
 	proc sort data=temp;
@@ -718,11 +719,9 @@ run;
 		/*visit_order = put(time,$visit_order.);*/
 		drop time_lag;
 	run;
-	/*proc print data=temp;
-	run;*/
 	proc sgplot data=temp;
-		series x=time y=VSORRES / group=RID markers;  /* was x=time*/
-    	title "Supine &test.";
+		series x=time y=VSORRES / group=RID markers;
+    	title &position. " " &test.;
     	xaxis label='time';
     	yaxis label='value';
    		keylegend / title='RID';
@@ -748,7 +747,6 @@ CONTINUE HERE: Replace global variables in macros by macro variables.
 Check how default arguments can be specified.
 Macros should also show all arguments in the output (e.g., figure caption).
 */
-
 
 %plotind('Systolic Blood Pressure');
 %plotind('Diastolic Blood Pressure');
