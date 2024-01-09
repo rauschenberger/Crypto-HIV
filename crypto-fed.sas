@@ -581,17 +581,52 @@ run;
 
 /* vital signs - trajectory */
 
-/*
-use propose time formatting (keep this code) */
+/* use propose time formatting (keep this code)
 
 data VS;
 	set VS;
 	temp = input(VSDAT, ddmmyy10.);
 	date = put(temp, yymmdd10.);
 	VSDTC = catx("T",date,VSTIM);
-	/*VSDTC = input(datetime, E8601DT.);*/
+	/* datetime = input(VSDTC, E8601DT.);
 	drop temp;
 run;
+
+proc sort data=VS;
+	by RID VSDTC;
+run;
+
+data VS;
+	set VS;
+	before = lag(time);
+	if time='other' then do;
+		time = before || " - us";
+	end;
+	drop before;
+run;
+
+proc print data=VS;
+run;
+
+/* end temporary */  
+
+/*
+start temporary
+
+proc sort data=VS;
+	by RID datetime;
+run;
+
+proc tabulate data=VS;
+	class VISIT;
+	table VISIT;
+run;
+
+proc print data=VS;
+run;
+
+end temporary
+*/ 
 
 /*
 data VS;
@@ -629,16 +664,28 @@ run;
 
 
 %macro plotind(test);
+	/*%let test='Systolic Blood Pressure';*/
 	data temp;
 		set VS;
-		where VSTEST=&test. and VSPOS='Supine' and time ne 'other';
+		where VSTEST=&test. and VSPOS='Supine'; /*and time ne 'other'*/
 		if RID in (&ids_ncs.);
 	run;
 	proc sort data=temp;
 		by RID VSDTC;
 	run;
+	data temp;
+		set temp;
+		time_lag = lag(time);
+		if time='other' then do;
+			time = time_lag;
+		end;
+		/*visit_order = put(time,$visit_order.);*/
+		drop time_lag;
+	run;
+	/*proc print data=temp;
+	run;*/
 	proc sgplot data=temp;
-		series x=time y=VSORRES / group=RID markers; 
+		series x=time y=VSORRES / group=RID markers;  /* was x=time*/
     	title "Supine &test.";
     	xaxis label='time';
     	yaxis label='value';
@@ -1055,6 +1102,7 @@ title3 font=timesroman "(confidential copy for &first_name. &last_name.)";
 title4 font=timesroman color=red "THESE ARE DUMMY DATA - NOT MEANT FOR REAL USE";
 footnote1 justify=left font=timesroman "control treatment: immediate release, experimental treatment: sustained release";
 footnote2 justify=left font=timesroman "Please note that this is a watermarked copy.";
+footnote3 justify=left font=timesroman color=white "This copy is for &first_name. &last_name..";
 proc report data=rand spanrows;
 	column hospital block RID treatment;
 	define hospital/order order=internal format=hospital.;
@@ -1119,11 +1167,13 @@ tagsets.TablesOnlyLaTeX
 
 
 ods tagsets.TablesOnlyLaTeX file="&pathOut./table_example.tex" stylesheet="pathOut./sas.sty"(url="sas");
+ods pdf file="&pathOut./table_example.pdf";
 proc report data=AE spanrows;
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	define RID/order;
 	title 'adverse events';
 run;
+pds pdf close;
 ods tagsets.TablesOnlyLaTeX close;
 
 
