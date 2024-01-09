@@ -338,23 +338,38 @@ run;
 
 /* vital signs */
 
-proc format; 
-	value $PAGENAME_order
-	'ECG'='0.00'
- 	'ECG - 2 hours post-dose - only for Ancotil'='0.02'
- 	'ECG - 4 hours post-dose - only for Flucitosine'='0.04'
- 	'ECG - 8 hours (2 hours after 2nd dose Ancotil)'='0.08'
-	'ECG - 48 hours post-dose'='0.48'; 
-run; 
+proc format;
+	value tochar
+		1 = 'ECG'
+ 		2 = 'ECG - 2 hours post-dose - only for Ancotil'
+ 		3 = 'ECG - 4 hours post-dose - only for Flucitosine'
+ 		4 = 'ECG - 8 hours (2 hours after 2nd dose Ancotil)'
+		5 = 'ECG - 48 hours post-dose'
+		other = ' '
+		;
+	invalue tonum
+		'ECG' = 1
+ 		'ECG - 2 hours post-dose - only for Ancotil' = 2
+ 		'ECG - 4 hours post-dose - only for Flucitosine' = 3
+ 		'ECG - 8 hours (2 hours after 2nd dose Ancotil)' = 4
+		'ECG - 48 hours post-dose' = 5
+		other = .
+		;
+quit;
 
 data EG;
 	set EG;
-	PAGENAME_order = put(PAGENAME,$PAGENAME_order.);
+	temp = input(PAGENAME,tonum.);
+	format temp tochar.;
+	drop PAGENAME;
+	rename temp=PAGENAME;
 run;
 
+/*
 proc sort data=EG;
-	by PAGENAME_order;
+	by PAGENAME;
 run;
+*/
 
 %asnumeric(VS,VSORRES);
 
@@ -510,7 +525,7 @@ and select 'position' from 'Supine' and 'Standing'.
 Description: Summarises measurements for each time point (rows) and treatment (columns).
 */ 
 
-/* calcualte change */
+/* calculate change */
 %macro calcdiff(test,position='Supine');
 	data temp;
 		set VS;
@@ -534,7 +549,10 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 		end;
 	run;
 %mend calcdiff;
-
+/*
+Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
+and select 'position' from 'Supine' and 'Standing'.
+*/
 
 /* summarise vital signs - change */
 %macro tabdiff(test,position='Supine');
@@ -759,7 +777,6 @@ Plots the measurements against the visit names, with one line for each patient.
 
 /*
 CONTINUE HERE: Replace global variables in macros by macro variables.
-Check how default arguments can be specified.
 Macros should also show all arguments in the output (e.g., figure caption).
 */
 
@@ -891,8 +908,8 @@ run;
 %add_treat(EG);
 
 proc tabulate data=EG;
-	where not missing(RID) and PAGENAME ne 'ECG';
-	class treat EGTEST PAGENAME / mlf order=data;
+	class treat EGTEST PAGENAME / order=internal;
+	where not missing(RID) and PAGENAME ne 1; /* was PAGENAME ne 'ECG' */ 
 	var EGORRES;
 	table EGTEST*EGORRES * (mean std median min max N), treat*PAGENAME;
 	title 'ECG during treatment';
