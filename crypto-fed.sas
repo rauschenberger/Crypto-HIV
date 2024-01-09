@@ -1063,12 +1063,12 @@ run;
 
 /* mixed model */
 
-%macro PKmixmod(outcome);
-	proc mixed data=PKpars;
-		Class rid seq period treat;
-		Model &outcome.= seq period treat /ddfm =kr; 
-		Random rid(seq) /type=vc;
-		lsmeans treat/cl alpha=0.10;
+%macro PKmixmod(outcome,data=PKpars,class=rid seq period treat,fixed=seq period treat,random=rid(seq),lsmeans=treat);
+	proc mixed data=&data.;
+		Class &class.;
+		Model &outcome.= &fixed. / ddfm=kr; /* was seq period treat  */ 
+		Random &random. / type=vc; /* was rid(seq) */
+		lsmeans &lsmeans. /cl alpha=0.10; /* was treat*/ 
 		Estimate 'diff B-A' treat -1 1/cl alpha = 0.10;
 		ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
 		ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
