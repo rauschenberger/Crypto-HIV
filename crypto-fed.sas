@@ -1063,7 +1063,7 @@ run;
 
 /* mixed model */
 
-%macro PKmixmod(outcome,data=PKpars,class=rid seq period treat,fixed=seq period treat,random=rid(seq),lsmeans=treat);
+%macro mixmod(outcome,data=PKpars,class=rid seq period treat,fixed=seq period treat,random=rid(seq),lsmeans=treat);
 	proc mixed data=&data.;
 		Class &class.;
 		Model &outcome.= &fixed. / ddfm=kr; /* was seq period treat  */ 
@@ -1076,7 +1076,7 @@ run;
 	proc print data=random;
 		id CovParm;
 		var Estimate;
-		title "&outcome.";
+		title &outcome.;
 	run;
 	title;
 	proc print data=fixed;
@@ -1103,17 +1103,16 @@ run;
 		id Label;
 		var expEstim expLower expUpper;
 	run;
-%mend PKmixmod;
+%mend mixmod;
 /* 
 Arguments: Specify the outcome (e.g. 'logCmax', 'logAUClast' or 'logAUCinf').
-Description: Performs mixed modelling, with fixed effects for sequence, period and treatment,
-and a random effect for the individual accross the sequence.
+Description: Performs mixed modelling, returns estimated variance of random effects,
+estimated fixed effects, geometric mean ratio (misnomer!) for binary effect of interest
 */
 
-%PKmixmod(logCmax);
-%PKmixmod(logAUClast);
-%PKmixmod(logAUCinf);
-
+%mixmod(logCmax);
+%mixmod(logAUClast);
+%mixmod(logAUCinf);
 
 /* ---------------------- */
 /* --- PHASE II STUDY --- */
