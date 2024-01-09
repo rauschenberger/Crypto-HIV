@@ -352,7 +352,49 @@ proc format;
  		4 = 'ECG - 4 hours post-dose - only for Flucitosine'
  		8 = 'ECG - 8 hours (2 hours after 2nd dose Ancotil)'
 		48 = 'ECG - 48 hours post-dose'
-		other = ' ';
+		other = '-';
+	invalue visit_invalue
+		'screen' = 0.00 
+		'P1: pre-dose' = 1.00
+		'P1: 2h' = 1.02 
+		'P1: 4h' = 1.04 
+		'P1: 6h' = 1.06 
+		'P1: 48h' = 1.48
+		'P2: pre-dose' = 2.00 
+		'P2: 2h' = 2.02 
+		'P2: 4h' = 2.04 
+		'P2: 6h' = 2.06 
+		'P2: 48h' = 2.48 
+		'post-study' = 3.00 
+		other = .;
+	value visit_value
+		0.00 = 'screen'
+		1.00 = 'P1: pre-dose'
+		1.02 = 'P1: 2h'
+		1.04 = 'P1: 4h'
+		1.06 = 'P1: 6h'
+		1.48 = 'P1: 48h'
+		2.00 = 'P2: pre-dose'
+		2.02 = 'P2: 2h'
+		2.04 = 'P2: 4h'
+		2.06 = 'P2: 6h'
+		2.48 = 'P2: 48h'
+		3.00 = 'post-study' 
+		other = '-';
+	invalue form_invalue
+		'Pre-dose' = 0
+		'2 hours post-dose' = 2
+		'4 hours post-dose' = 4
+		'6 hours post-dose' = 6
+		'48 hours post-dose' = 48
+		other = .; 
+	value form_value
+		0 = 'Pre-dose'
+		2 = '2 hours post-dose'
+		4 = '4 hours post-dose'
+		6 = '6 hours post-dose'
+		48 = '48 hours post-dose'
+		other = '-'; 
 run;
 
 data EG;
@@ -499,6 +541,16 @@ data VS;
 	else if VISIT='Post Study' then time='post-study';
 	else time='other';
 run;
+
+/*
+data VS;
+	set VS;
+	temp = input(time,visit_invalue.);
+	format temp visit_value.;
+	drop time;
+	rename temp=time;
+run;
+*/
 
 /* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
