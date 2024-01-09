@@ -339,37 +339,29 @@ run;
 /* vital signs */
 
 proc format;
-	value tochar
-		1 = 'ECG'
+	value pagename_value
+		0 = 'ECG'
  		2 = 'ECG - 2 hours post-dose - only for Ancotil'
- 		3 = 'ECG - 4 hours post-dose - only for Flucitosine'
- 		4 = 'ECG - 8 hours (2 hours after 2nd dose Ancotil)'
-		5 = 'ECG - 48 hours post-dose'
-		other = ' '
-		;
-	invalue tonum
-		'ECG' = 1
+ 		4 = 'ECG - 4 hours post-dose - only for Flucitosine'
+ 		8 = 'ECG - 8 hours (2 hours after 2nd dose Ancotil)'
+		48 = 'ECG - 48 hours post-dose'
+		other = ' ';
+	invalue pagename_invalue
+		'ECG' = 0
  		'ECG - 2 hours post-dose - only for Ancotil' = 2
- 		'ECG - 4 hours post-dose - only for Flucitosine' = 3
- 		'ECG - 8 hours (2 hours after 2nd dose Ancotil)' = 4
-		'ECG - 48 hours post-dose' = 5
-		other = .
-		;
-quit;
+ 		'ECG - 4 hours post-dose - only for Flucitosine' = 4
+ 		'ECG - 8 hours (2 hours after 2nd dose Ancotil)' = 8
+		'ECG - 48 hours post-dose' = 48
+		other = .;
+run;
 
 data EG;
 	set EG;
-	temp = input(PAGENAME,tonum.);
-	format temp tochar.;
+	temp = input(PAGENAME,pagename_invalue.);
+	format temp pagename_value.;
 	drop PAGENAME;
 	rename temp=PAGENAME;
 run;
-
-/*
-proc sort data=EG;
-	by PAGENAME;
-run;
-*/
 
 %asnumeric(VS,VSORRES);
 
@@ -447,7 +439,7 @@ run;
 		define RID / order order=internal;
 		define VISIT / order order=internal;
 		%if &name.='EG' %then %do;
-			define PAGENAME / order order=internal; /* Try to use format=$PAGENAME_order. for ordering*/
+			define PAGENAME / order order=internal;
 		%end;
 		define _NAME_/noprint;
 		title &title.;
@@ -921,8 +913,6 @@ run;
 %listncs(code=EG,visit=&visits);
 %showncs(code=EG,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',name='EG');
 %report(wide,title="patients with abnormal ECG - treatment period",name='EG');
-
-/* ISSUE: wrong order of PAGENAME levels */
 
 /* abnormal ECG results post study (CONTINUE HERE) */
 
