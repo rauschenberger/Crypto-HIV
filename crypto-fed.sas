@@ -27,53 +27,65 @@ run;
 data random;
 	set random;
 	rename Subject_ID=RID;
-	/*RID = input(RID, best.);*/
 	if seqence=1 then
 		seq='1 (AB)';
 	else
 		seq='2 (BA)';
-	/*drop Subject_ID;*/
 run;
 
 /* import clinical data */
-
-%macro import(path,file);
-proc import datafile="&path.\&file._*"
-    out=&file
+%macro import(path,code);
+proc import datafile="&path.\&code._*"
+    out=&code
     dbms=xlsx
 	REPLACE;
 run;
 %mend import;
+/*
+Arguments: Specify a directory (e.g., path="C:\Users\myname\Desktop") and a CDISC abbreviation (e.g., code=DM for demographics or code=VS for vital signs).
+Description: Imports the file starting with 'code_' and ending with 'xlsx' and stores it in the data set 'code'.
+*/ 
 
 /* extract random ID */
-
-%macro add_rid(file); 
-data &file;
- 	set &file;
+%macro add_rid(code); 
+data &code;
+ 	set &code;
  	RID = input(substr(USUBJID,index(USUBJID,'/')+1),best.);
 run;
 %mend add_rid;
+/*
+Arguments: Specify a CDISC abbreviation (e.g., code=DM or code=VS).
+Description: Splits USUBJID (formatted as ABC/XYZ)
+into two parts, extracts the second part (formatted as XYZ),
+and adds this part to the dataset 'code' in the column 'RID'.
+*/
 
 /* sort by random ID */
-
-%macro sort_rid(file);
-	proc sort data=&file;
+%macro sort_rid(code);
+	proc sort data=&code;
 		by RID;
 	run;
 %mend sort_rid;
+/*
+Arguments: Specify a CDISC abbreviation (e.g., code=DM or code=VS).
+Description: Sorts the dataset 'code' by the random identifier (RID).
+*/
 
 /* add random info */
-
-%macro add_seq(file);
-	data &file;
-		merge &file(in=a) random(in=b);
+%macro add_seq(code);
+	data &code;
+		merge &code(in=a) random(in=b);
 		by RID;
 		if a;
 	run;
 %mend add_seq;
+/*
+Arguments: Specify a CDISC abbreviation (e.g., code=DM or code=VS).
+Description: Merges dataset 'code' and dataset 'random' by the random identifier (RID),
+adding information on the treatment sequence to dataset 'code'.
+*/
 
 /* import and process clinical data */
-
 %macro prepare;
    %let code = IE AE DM DS DV SU MH VS EG LB PC; /* add other abbreviations*/
    %do i = 1 %to %sysfunc(countw(&code));
@@ -83,19 +95,27 @@ run;
 	  %add_seq(%scan(&code,&i));
    %end;
 %mend prepare;
+/*
+Options: Define list of abbreviations (code = ...).
+Description: Prepares the datasets by importing the datasets, adding the random identifiers,
+sorting the datasets by random identifiers and adding information on the treatment sequence.
+*/
 
 %prepare;
 
 /* convert character to numeric */
-
-%macro asnumeric(file,var);
-data &file;
-	set &file;
+%macro asnumeric(code,var);
+data &code;
+	set &code;
 	temp = input(&var,best.);
 	drop &var;
 	rename temp=&var;
 run;
 %mend asnumeric;
+/*
+Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable name (var=...).
+Description: Converts character variable to numeric.
+*/
 
 proc format; 
 	%let low='LIGR'; /*pale blue: '#4ED3D4'*/
@@ -189,7 +209,12 @@ run;
 	endcomp;
 	%end;
 %mend color;
+/*
+Arguments: Choose one of two CDISC abbreviations (either 'VS' or 'EG').
+Description: This macro uses colour for values below or above the normal range.
+*/
 
+/* derive treatment period */ 
 %macro add_period(code);
 	data &code.;
 		set &code.;
@@ -198,7 +223,12 @@ run;
 		else period = '';
 	run;
 %mend add_period;
+/*
+Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS).
+Description: This macro uses the variable 'VISIT' to create the variable 'period'.
+*/
 
+/* derive treatment */ 
 %macro add_treat(code);
 	data &code.;
 		set &code.;
@@ -209,6 +239,12 @@ run;
 		else treat = '';
 	run;
 %mend add_treat;
+/*
+Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS).
+Description: This macro uses the variable for the period (1 or 2)
+and the variable for the treatment sequence (AB or BA)
+to create the variable for the treatment (A or B).
+*/
 
 /* withdrawals */
 
@@ -662,7 +698,7 @@ run;
 %plotvs('Systolic Blood Pressure');
 %plotvs('Diastolic Blood Pressure');
 
-
+/* plot trajectories of vital signs */
 %macro plotind(test);
 	/*%let test='Systolic Blood Pressure';*/
 	data temp;
@@ -698,6 +734,10 @@ run;
 		%end;
 	run;
 %mend plotind;
+/*
+Arguments: Choose between 'Systolic Blood Pressure' and 'Diastolic Blood Pressure'.
+Description: 
+*/ 
 
 %plotind('Systolic Blood Pressure');
 %plotind('Diastolic Blood Pressure');
@@ -719,7 +759,8 @@ run;
 
 /* CONTINUE HERE: Tidy up plots for mean and mean change. */ 
 
-%macro plotvalue(test);
+/* plot mean value or mean change */
+%macro plot_internal(test);
 	data VS_means;
 		set VS_means;
 		where not missing(treat) and not missing(FORM);
@@ -739,19 +780,17 @@ run;
 		highlow x=FORM low=lclm high=uclm / group=treat;
 		scatter x=FORM y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
 	run;
-%mend plotvalue;
-
-%macro plotmean(test,diff);
+%mend plot_internal;
+%macro plot_mean_value(test);
 	proc means data=VS mean clm alpha=0.05 noprint;
 		where VSTEST=&test. and VSPOS='Supine';
 		var VSORRES;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plotvalue(&test.);
-%mend plotmean;
-
-%macro plotmeandiff(test,diff);
+	%plot_internal(&test.);
+%mend plot_mean_value;
+%macro plot_mean_change(test);
 	%calcdiff(&test.);
 	proc means data=temp mean clm alpha=0.05 noprint;
 		where VSTEST=&test. and VSPOS='Supine';
@@ -759,11 +798,20 @@ run;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plotvalue(&test.);
-%mend plotmeandiff;
+	%plot_internal(&test.);
+%mend plot_mean_change;
+/*
+Arguments: Set 'test' to 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate'.
+Description: Extracts the data from dataset 'VS' for position 'Supine' and the specified category (see arguments).
+Optionally (plot_mean_change), computes the differences with respect to the pre-dose measurement.
+Calculates the means of these measurement for the two treatments (A and B)
+and the different time points (pre-dose, 2/4/6/48 hours postdose),
+as well as the lower and upper confidence limits for these means.
+Plots the results.
+*/ 
 
-%plotmean('Systolic Blood Pressure');
-%plotmeandiff('Systolic Blood Pressure');
+%plot_mean_value('Systolic Blood Pressure');
+%plot_mean_change('Systolic Blood Pressure');
 
 /* CONTINUE HERE: Similar calls for Diastolic Blood Pressure and Pulse Rate */ 
 
@@ -1036,17 +1084,20 @@ run;
 		var expEstim expLower expUpper;
 	run;
 %mend PKmixmod;
+/* 
+Arguments: Specify the outcome (e.g. 'logCmax', 'logAUClast' or 'logAUCinf').
+Description: Performs mixed modelling, with fixed effects for sequence, period and treatment,
+and a random effect for the individual accross the sequence.
+*/
 
 %PKmixmod(logCmax);
 %PKmixmod(logAUClast);
 %PKmixmod(logAUCinf);
 
 
-
 /* ---------------------- */
 /* --- PHASE II STUDY --- */
 /* ---------------------- */
-
 
 /* Mann-Whitney U test */
 
@@ -1126,9 +1177,6 @@ CONTINUE HERE:
 - SAS: save table as postscript
 - markdown: visualise postscript
 */
-
-
-
 
 /*
 Things to do:
