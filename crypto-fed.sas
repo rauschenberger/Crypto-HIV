@@ -339,14 +339,14 @@ run;
 /* vital signs */
 
 proc format;
-	invalue pagename_invalue
+	invalue PAGENAME_invalue
 		'ECG' = 0
  		'ECG - 2 hours post-dose - only for Ancotil' = 2
  		'ECG - 4 hours post-dose - only for Flucitosine' = 4
  		'ECG - 8 hours (2 hours after 2nd dose Ancotil)' = 8
 		'ECG - 48 hours post-dose' = 48
 		other = .;
-	value pagename_value
+	value PAGENAME_value
 		0 = 'ECG'
  		2 = 'ECG - 2 hours post-dose - only for Ancotil'
  		4 = 'ECG - 4 hours post-dose - only for Flucitosine'
@@ -381,14 +381,14 @@ proc format;
 		2.48 = 'P2: 48h'
 		3.00 = 'post-study' 
 		other = .;
-	invalue form_invalue
+	invalue FORM_invalue
 		'Pre-dose' = 0
 		'2 hours post-dose' = 2
 		'4 hours post-dose' = 4
 		'6 hours post-dose' = 6
 		'48 hours post-dose' = 48
 		other = .; 
-	value form_value
+	value FORM_value
 		0 = 'Pre-dose'
 		2 = '2 hours post-dose'
 		4 = '4 hours post-dose'
@@ -397,15 +397,24 @@ proc format;
 		other = .; 
 run;
 
-data EG;
-	set EG;
-	temp = input(PAGENAME,pagename_invalue.);
-	format temp pagename_value.;
-	drop PAGENAME;
+/* re-order category levels */ 
+%macro ordervar(code,var);
+data &code.;
+	set &code.;
+	temp = input(&var.,&var._invalue.);
+	format temp &var._value.;
 	/* TO DO: check here whether missing values are the same!*/ 
-	rename temp=PAGENAME;
+	drop &var.;
+	rename temp=&var.;
 run;
-/* TO DO: Write macro for transformation! */ 
+%mend ordervar;
+/*
+Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
+Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
+This macro defines the internal order of the category levels.
+*/ 
+
+%ordervar(code=EG,var=PAGENAME);
 
 /*
 ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
@@ -554,13 +563,7 @@ data VS;
 	else time='other';
 run;
 
-data VS;
-	set VS;
-	temp = input(FORM,form_invalue.);
-	format temp form_value.;
-	drop FORM;
-	rename temp=FORM;
-run;
+%ordervar(VS,FORM);
 
 /*
 proc tabulate data=VS;
