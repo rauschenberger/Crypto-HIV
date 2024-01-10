@@ -318,7 +318,7 @@ run;
 %asnumeric(SU,SUDOSE);
 
 proc tabulate data=SU;
-    class seq SUTRT SUOCCUR / order=data;
+    class seq SUTRT SUOCCUR / order=internal;
     var SUDOSE;
     table SUTRT * SUOCCUR * n
           SUTRT * SUDOSE *(mean std median min max n),
@@ -413,6 +413,14 @@ proc format;
 		6 = 'Diastolic Blood Pressure'
 		7 = 'Pulse Rate'
 		other = .;
+	invalue SUOCCUR_invalue
+		'No' = 0
+		'Yes' = 1
+		other = .;
+	value SUOCCUR_value
+		0 = 'No'
+		1 = 'Yes'
+		other = .;
 run;
 
 /* re-order category levels */ 
@@ -434,6 +442,7 @@ This macro defines the internal order of the category levels.
 
 %ordervar(code=EG,var=PAGENAME);
 /*%ordervar(code=VS,var=VSTEST);*/
+%ordervar(code=SU,var=SUOCCUR);
 
 /*
 ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
@@ -674,70 +683,11 @@ Description: Summarises change with respect to pre-dose for each time point (row
 
 /* vital signs - normal/abnormal */
 
-/*
-proc format; 
-	value $visit_order
-	'screen'='0.00'
-	'P1: pre-dose'='1.00'
-	'P1: 2h'='1.02'
-	'P1: 4h'='1.04'
-	'P1: 6h'='1.06'
-	'P1: 48h'='1.48'
-	'P2: pre-dose'='2.00'
-	'P2: 2h'='2.02'
-	'P2: 4h'='2.04'
-	'P2: 6h'='2.06'
-	'P2: 48h'='2.48'
-	'post-study'='3.00'; 
-run;
-*/
-
-/* also use value and invalue ! */ 
-
-/* start old version 
 proc summary data=VS nway;
 	where not missing(RID) and not missing(period);
 	class VSSTRESC RID FORM treat time;
 	output out=temp;
 run;
-
-data temp;
-	set temp;
-	visit_order = put(time,$visit_order.);
-run;
-
-proc sort data=temp;
-	by visit_order;
-run;
-
-proc tabulate data=temp;
-	class treat VSSTRESC RID FORM / order=data;
-	table FORM * VSSTRESC * n,
-		  treat;
-	title 'vital signs results';
-run;
-end old version */
-
-/* start alternative */
-
-
-
-
-proc summary data=VS nway;
-	where not missing(RID) and not missing(period);
-	class VSSTRESC RID FORM treat time;
-	output out=temp;
-run;
-
-/*
-data temp;
-	set temp;
-	temp = input(FORM,form_invalue.);
-	format temp form_value.;
-	drop FORM;
-	rename temp=FORM;
-run;
-*/
 
 proc tabulate data=temp;
 	class treat VSSTRESC RID FORM / order=internal;
@@ -745,8 +695,6 @@ proc tabulate data=temp;
 		  treat;
 	title 'vital signs results';
 run;
-
-/* end alternative */ 
 
 /* vital signs - listing abnormal */
 
@@ -917,19 +865,6 @@ Macros should also show all arguments in the output (e.g., figure caption).
 /* ISSUE: Define order of time. Format time object. */
 
 /* vital signs - sample means (and change) */
-
-/*
-proc format; 
-	value $form 
-	'Pre-dose'='00'
-	'2 hours post-dose'='02'
-	'4 hours post-dose'='04'
-	'6 hours post-dose'='06'
-	'48 hours post-dose'='48'; 
-run; 
-*/
-
-/* Also use value and invalue? */ 
 
 /* plot mean value or mean change */
 %macro plot_internal(title);
