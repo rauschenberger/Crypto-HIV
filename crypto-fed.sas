@@ -403,7 +403,7 @@ data &code.;
 	set &code.;
 	temp = input(&var.,&var._invalue.);
 	format temp &var._value.;
-	/* TO DO: check here whether missing values are the same!*/ 
+	/* TO DO: check here whether missing values are the same!*/
 	drop &var.;
 	rename temp=&var.;
 run;
@@ -574,15 +574,8 @@ run;
 
 /*
 Try to active this (If yes, plotind is currently failing).
-data VS;
-	set VS;
-	temp = input(time,time_invalue.);
-	format temp time_value.;
-	drop time;
-	rename temp=time;
-run;
 */
-
+%ordervar(VS,time);
 
 /* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
@@ -846,6 +839,10 @@ run;
 
 /* plot trajectories of vital signs */
 %macro plotind(test,position='Supine');
+	/*
+	%let test='Systolic Blood Pressure';
+	%let position='Supine';
+	*/
 	data temp;
 		set VS;
 		where VSTEST=&test. and VSPOS=&position.; /*and time ne 'other'*/
@@ -857,7 +854,8 @@ run;
 	data temp;
 		set temp;
 		time_lag = lag(time);
-		if time='other' then do;
+		/* if time='other' then do; */ 
+		if missing(time) then do;
 			time = time_lag;
 		end;
 		/*visit_order = put(time,$visit_order.);*/
