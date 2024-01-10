@@ -931,11 +931,11 @@ Plots the results.
 /*
 omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
 
-%plot_mean_value('Diastolic Blood Pressure');
-%plot_mean_change('Diastolic Blood Pressure');
+%plot_mean_value(test='Diastolic Blood Pressure');
+%plot_mean_change(test='Diastolic Blood Pressure');
 
-%plot_mean_value('Pulse Rate');
-%plot_mean_change('Pulse Rate');
+%plot_mean_value(test='Pulse Rate');
+%plot_mean_change(test='Pulse Rate');
 */
 
 /* vital signs - post study */ 
@@ -999,7 +999,7 @@ run;
 %showncs(code=EG,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',name='EG');
 %report(data=wide,title="patients with abnormal ECG - treatment period",name='EG');
 
-/* abnormal ECG results post study (CONTINUE HERE) */
+/* abnormal ECG results post study */
 
 %listncs(code=EG,visit='Post Study');
 %showncs(code=EG,visit='Post Study',name='EG');
