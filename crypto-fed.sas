@@ -318,7 +318,7 @@ run;
 %asnumeric(SU,SUDOSE);
 
 proc tabulate data=SU;
-    class seq SUTRT SUOCCUR / mlf order=data;
+    class seq SUTRT SUOCCUR / order=data;
     var SUDOSE;
     table SUTRT * SUOCCUR * n
           SUTRT * SUDOSE *(mean std median min max n),
@@ -600,7 +600,7 @@ Try to active this (If yes, plotind is currently failing).
 %macro tabval(test,position='Supine');
 	proc tabulate data=VS;
 		where VSPOS=&position. and VSTEST=&test.;
-		class VISIT treat FORM / mlf order=data;
+		class VISIT treat FORM / order=internal;
 		var VSORRES;
 		table 	FORM * VSORRES * (mean std median min max n),
 			treat;
@@ -645,7 +645,7 @@ and select 'position' from 'Supine' and 'Standing'.
 /* summarise vital signs - change */
 %macro tabdiff(test,position='Supine');
 proc tabulate data=temp;
-	class VISIT treat FORM / mlf order=data;
+	class VISIT treat FORM / order=internal;
 	var diff;
 	table 	FORM * diff * (mean std median min max n),
 			treat;
@@ -711,7 +711,7 @@ proc sort data=temp;
 run;
 
 proc tabulate data=temp;
-	class treat VSSTRESC RID FORM / mlf order=data;
+	class treat VSSTRESC RID FORM / order=data;
 	table FORM * VSSTRESC * n,
 		  treat;
 	title 'vital signs results';
@@ -1031,7 +1031,7 @@ data wide;
 run;
 
 proc tabulate data=wide;
-	class seq RID VSTEST / mlf order=data;
+	class seq RID VSTEST / order=internal;
 	var diff;
 	table VSTEST * diff * (mean std median min max n), seq;
 	title 'vital signs - change from screening to post study';
