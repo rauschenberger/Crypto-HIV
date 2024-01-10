@@ -395,6 +395,24 @@ proc format;
 		6 = '6 hours post-dose'
 		48 = '48 hours post-dose'
 		other = .; 
+	invalue VSTEST_invalue
+		'Weight' = 1
+ 		'Height' = 2
+ 		'Body Mass Index' = 3
+ 		'Temperature' = 4
+		'Systolic Blood Pressure' = 5
+		'Diastolic Blood Pressure' = 6
+		'Pulse Rate' = 7
+		other = .;
+	value VSTEST_value
+		1 = 'Weight'
+ 		2 = 'Height'
+ 		3 = 'Body Mass Index'
+ 		4 = 'Temperature'
+		5 = 'Systolic Blood Pressure'
+		6 = 'Diastolic Blood Pressure'
+		7 = 'Pulse Rate'
+		other = .;
 run;
 
 /* re-order category levels */ 
@@ -415,6 +433,7 @@ This macro defines the internal order of the category levels.
 */ 
 
 %ordervar(code=EG,var=PAGENAME);
+/*%ordervar(code=VS,var=VSTEST);*/
 
 /*
 ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
@@ -1025,7 +1044,7 @@ run;
 
 proc tabulate data=EG;
 	class treat EGTEST PAGENAME / order=internal;
-	where not missing(RID) and PAGENAME ne 1; /* Choose between PAGENAME ne 'ECG' and PAGENAME ne 1*/ 
+	where not missing(RID) and PAGENAME ne 0; /* Choose between PAGENAME ne 'ECG' and PAGENAME ne 0*/ 
 	var EGORRES;
 	table EGTEST*EGORRES * (mean std median min max N), treat*PAGENAME;
 	title 'ECG during treatment';
