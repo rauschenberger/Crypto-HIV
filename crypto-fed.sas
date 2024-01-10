@@ -145,7 +145,7 @@ proc format;
 		'P2: 6h' = 9
 		'P2: 48h' = 10
 		'post-study' = 11 
-		other = .
+		'unscheduled' = .
 		;
 	value time_value
 		0 = 'screen'
@@ -610,19 +610,8 @@ data VS;
 	else if FORM='6 hours post-dose' then time=cat('P',period,': 6h');
 	else if FORM='48 hours post-dose' then time=cat('P',period,': 48h');
 	else if VISIT='Post Study' then time='post-study';
-	else time=.; /* VISIT in Unscheduled Treatment Period 1 Unscheduled Treatment Period 2 Unscheduled Screening */ 
+	else if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Unscheduled Screening') then time='unscheduled';
 run;
-
-/*
-proc print data=VS;
-	where time='other';
-run;
-
-proc tabulate data=VS;
-	class time;
-	table time;
-run;
-*/
 
 %ordervar(code=VS,var=FORM);
 %ordervar(code=VS,var=time);
