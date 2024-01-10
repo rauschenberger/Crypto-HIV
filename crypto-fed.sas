@@ -785,13 +785,9 @@ run;
 
 /* plot trajectories of vital signs */
 %macro plotind(test,position='Supine');
-	/*
-	%let test='Systolic Blood Pressure';
-	%let position='Supine';
-	*/
 	data temp;
 		set VS;
-		where VSTEST=&test. and VSPOS=&position.; /*and time ne 'other'*/
+		where VSTEST=&test. and VSPOS=&position.;
 		if RID in (&ids_ncs.);
 	run;
 	proc sort data=temp;
@@ -800,8 +796,7 @@ run;
 	data temp;
 		set temp;
 		time_lag = lag(time);
-		if missing(time) then do; /* if time='other' then do; */ 
-			/*time = time_lag;*/
+		if missing(time) then do;
 			time = time_lag + 0.5;
 		end;
 		drop time_lag;
@@ -830,17 +825,8 @@ Replaces missing visit names by the visit name of the lagged time point.
 Plots the measurements against the visit names, with one line for each patient.
 */ 
 
-/*
-CONSIDER: Replace global variables in macros by macro variables.
-Macros should also show all arguments in the output (e.g., figure caption).
-*/
-
 %plotind(test='Systolic Blood Pressure');
 %plotind(test='Diastolic Blood Pressure');
-
-/* TO DO:  Add unscheduled visit between schedules visits. */ 
-
-/* ISSUE: Define order of time. Format time object. */
 
 /* vital signs - sample means (and change) */
 
@@ -849,13 +835,7 @@ Macros should also show all arguments in the output (e.g., figure caption).
 	data VS_means;
 		set VS_means;
 		where not missing(treat) and not missing(FORM);
-		/*visit_format = put(FORM,$form.);*/
 	run;
-	/*
-	proc sort data=VS_means;
-		by visit_format;
-	run;
-	*/
 	proc sgplot data=VS_means;
 		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
@@ -1257,7 +1237,7 @@ ods pdf close;
 footnote;
 %mend scheme;
 
-%scheme(first_name=Armin,last_name=Rauschenberger);
+/*%scheme(first_name=Armin,last_name=Rauschenberger);*/
 /*%scheme(first_name=Michel,last_name=Vaillant);*/
 
 
@@ -1304,8 +1284,6 @@ tagsets.TablesOnlyLaTeX
 
 /*
 
-
-
 ods tagsets.TablesOnlyLaTeX file="&pathOut./table_example.tex" stylesheet="pathOut./sas.sty"(url="sas");
 ods pdf file="&pathOut./table_example.pdf";
 proc report data=AE spanrows;
@@ -1315,8 +1293,6 @@ proc report data=AE spanrows;
 run;
 pds pdf close;
 ods tagsets.TablesOnlyLaTeX close;
-
-
 
 
 /*
