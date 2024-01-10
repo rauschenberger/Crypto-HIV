@@ -622,7 +622,7 @@ run;
 		var VSORRES;
 		table 	FORM * VSORRES * (mean std median min max n),
 			treat;
-		title &position. &test. "- values";
+		title &position. " " &test. " - values";
 	run;
 %mend tabval;
 /*
@@ -667,7 +667,7 @@ proc tabulate data=temp;
 	var diff;
 	table 	FORM * diff * (mean std median min max n),
 			treat;
-	title &position. &test. "- change";
+	title &position. " " &test. " - change";
 run;
 %mend;
 /*
@@ -741,10 +741,6 @@ data VS;
 	drop temp;
 run;
 
-proc sort data=VS;
-	by RID VSDTC;
-run;
-
 data VS;
 	set VS;
 	before = lag(time);
@@ -754,30 +750,6 @@ data VS;
 	drop before;
 run;
 
-proc print data=VS;
-run;
-
-/* end temporary */  
-
-/*
-start temporary
-
-proc sort data=VS;
-	by RID datetime;
-run;
-
-proc tabulate data=VS;
-	class VISIT;
-	table VISIT;
-run;
-
-proc print data=VS;
-run;
-
-end temporary
-*/ 
-
-/*
 data VS;
 	set VS;
 	if length(datetime)<10 then do;
@@ -788,9 +760,7 @@ data VS;
 	end;
 	format date_time E8601DT.;
 run;
-*/
 
-/*
 %macro plotvs(test);
 	data temp;
 		set VS;
@@ -889,7 +859,7 @@ Macros should also show all arguments in the output (e.g., figure caption).
 	proc sgplot data=VS_means;
 		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
-    	xaxis label='time'; /* ISSUE: avoid hard-coding values=(1 2 3 4 5) ISSUE: fitpolicy=rotate valuesrotate=vertical */
+    	xaxis label='time';
     	yaxis label='value';
     	keylegend / title='treatment';
 		highlow x=FORM low=lclm high=uclm / group=treat;
