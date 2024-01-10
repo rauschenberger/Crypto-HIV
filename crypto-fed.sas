@@ -192,6 +192,14 @@ proc format;
 		6 = 'Diastolic Blood Pressure'
 		7 = 'Pulse Rate'
 		other = .;
+	invalue VSSTRESC_invalue
+		'Normal' = 0
+		'NCS' = 1
+		other = .;
+	value VSSTRESC_value
+	 	0 = 'Normal'
+		1 = 'NCS'
+		other = .;
 	invalue SUOCCUR_invalue
 		'No' = 0
 		'Yes' = 1
@@ -358,6 +366,16 @@ Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' a
 This macro defines the internal order of the category levels.
 */ 
 
+/*
+ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
+data EG;
+	set EG;
+	numeric = input(PAGENAME,PAGENAME_invalue.);
+	character = put(numeric,PAGENAME_value.);
+	rename character=PAGENAME;
+run;
+*/
+
 /* withdrawals */
 
 data DS;
@@ -403,10 +421,10 @@ run;
 
 /* demographics */
 
-%asnumeric(DM,vsorres_weight);
-%asnumeric(DM,vsorres_height);
-%asnumeric(DM,vsorres_bmi);
-%asnumeric(DM,age);
+%asnumeric(code=DM,var=vsorres_weight);
+%asnumeric(code=DM,var=vsorres_height);
+%asnumeric(code=DM,var=vsorres_bmi);
+%asnumeric(code=DM,var=age);
 
 data DM;
 	set DM;
@@ -429,7 +447,7 @@ run;
 
 %ordervar(code=SU,var=SUOCCUR);
 %ordervar(code=SU,var=SUTRT);
-%asnumeric(SU,SUDOSE);
+%asnumeric(code=SU,var=SUDOSE);
 
 proc tabulate data=SU;
     class seq SUTRT SUOCCUR / order=internal;
@@ -453,18 +471,8 @@ run;
 /* vital signs */
 
 /*%ordervar(code=VS,var=VSTEST);*/
-
-/*
-ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
-data EG;
-	set EG;
-	numeric = input(PAGENAME,pagename_invalue.);
-	character = put(numeric,pagename_value.);
-	rename character=PAGENAME;
-run;
-*/
-
-%asnumeric(VS,VSORRES);
+/*%ordervar(code=VS,var=VSSTRESC);*/
+%asnumeric(code=VS,var=VSORRES);
 
 data VS;
 	set VS;
@@ -473,7 +481,7 @@ run;
 
 proc tabulate data=VS;
 	where VISIT='Screening Visit';
-	class seq VSPOS VSTEST VSSTRESC;
+	class seq VSPOS VSTEST VSSTRESC / order=internal;
 	var VSORRES;
 	table	VSPOS * VSTEST * VSSTRESC * (N)
 			VSPOS * VSTEST * VSORRES * (mean std median min max N),
@@ -497,7 +505,7 @@ run;
 	%end;
     data temp;
         set &code.;
-        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID);
+        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID); /* use numerical values */ 
     run;
     proc sql noprint;
         select distinct RID
@@ -559,7 +567,7 @@ CONTINUE HERE: Combine all three macros, allow for PAGENAME.
 /* lead ECG */
 
 %ordervar(code=EG,var=PAGENAME);
-%asnumeric(EG,EGORRES);
+%asnumeric(code=EG,var=EGORRES);
 
 data EG;
 	set EG;
@@ -602,7 +610,7 @@ data VS;
 	else time='other';
 run;
 
-%ordervar(VS,FORM);
+%ordervar(code=VS,var=FORM);
 
 /*
 proc tabulate data=VS;
@@ -614,7 +622,7 @@ run;
 /*
 Try to active this (If yes, plotind is currently failing).
 */
-%ordervar(VS,time);
+%ordervar(code=VS,var=time);
 
 /* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
@@ -1037,8 +1045,8 @@ run;
 %add_seq(PK);
 %add_treat(PK);
 
-%asnumeric(PK,SAMPLETIME);
-%asnumeric(PK,CONCENTRATION);
+%asnumeric(code=PK,var=SAMPLETIME);
+%asnumeric(code=PK,var=CONCENTRATION);
 
 /* one separate scatterplot for each sample */
 
@@ -1074,7 +1082,7 @@ run;
 
 /* prepare data for WinNonLin */ 
 
-%asnumeric(PC,PC_DELAY);
+%asnumeric(code=PC,var=PC_DELAY);
 
 data PC;
 	set PC;
