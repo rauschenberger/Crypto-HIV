@@ -352,8 +352,8 @@ proc format;
  		4 = 'ECG - 4 hours post-dose - only for Flucitosine'
  		8 = 'ECG - 8 hours (2 hours after 2nd dose Ancotil)'
 		48 = 'ECG - 48 hours post-dose'
-		other = '-';
-	invalue visit_invalue
+		other = .;
+	invalue time_invalue
 		'screen' = 0.00 
 		'P1: pre-dose' = 1.00
 		'P1: 2h' = 1.02 
@@ -367,7 +367,7 @@ proc format;
 		'P2: 48h' = 2.48 
 		'post-study' = 3.00 
 		other = .;
-	value visit_value
+	value time_value
 		0.00 = 'screen'
 		1.00 = 'P1: pre-dose'
 		1.02 = 'P1: 2h'
@@ -380,7 +380,7 @@ proc format;
 		2.06 = 'P2: 6h'
 		2.48 = 'P2: 48h'
 		3.00 = 'post-study' 
-		other = '-';
+		other = .;
 	invalue form_invalue
 		'Pre-dose' = 0
 		'2 hours post-dose' = 2
@@ -394,7 +394,7 @@ proc format;
 		4 = '4 hours post-dose'
 		6 = '6 hours post-dose'
 		48 = '48 hours post-dose'
-		other = '-'; 
+		other = .; 
 run;
 
 data EG;
@@ -402,8 +402,10 @@ data EG;
 	temp = input(PAGENAME,pagename_invalue.);
 	format temp pagename_value.;
 	drop PAGENAME;
+	/* TO DO: check here whether missing values are the same!*/ 
 	rename temp=PAGENAME;
 run;
+/* TO DO: Write macro for transformation! */ 
 
 /*
 ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
@@ -552,15 +554,32 @@ data VS;
 	else time='other';
 run;
 
-/*
 data VS;
 	set VS;
-	temp = input(time,visit_invalue.);
-	format temp visit_value.;
+	temp = input(FORM,form_invalue.);
+	format temp form_value.;
+	drop FORM;
+	rename temp=FORM;
+run;
+
+/*
+proc tabulate data=VS;
+	class time;
+	table time;
+run;
+*/
+
+/*
+Try to active this (If yes, plotind is currently failing).
+data VS;
+	set VS;
+	temp = input(time,time_invalue.);
+	format temp time_value.;
 	drop time;
 	rename temp=time;
 run;
 */
+
 
 /* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
@@ -640,6 +659,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 
 /* vital signs - normal/abnormal */
 
+/*
 proc format; 
 	value $visit_order
 	'screen'='0.00'
@@ -655,9 +675,11 @@ proc format;
 	'P2: 48h'='2.48'
 	'post-study'='3.00'; 
 run;
+*/
 
 /* also use value and invalue ! */ 
 
+/* start old version 
 proc summary data=VS nway;
 	where not missing(RID) and not missing(period);
 	class VSSTRESC RID FORM treat time;
@@ -679,6 +701,37 @@ proc tabulate data=temp;
 		  treat;
 	title 'vital signs results';
 run;
+end old version */
+
+/* start alternative */
+
+
+
+
+proc summary data=VS nway;
+	where not missing(RID) and not missing(period);
+	class VSSTRESC RID FORM treat time;
+	output out=temp;
+run;
+
+/*
+data temp;
+	set temp;
+	temp = input(FORM,form_invalue.);
+	format temp form_value.;
+	drop FORM;
+	rename temp=FORM;
+run;
+*/
+
+proc tabulate data=temp;
+	class treat VSSTRESC RID FORM / order=internal;
+	table FORM * VSSTRESC * n,
+		  treat;
+	title 'vital signs results';
+run;
+
+/* end alternative */ 
 
 /* vital signs - listing abnormal */
 
@@ -845,6 +898,7 @@ Macros should also show all arguments in the output (e.g., figure caption).
 
 /* vital signs - sample means (and change) */
 
+/*
 proc format; 
 	value $form 
 	'Pre-dose'='00'
@@ -853,6 +907,7 @@ proc format;
 	'6 hours post-dose'='06'
 	'48 hours post-dose'='48'; 
 run; 
+*/
 
 /* Also use value and invalue? */ 
 
@@ -861,11 +916,13 @@ run;
 	data VS_means;
 		set VS_means;
 		where not missing(treat) and not missing(FORM);
-		visit_format = put(FORM,$form.);
+		/*visit_format = put(FORM,$form.);*/
 	run;
+	/*
 	proc sort data=VS_means;
 		by visit_format;
 	run;
+	*/
 	proc sgplot data=VS_means;
 		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
