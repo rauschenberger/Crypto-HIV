@@ -133,46 +133,46 @@ proc format;
 		48 = 'ECG - 48 hours post-dose'
 		other = .;
 	invalue time_invalue
-		'screen' = 0.00 
-		'P1: pre-dose' = 1.00
-		'P1: 2h' = 1.02 
-		'P1: 4h' = 1.04 
-		'P1: 6h' = 1.06 
-		'P1: 48h' = 1.48
-		'P2: pre-dose' = 2.00 
-		'P2: 2h' = 2.02 
-		'P2: 4h' = 2.04 
-		'P2: 6h' = 2.06 
-		'P2: 48h' = 2.48 
-		'post-study' = 3.00 
+		'screen' = 0
+		'P1: pre-dose' = 1
+		'P1: 2h' = 2 
+		'P1: 4h' = 3
+		'P1: 6h' = 4
+		'P1: 48h' = 5
+		'P2: pre-dose' = 6
+		'P2: 2h' = 7 
+		'P2: 4h' = 8
+		'P2: 6h' = 9
+		'P2: 48h' = 10
+		'post-study' = 11 
 		other = .;
 	value time_value
-		0.00 = 'screen'
-		1.00 = 'P1: pre-dose'
-		1.02 = 'P1: 2h'
-		1.04 = 'P1: 4h'
-		1.06 = 'P1: 6h'
-		1.48 = 'P1: 48h'
-		2.00 = 'P2: pre-dose'
-		2.02 = 'P2: 2h'
-		2.04 = 'P2: 4h'
-		2.06 = 'P2: 6h'
-		2.48 = 'P2: 48h'
-		3.00 = 'post-study' 
+		0 = 'screen'
+		1 = 'P1: pre-dose'
+		2 = 'P1: 2h'
+		3 = 'P1: 4h'
+		4 = 'P1: 6h'
+		5 = 'P1: 48h'
+		6 = 'P2: pre-dose'
+		7 = 'P2: 2h'
+		8 = 'P2: 4h'
+		9 = 'P2: 6h'
+		10 = 'P2: 48h'
+		11 = 'post-study' 
 		other = .;
 	invalue FORM_invalue
-		'Pre-dose' = 0
+		'Pre-dose' = 1
 		'2 hours post-dose' = 2
-		'4 hours post-dose' = 4
-		'6 hours post-dose' = 6
-		'48 hours post-dose' = 48
+		'4 hours post-dose' = 3
+		'6 hours post-dose' = 4
+		'48 hours post-dose' = 5
 		other = .; 
 	value FORM_value
-		0 = 'Pre-dose'
+		1 = 'Pre-dose'
 		2 = '2 hours post-dose'
-		4 = '4 hours post-dose'
-		6 = '6 hours post-dose'
-		48 = '48 hours post-dose'
+		3 = '4 hours post-dose'
+		4 = '6 hours post-dose'
+		5 = '48 hours post-dose'
 		other = .; 
 	invalue VSTEST_invalue
 		'Weight' = 1
@@ -350,12 +350,14 @@ to create the variable for the treatment (A or B).
 */
 
 /* re-order category levels */ 
+/* ISSUE: This macro transform a character variable to a numerical variable with labels.
+Find out how to get a character variable with the specified internal order.*/ 
 %macro ordervar(code,var);
 data &code.;
 	set &code.;
 	temp = input(&var.,&var._invalue.);
 	format temp &var._value.;
-	/* TO DO: check here whether missing values are the same!*/
+	/* ISSUE: Check whether same entries are missing in both variables.*/
 	drop &var.;
 	rename temp=&var.;
 run;
@@ -828,17 +830,16 @@ run;
 	data temp;
 		set temp;
 		time_lag = lag(time);
-		/* if time='other' then do; */ 
-		if missing(time) then do;
-			time = time_lag;
+		if missing(time) then do; /* if time='other' then do; */ 
+			/*time = time_lag;*/
+			time = time_lag + 0.5;
 		end;
-		/*visit_order = put(time,$visit_order.);*/
 		drop time_lag;
 	run;
 	proc sgplot data=temp;
 		series x=time y=VSORRES / group=RID markers;
     	title &position. " " &test.;
-    	xaxis label='time';
+    	xaxis label='time'; /* ISSUE: vertical orientation of labels */ 
     	yaxis label='value';
    		keylegend / title='RID';
 		%if &test.='Systolic Blood Pressure' %then %do;
@@ -888,7 +889,7 @@ Macros should also show all arguments in the output (e.g., figure caption).
 	proc sgplot data=VS_means;
 		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
-    	xaxis label='time';
+    	xaxis label='time'; /* ISSUE: avoid hard-coding values=(1 2 3 4 5) ISSUE: fitpolicy=rotate valuesrotate=vertical */
     	yaxis label='value';
     	keylegend / title='treatment';
 		highlow x=FORM low=lclm high=uclm / group=treat;
@@ -1304,7 +1305,7 @@ CONTINUE HERE:
 Things to do:
 
 - mixed models: combine tables
-- vital signs: solve date/time issue
+- vital signs: solve date/time formatting
 - security analysis
 - integration with WinNonlin
 - use vertical column labels for wide tables
