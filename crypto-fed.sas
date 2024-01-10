@@ -475,6 +475,7 @@ run;
 
 /* vital signs */
 
+/* TO DO: Adapt code (i.e., treat as numerical variable in comparisons) so that the order can be maintained in figures and tables. */ 
 /*%ordervar(code=VS,var=VSTEST);*/
 /*%ordervar(code=VS,var=VSSTRESC);*/
 %asnumeric(code=VS,var=VSORRES);
