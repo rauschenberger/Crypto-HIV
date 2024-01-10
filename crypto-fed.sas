@@ -117,6 +117,101 @@ Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable
 Description: Converts character variable to numeric.
 */
 
+proc format;
+	invalue PAGENAME_invalue
+		'ECG' = 0
+ 		'ECG - 2 hours post-dose - only for Ancotil' = 2
+ 		'ECG - 4 hours post-dose - only for Flucitosine' = 4
+ 		'ECG - 8 hours (2 hours after 2nd dose Ancotil)' = 8
+		'ECG - 48 hours post-dose' = 48
+		other = .;
+	value PAGENAME_value
+		0 = 'ECG'
+ 		2 = 'ECG - 2 hours post-dose - only for Ancotil'
+ 		4 = 'ECG - 4 hours post-dose - only for Flucitosine'
+ 		8 = 'ECG - 8 hours (2 hours after 2nd dose Ancotil)'
+		48 = 'ECG - 48 hours post-dose'
+		other = .;
+	invalue time_invalue
+		'screen' = 0.00 
+		'P1: pre-dose' = 1.00
+		'P1: 2h' = 1.02 
+		'P1: 4h' = 1.04 
+		'P1: 6h' = 1.06 
+		'P1: 48h' = 1.48
+		'P2: pre-dose' = 2.00 
+		'P2: 2h' = 2.02 
+		'P2: 4h' = 2.04 
+		'P2: 6h' = 2.06 
+		'P2: 48h' = 2.48 
+		'post-study' = 3.00 
+		other = .;
+	value time_value
+		0.00 = 'screen'
+		1.00 = 'P1: pre-dose'
+		1.02 = 'P1: 2h'
+		1.04 = 'P1: 4h'
+		1.06 = 'P1: 6h'
+		1.48 = 'P1: 48h'
+		2.00 = 'P2: pre-dose'
+		2.02 = 'P2: 2h'
+		2.04 = 'P2: 4h'
+		2.06 = 'P2: 6h'
+		2.48 = 'P2: 48h'
+		3.00 = 'post-study' 
+		other = .;
+	invalue FORM_invalue
+		'Pre-dose' = 0
+		'2 hours post-dose' = 2
+		'4 hours post-dose' = 4
+		'6 hours post-dose' = 6
+		'48 hours post-dose' = 48
+		other = .; 
+	value FORM_value
+		0 = 'Pre-dose'
+		2 = '2 hours post-dose'
+		4 = '4 hours post-dose'
+		6 = '6 hours post-dose'
+		48 = '48 hours post-dose'
+		other = .; 
+	invalue VSTEST_invalue
+		'Weight' = 1
+ 		'Height' = 2
+ 		'Body Mass Index' = 3
+ 		'Temperature' = 4
+		'Systolic Blood Pressure' = 5
+		'Diastolic Blood Pressure' = 6
+		'Pulse Rate' = 7
+		other = .;
+	value VSTEST_value
+		1 = 'Weight'
+ 		2 = 'Height'
+ 		3 = 'Body Mass Index'
+ 		4 = 'Temperature'
+		5 = 'Systolic Blood Pressure'
+		6 = 'Diastolic Blood Pressure'
+		7 = 'Pulse Rate'
+		other = .;
+	invalue SUOCCUR_invalue
+		'No' = 0
+		'Yes' = 1
+		other = .;
+	value SUOCCUR_value
+		0 = 'No'
+		1 = 'Yes'
+		other = .;
+	invalue SUTRT_invalue
+		'ALCOHOL' = 1
+		'SMOKER' = 2
+		'OTHER' = 3
+		other = .;
+	value SUTRT_value
+		1 = 'ALCOHOL'
+		2 = 'SMOKER'
+		3 = 'OTHER'
+		other = .;
+run;
+
 proc format; 
 	%let low='LIGR'; /*pale blue: '#4ED3D4'*/
 	%let high='LIGR'; /*pale red: '#D9544D'*/
@@ -246,6 +341,23 @@ and the variable for the treatment sequence (AB or BA)
 to create the variable for the treatment (A or B).
 */
 
+/* re-order category levels */ 
+%macro ordervar(code,var);
+data &code.;
+	set &code.;
+	temp = input(&var.,&var._invalue.);
+	format temp &var._value.;
+	/* TO DO: check here whether missing values are the same!*/
+	drop &var.;
+	rename temp=&var.;
+run;
+%mend ordervar;
+/*
+Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
+Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
+This macro defines the internal order of the category levels.
+*/ 
+
 /* withdrawals */
 
 data DS;
@@ -315,6 +427,8 @@ run;
 
 /* alcohol and smoking */
 
+%ordervar(code=SU,var=SUOCCUR);
+%ordervar(code=SU,var=SUTRT);
 %asnumeric(SU,SUDOSE);
 
 proc tabulate data=SU;
@@ -338,111 +452,7 @@ run;
 
 /* vital signs */
 
-proc format;
-	invalue PAGENAME_invalue
-		'ECG' = 0
- 		'ECG - 2 hours post-dose - only for Ancotil' = 2
- 		'ECG - 4 hours post-dose - only for Flucitosine' = 4
- 		'ECG - 8 hours (2 hours after 2nd dose Ancotil)' = 8
-		'ECG - 48 hours post-dose' = 48
-		other = .;
-	value PAGENAME_value
-		0 = 'ECG'
- 		2 = 'ECG - 2 hours post-dose - only for Ancotil'
- 		4 = 'ECG - 4 hours post-dose - only for Flucitosine'
- 		8 = 'ECG - 8 hours (2 hours after 2nd dose Ancotil)'
-		48 = 'ECG - 48 hours post-dose'
-		other = .;
-	invalue time_invalue
-		'screen' = 0.00 
-		'P1: pre-dose' = 1.00
-		'P1: 2h' = 1.02 
-		'P1: 4h' = 1.04 
-		'P1: 6h' = 1.06 
-		'P1: 48h' = 1.48
-		'P2: pre-dose' = 2.00 
-		'P2: 2h' = 2.02 
-		'P2: 4h' = 2.04 
-		'P2: 6h' = 2.06 
-		'P2: 48h' = 2.48 
-		'post-study' = 3.00 
-		other = .;
-	value time_value
-		0.00 = 'screen'
-		1.00 = 'P1: pre-dose'
-		1.02 = 'P1: 2h'
-		1.04 = 'P1: 4h'
-		1.06 = 'P1: 6h'
-		1.48 = 'P1: 48h'
-		2.00 = 'P2: pre-dose'
-		2.02 = 'P2: 2h'
-		2.04 = 'P2: 4h'
-		2.06 = 'P2: 6h'
-		2.48 = 'P2: 48h'
-		3.00 = 'post-study' 
-		other = .;
-	invalue FORM_invalue
-		'Pre-dose' = 0
-		'2 hours post-dose' = 2
-		'4 hours post-dose' = 4
-		'6 hours post-dose' = 6
-		'48 hours post-dose' = 48
-		other = .; 
-	value FORM_value
-		0 = 'Pre-dose'
-		2 = '2 hours post-dose'
-		4 = '4 hours post-dose'
-		6 = '6 hours post-dose'
-		48 = '48 hours post-dose'
-		other = .; 
-	invalue VSTEST_invalue
-		'Weight' = 1
- 		'Height' = 2
- 		'Body Mass Index' = 3
- 		'Temperature' = 4
-		'Systolic Blood Pressure' = 5
-		'Diastolic Blood Pressure' = 6
-		'Pulse Rate' = 7
-		other = .;
-	value VSTEST_value
-		1 = 'Weight'
- 		2 = 'Height'
- 		3 = 'Body Mass Index'
- 		4 = 'Temperature'
-		5 = 'Systolic Blood Pressure'
-		6 = 'Diastolic Blood Pressure'
-		7 = 'Pulse Rate'
-		other = .;
-	invalue SUOCCUR_invalue
-		'No' = 0
-		'Yes' = 1
-		other = .;
-	value SUOCCUR_value
-		0 = 'No'
-		1 = 'Yes'
-		other = .;
-run;
-
-/* re-order category levels */ 
-%macro ordervar(code,var);
-data &code.;
-	set &code.;
-	temp = input(&var.,&var._invalue.);
-	format temp &var._value.;
-	/* TO DO: check here whether missing values are the same!*/
-	drop &var.;
-	rename temp=&var.;
-run;
-%mend ordervar;
-/*
-Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
-Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
-This macro defines the internal order of the category levels.
-*/ 
-
-%ordervar(code=EG,var=PAGENAME);
 /*%ordervar(code=VS,var=VSTEST);*/
-%ordervar(code=SU,var=SUOCCUR);
 
 /*
 ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
@@ -548,6 +558,7 @@ CONTINUE HERE: Combine all three macros, allow for PAGENAME.
 
 /* lead ECG */
 
+%ordervar(code=EG,var=PAGENAME);
 %asnumeric(EG,EGORRES);
 
 data EG;
