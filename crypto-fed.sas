@@ -405,6 +405,16 @@ data EG;
 	rename temp=PAGENAME;
 run;
 
+/*
+ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
+data EG;
+	set EG;
+	numeric = input(PAGENAME,pagename_invalue.);
+	character = put(numeric,pagename_value.);
+	rename character=PAGENAME;
+run;
+*/
+
 %asnumeric(VS,VSORRES);
 
 data VS;
@@ -957,7 +967,7 @@ run;
 
 proc tabulate data=EG;
 	class treat EGTEST PAGENAME / order=internal;
-	where not missing(RID) and PAGENAME ne 1; /* was PAGENAME ne 'ECG' */ 
+	where not missing(RID) and PAGENAME ne 1; /* Choose between PAGENAME ne 'ECG' and PAGENAME ne 1*/ 
 	var EGORRES;
 	table EGTEST*EGORRES * (mean std median min max N), treat*PAGENAME;
 	title 'ECG during treatment';
