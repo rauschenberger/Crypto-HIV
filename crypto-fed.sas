@@ -124,14 +124,14 @@ proc format;
  		'ECG - 4 hours post-dose - only for Flucitosine' = 4
  		'ECG - 8 hours (2 hours after 2nd dose Ancotil)' = 8
 		'ECG - 48 hours post-dose' = 48
-		other = .;
+		;
 	value PAGENAME_value
 		0 = 'ECG'
  		2 = 'ECG - 2 hours post-dose - only for Ancotil'
  		4 = 'ECG - 4 hours post-dose - only for Flucitosine'
  		8 = 'ECG - 8 hours (2 hours after 2nd dose Ancotil)'
 		48 = 'ECG - 48 hours post-dose'
-		other = .;
+		;
 	invalue time_invalue
 		'screen' = 0
 		'P1: pre-dose' = 1
@@ -145,7 +145,8 @@ proc format;
 		'P2: 6h' = 9
 		'P2: 48h' = 10
 		'post-study' = 11 
-		other = .;
+		other = .
+		;
 	value time_value
 		0 = 'screen'
 		1 = 'P1: pre-dose'
@@ -159,21 +160,22 @@ proc format;
 		9 = 'P2: 6h'
 		10 = 'P2: 48h'
 		11 = 'post-study' 
-		other = .;
+		other = .
+		;
 	invalue FORM_invalue
 		'Pre-dose' = 1
 		'2 hours post-dose' = 2
 		'4 hours post-dose' = 3
 		'6 hours post-dose' = 4
 		'48 hours post-dose' = 5
-		other = .; 
+		; 
 	value FORM_value
 		1 = 'Pre-dose'
 		2 = '2 hours post-dose'
 		3 = '4 hours post-dose'
 		4 = '6 hours post-dose'
 		5 = '48 hours post-dose'
-		other = .; 
+		; 
 	invalue VSTEST_invalue
 		'Weight' = 1
  		'Height' = 2
@@ -182,7 +184,7 @@ proc format;
 		'Systolic Blood Pressure' = 5
 		'Diastolic Blood Pressure' = 6
 		'Pulse Rate' = 7
-		other = .;
+		;
 	value VSTEST_value
 		1 = 'Weight'
  		2 = 'Height'
@@ -191,33 +193,33 @@ proc format;
 		5 = 'Systolic Blood Pressure'
 		6 = 'Diastolic Blood Pressure'
 		7 = 'Pulse Rate'
-		other = .;
+		;
 	invalue VSSTRESC_invalue
 		'Normal' = 0
 		'NCS' = 1
-		other = .;
+		;
 	value VSSTRESC_value
 	 	0 = 'Normal'
 		1 = 'NCS'
-		other = .;
+		;
 	invalue SUOCCUR_invalue
 		'No' = 0
 		'Yes' = 1
-		other = .;
+		;
 	value SUOCCUR_value
 		0 = 'No'
 		1 = 'Yes'
-		other = .;
+		;
 	invalue SUTRT_invalue
 		'ALCOHOL' = 1
 		'SMOKER' = 2
 		'OTHER' = 3
-		other = .;
+		;
 	value SUTRT_value
 		1 = 'ALCOHOL'
 		2 = 'SMOKER'
 		3 = 'OTHER'
-		other = .;
+		;
 run;
 
 proc format; 
@@ -608,8 +610,19 @@ data VS;
 	else if FORM='6 hours post-dose' then time=cat('P',period,': 6h');
 	else if FORM='48 hours post-dose' then time=cat('P',period,': 48h');
 	else if VISIT='Post Study' then time='post-study';
-	else time='other';
+	else time=.; /* VISIT in Unscheduled Treatment Period 1 Unscheduled Treatment Period 2 Unscheduled Screening */ 
 run;
+
+/*
+proc print data=VS;
+	where time='other';
+run;
+
+proc tabulate data=VS;
+	class time;
+	table time;
+run;
+*/
 
 %ordervar(code=VS,var=FORM);
 %ordervar(code=VS,var=time);
