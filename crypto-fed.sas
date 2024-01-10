@@ -271,6 +271,7 @@ run;
 	compute Temperature;
 		call define(_col_,'style','style={background=temp.}');
 	endcomp;
+	/* TO DO: Remove warning 'Temperature is not in the report definition.' */ 
 	compute Systolic_Blood_Pressure;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_sys.}');
