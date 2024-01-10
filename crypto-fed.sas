@@ -560,8 +560,7 @@ run;
 %report(data=wide,title="patients with abnormal NCS - screening visits",name='VS');
 
 /*
-CONTINUE HERE: Combine all three macros, allow for PAGENAME.
-- arguments: data, check_visit, show_visit
+CONSIDER: Combine all three macros, with arguments 'data', 'check_visit' and 'show_visit'.
 */ 
 
 /* lead ECG */
@@ -588,14 +587,14 @@ run;
 
 %listncs(code=EG,visit='SCREENING');
 %showncs(code=EG,visit='SCREENING' 'Unscheduled Screening',name='EG');
-%report(wide,title="patients with abnormal ECG - screening visits",name='EG');
+%report(data=wide,title="patients with abnormal ECG - screening visits",name='EG');
 
 /* hematology: data formatting will be different in actual clinical trial */
 
 /* vital signs - values */
 
-%add_period(VS);
-%add_treat(VS);
+%add_period(code=VS);
+%add_treat(code=VS);
 
 data VS;
 	set VS;
@@ -611,17 +610,6 @@ data VS;
 run;
 
 %ordervar(code=VS,var=FORM);
-
-/*
-proc tabulate data=VS;
-	class time;
-	table time;
-run;
-*/
-
-/*
-Try to active this (If yes, plotind is currently failing).
-*/
 %ordervar(code=VS,var=time);
 
 /* summarise vital signs - values */ 
@@ -688,17 +676,17 @@ Description: Summarises change with respect to pre-dose for each time point (row
 
 /* vital signs - both */
 
-%tabval('Systolic Blood Pressure');
-%calcdiff('Systolic Blood Pressure');
-%tabdiff('Systolic Blood Pressure');
+%tabval(test='Systolic Blood Pressure');
+%calcdiff(test='Systolic Blood Pressure');
+%tabdiff(test='Systolic Blood Pressure');
 
-%tabval('Diastolic Blood Pressure');
-%calcdiff('Diastolic Blood Pressure');
-%tabdiff('Diastolic Blood Pressure');
+%tabval(test='Diastolic Blood Pressure');
+%calcdiff(test='Diastolic Blood Pressure');
+%tabdiff(test='Diastolic Blood Pressure');
 
-%tabval('Pulse Rate');
-%calcdiff('Pulse Rate');
-%tabdiff('Pulse Rate');
+%tabval(test='Pulse Rate');
+%calcdiff(test='Pulse Rate');
+%tabdiff(test='Pulse Rate');
 
 /* vital signs - normal/abnormal */
 
@@ -732,11 +720,11 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%report(wide,title="patients with abnormal NCS - scheduled visits",name='VS');
+%report(data=wide,title="patients with abnormal NCS - scheduled visits",name='VS');
 
 %listncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
 %showncs(code=VS,visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',name='VS');
-%report(wide,title="patients with abnormal NCS - unscheduled visits",name='VS');
+%report(data=wide,title="patients with abnormal NCS - unscheduled visits",name='VS');
 
 /* vital signs - trajectory */
 
@@ -872,12 +860,12 @@ Plots the measurements against the visit names, with one line for each patient.
 */ 
 
 /*
-CONTINUE HERE: Replace global variables in macros by macro variables.
+CONSIDER: Replace global variables in macros by macro variables.
 Macros should also show all arguments in the output (e.g., figure caption).
 */
 
-%plotind('Systolic Blood Pressure');
-%plotind('Diastolic Blood Pressure');
+%plotind(test='Systolic Blood Pressure');
+%plotind(test='Diastolic Blood Pressure');
 
 /* TO DO:  Add unscheduled visit between schedules visits. */ 
 
@@ -937,8 +925,8 @@ as well as the lower and upper confidence limits for these means.
 Plots the results.
 */ 
 
-%plot_mean_value('Systolic Blood Pressure');
-%plot_mean_change('Systolic Blood Pressure');
+%plot_mean_value(test='Systolic Blood Pressure');
+%plot_mean_change(test='Systolic Blood Pressure');
 
 /*
 omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
@@ -993,8 +981,8 @@ run;
 
 /* ECG during treatment */
 
-%add_period(EG);
-%add_treat(EG);
+%add_period(code=EG);
+%add_treat(code=EG);
 
 proc tabulate data=EG;
 	class treat EGTEST PAGENAME / order=internal;
@@ -1009,13 +997,13 @@ run;
 %let visits='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
 %listncs(code=EG,visit=&visits);
 %showncs(code=EG,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',name='EG');
-%report(wide,title="patients with abnormal ECG - treatment period",name='EG');
+%report(data=wide,title="patients with abnormal ECG - treatment period",name='EG');
 
 /* abnormal ECG results post study (CONTINUE HERE) */
 
 %listncs(code=EG,visit='Post Study');
 %showncs(code=EG,visit='Post Study',name='EG');
-%report(wide,title="patients with abnormal ECG - post study",name='EG');
+%report(data=wide,title="patients with abnormal ECG - post study",name='EG');
 
 /* adverse events */ 
 
@@ -1042,8 +1030,8 @@ data PK;
 	rename SAMPLETIME__HR_=SAMPLETIME;
 run;
 
-%add_seq(PK);
-%add_treat(PK);
+%add_seq(code=PK);
+%add_treat(code=PK);
 
 %asnumeric(code=PK,var=SAMPLETIME);
 %asnumeric(code=PK,var=CONCENTRATION);
@@ -1223,9 +1211,9 @@ Description: Performs mixed modelling, returns estimated variance of random effe
 estimated fixed effects, geometric mean ratio (misnomer!) for binary effect of interest
 */
 
-%mixmod(logCmax);
-%mixmod(logAUClast);
-%mixmod(logAUCinf);
+%mixmod(outcome=logCmax);
+%mixmod(outcome=logAUClast);
+%mixmod(outcome=logAUCinf);
 
 /* ---------------------- */
 /* --- PHASE II STUDY --- */
@@ -1323,7 +1311,6 @@ Consider computing PK parameters in SAS:
 - https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
 - https://www.lexjansen.com/pharmasug/2005/StatisticsPharmacokinetics/sp07.pdf
 - https://www.pharmasug.org/proceedings/2023/SA/PharmaSUG-2023-SA-284.pdf
-
 
 Consider using WinNonLin with SAS:
 - https://www.lexjansen.com/pharmasug/2001/Proceed/Posters/P06_russell.pdf
