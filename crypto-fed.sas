@@ -928,6 +928,8 @@ Plots the results.
 %plot_mean_value(test='Systolic Blood Pressure');
 %plot_mean_change(test='Systolic Blood Pressure');
 
+/* ISSUE: add labels to plot (numeric or character) */
+
 /*
 omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
 
