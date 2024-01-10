@@ -1234,7 +1234,7 @@ run;
 
 data rand;
 	set rand;
-	RID=catx('.',hospital,put(count,z2.));
+	RID=catx('.',put(hospital,z1.),put(count,z2.));
 run;
 
 %macro scheme(first_name,last_name);
@@ -1246,7 +1246,7 @@ title3 font=timesroman "(confidential copy for &first_name. &last_name.)";
 title4 font=timesroman color=red "THESE ARE DUMMY DATA - NOT MEANT FOR REAL USE";
 footnote1 justify=left font=timesroman "control treatment: immediate release, experimental treatment: sustained release";
 footnote2 justify=left font=timesroman "Please note that this is a watermarked copy.";
-footnote3 justify=left font=timesroman color=white "This copy is for &first_name. &last_name..";
+footnote3 justify=left font=timesroman height=0.1 color=white "This copy is for &first_name. &last_name..";
 proc report data=rand spanrows;
 	column hospital block RID treatment;
 	define hospital/order order=internal format=hospital.;
@@ -1257,7 +1257,7 @@ ods pdf close;
 footnote;
 %mend scheme;
 
-/*%scheme(first_name=Armin,last_name=Rauschenberger);*/
+%scheme(first_name=Armin,last_name=Rauschenberger);
 /*%scheme(first_name=Michel,last_name=Vaillant);*/
 
 
