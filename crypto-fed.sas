@@ -297,12 +297,13 @@ proc format;
 run; 
 
 /* colour extreme values */ 
-%macro color(name);
+%macro color(name,temp='TRUE');
 	%if &name.="VS" %then %do;
-	compute Temperature;
-		call define(_col_,'style','style={background=temp.}');
-	endcomp;
-	/* TO DO: Remove warning 'Temperature is not in the report definition.' */ 
+		%if &temp.='TRUE' %then %do;
+			compute Temperature;
+				call define(_col_,'style','style={background=temp.}');
+			endcomp;
+		%end;
 	compute Systolic_Blood_Pressure;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_sys.}');
@@ -499,7 +500,7 @@ run;
 
 /*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
 %ordervar(code=VS,var=VSTEST);
-%ordervar(code=VS,var=VSSTRESC); /* trial */
+%ordervar(code=VS,var=VSSTRESC);
 %asnumeric(code=VS,var=VSORRES);
 
 data VS;
@@ -570,9 +571,9 @@ run;
 	run;
 %mend;
 
-%macro report(data,title,name);
+%macro report(data,title,name,temp='TRUE');
 	proc report data=&data. spanrows;
-		%color(name=&name.);
+		%color(name=&name.,temp=&temp.);
 		define RID / order order=internal;
 		define VISIT / order order=internal;
 		%if &name.="EG" %then %do;
@@ -583,10 +584,10 @@ run;
 	run;
 %mend;
 
-%macro abnormal(code,check_visit,show_visit);
+%macro abnormal(code,check_visit,show_visit,temp='TRUE');
 	%listncs(code=&code.,visit=&check_visit.);
 	%showncs(code=&code.,visit=&show_visit.);
-	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name="&code.");
+	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name="&code.",temp=&temp.);
 %mend abnormal;
 
 %abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening');
@@ -747,9 +748,9 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%report(data=wide,title="patients with abnormal NCS - scheduled visits",name="VS");
+%report(data=wide,title="patients with abnormal NCS - scheduled visits",name="VS",temp='FALSE');
 
-%abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2');
+%abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
 
 /* compact alternative for above:
 %let check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
@@ -854,6 +855,7 @@ Replaces missing visit names by the visit name of the lagged time point.
 Plots the measurements against the visit names, with one line for each patient.
 */ 
 
+/*ods graphics / width=10in height=5in;*/
 %plotind(test='Systolic Blood Pressure');
 %plotind(test='Diastolic Blood Pressure');
 
