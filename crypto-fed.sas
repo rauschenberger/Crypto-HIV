@@ -267,7 +267,7 @@ run;
 
 /* colour extreme values */ 
 %macro color(name);
-	%if &name.='VS' %then %do;
+	%if &name.="VS" %then %do;
 	compute Temperature;
 		call define(_col_,'style','style={background=temp.}');
 	endcomp;
@@ -297,7 +297,7 @@ run;
 		end;
 	endcomp;
 	%end;
-	%if &name.='EG' %then %do;
+	%if &name.="EG" %then %do;
 	compute Heart_Rate;
 		call define(_col_,'style','style={background=ECG_HR.}');
 	endcomp;
@@ -522,13 +522,13 @@ run;
 	%put ids_ncs=&ids_ncs.;
 %mend listncs;
 
-%macro showncs(code,visit,name);
-	%if &name.='VS' %then %do;
+%macro showncs(code,visit);
+	%if &code.=VS %then %do;
 		%let var_id=VSTEST;
 		%let state_by=RID VISIT VSPOS FORM;
 		%let var=VSORRES;
 	%end;
-	%else %if &name.='EG' %then %do;
+	%else %if &code.=EG %then %do;
 		%let var_id=EGTEST;
 		%let state_by=RID VISIT PAGENAME;
 		%let var=EGORRES;
@@ -553,7 +553,7 @@ run;
 		%color(name=&name.);
 		define RID / order order=internal;
 		define VISIT / order order=internal;
-		%if &name.='EG' %then %do;
+		%if &name.="EG" %then %do;
 			define PAGENAME / order order=internal;
 		%end;
 		define _NAME_/noprint;
@@ -562,19 +562,17 @@ run;
 %mend;
 
 %listncs(code=VS,visit='Screening Visit');
-%showncs(code=VS,visit='Screening Visit' 'Unscheduled Screening',name='VS');
-%report(data=wide,title="patients with abnormal NCS - screening visits",name='VS');
+%showncs(code=VS,visit='Screening Visit' 'Unscheduled Screening');
+%report(data=wide,title="patients with abnormal NCS - screening visits",name="VS");
 
 
 %macro abnormal(code,check_visit,show_visit);
 	%listncs(code=&code.,check_visit=&check_visit.);
 	%showncs(code=&code.,show_visit=&show_visit.);
-	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)");
+	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name="&code.");
 %mend abnormal;
 
-/*
-CONSIDER: Combine all three macros, with arguments 'data', 'check_visit' and 'show_visit'.
-*/ 
+/*%abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening')*/
 
 /* lead ECG */
 
@@ -599,8 +597,8 @@ run;
 /* ECG - screening - listing */ 
 
 %listncs(code=EG,visit='SCREENING');
-%showncs(code=EG,visit='SCREENING' 'Unscheduled Screening',name='EG');
-%report(data=wide,title="patients with abnormal ECG - screening visits",name='EG');
+%showncs(code=EG,visit='SCREENING' 'Unscheduled Screening');
+%report(data=wide,title="patients with abnormal ECG - screening visits",name="EG");
 
 /* hematology: data formatting will be different in actual clinical trial */
 
@@ -733,11 +731,11 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%report(data=wide,title="patients with abnormal NCS - scheduled visits",name='VS');
+%report(data=wide,title="patients with abnormal NCS - scheduled visits",name="VS");
 
 %listncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
-%showncs(code=VS,visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',name='VS');
-%report(data=wide,title="patients with abnormal NCS - unscheduled visits",name='VS');
+%showncs(code=VS,visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2');
+%report(data=wide,title="patients with abnormal NCS - unscheduled visits",name="VS");
 
 /* vital signs - trajectory */
 
@@ -960,14 +958,14 @@ run;
 
 %let visits='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
 %listncs(code=EG,visit=&visits);
-%showncs(code=EG,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',name='EG');
-%report(data=wide,title="patients with abnormal ECG - treatment period",name='EG');
+%showncs(code=EG,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
+%report(data=wide,title="patients with abnormal ECG - treatment period",name="EG");
 
 /* abnormal ECG results post study */
 
 %listncs(code=EG,visit='Post Study');
-%showncs(code=EG,visit='Post Study',name='EG');
-%report(data=wide,title="patients with abnormal ECG - post study",name='EG');
+%showncs(code=EG,visit='Post Study');
+%report(data=wide,title="patients with abnormal ECG - post study",name="EG");
 
 /* adverse events */ 
 
