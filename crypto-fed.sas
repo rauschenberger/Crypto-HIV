@@ -970,7 +970,7 @@ run;
 
 proc tabulate data=EG;
 	class treat EGTEST PAGENAME / order=internal;
-	where not missing(RID) and PAGENAME ne 0; /* Choose between PAGENAME ne 'ECG' and PAGENAME ne 0*/ 
+	where not missing(RID) and PAGENAME_ ne 'ECG';
 	var EGORRES;
 	table EGTEST*EGORRES * (mean std median min max N), treat*PAGENAME;
 	title 'ECG during treatment';
