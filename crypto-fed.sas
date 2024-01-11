@@ -476,7 +476,7 @@ run;
 
 /* TO DO: Adapt code (i.e., treat as numerical variable in comparisons) so that the order can be maintained in figures and tables. */ 
 %ordervar(code=VS,var=VSTEST);
-/*%ordervar(code=VS,var=VSSTRESC);*/
+%ordervar(code=VS,var=VSSTRESC); /* trial */
 %asnumeric(code=VS,var=VSORRES);
 
 data VS;
@@ -500,10 +500,10 @@ run;
 %macro listncs(code,visit);
 	%global ids_ncs;
 	%if &code.=VS %then %do;
-		%let var_test=VSSTRESC;
+		%let var_test=VSSTRESC_;
 	%end;
 	%else %if &code.=EG %then %do;
-		%let var_test=EGSTRESC1;
+		%let var_test=EGSTRESC1_;
 	%end;
 	%else %do;
 		%put ERROR;
@@ -571,7 +571,7 @@ run;
 /* lead ECG */
 
 %ordervar(code=EG,var=PAGENAME);
-/*%ordervar(code=EG,var=EGSTRESC1);*/
+%ordervar(code=EG,var=EGSTRESC1); /* trial */
 %asnumeric(code=EG,var=EGORRES);
 
 data EG;
@@ -711,7 +711,7 @@ run;
 
 data long;
 	set VS;
-	where VSSTRESC='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
+	where VSSTRESC_='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
 run;
 
 proc sort data=long;
