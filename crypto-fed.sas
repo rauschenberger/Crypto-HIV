@@ -561,18 +561,13 @@ run;
 	run;
 %mend;
 
-%listncs(code=VS,visit='Screening Visit');
-%showncs(code=VS,visit='Screening Visit' 'Unscheduled Screening');
-%report(data=wide,title="patients with abnormal NCS - screening visits",name="VS");
-
-
 %macro abnormal(code,check_visit,show_visit);
-	%listncs(code=&code.,check_visit=&check_visit.);
-	%showncs(code=&code.,show_visit=&show_visit.);
+	%listncs(code=&code.,visit=&check_visit.);
+	%showncs(code=&code.,visit=&show_visit.);
 	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name="&code.");
 %mend abnormal;
 
-/*%abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening')*/
+%abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening');
 
 /* lead ECG */
 
@@ -596,9 +591,7 @@ run;
 
 /* ECG - screening - listing */ 
 
-%listncs(code=EG,visit='SCREENING');
-%showncs(code=EG,visit='SCREENING' 'Unscheduled Screening');
-%report(data=wide,title="patients with abnormal ECG - screening visits",name="EG");
+%abnormal(code=EG,check_visit='SCREENING',show_visit='SCREENING' 'Unscheduled Screening');
 
 /* hematology: data formatting will be different in actual clinical trial */
 
@@ -733,9 +726,13 @@ run;
 
 %report(data=wide,title="patients with abnormal NCS - scheduled visits",name="VS");
 
-%listncs(code=VS,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
-%showncs(code=VS,visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2');
-%report(data=wide,title="patients with abnormal NCS - unscheduled visits",name="VS");
+%abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2');
+
+/* compact alternative for above:
+%let check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
+%let show_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD' 'Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2';
+%abnormal(code=VS,check_visit=&check_visit.,show_visit=&show_visit.);
+*/
 
 /* vital signs - trajectory */
 
@@ -957,15 +954,11 @@ run;
 /* abnormal ECG results during treatment */
 
 %let visits='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
-%listncs(code=EG,visit=&visits);
-%showncs(code=EG,visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
-%report(data=wide,title="patients with abnormal ECG - treatment period",name="EG");
+%abnormal(code=EG,check_visit=&visits.,show_visit=&visits.);
 
 /* abnormal ECG results post study */
 
-%listncs(code=EG,visit='Post Study');
-%showncs(code=EG,visit='Post Study');
-%report(data=wide,title="patients with abnormal ECG - post study",name="EG");
+%abnormal(code=EG,check_visit='Post Study',show_visit='Post Study');
 
 /* adverse events */ 
 
