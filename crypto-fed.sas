@@ -117,6 +117,11 @@ Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable
 Description: Converts character variable to numeric.
 */
 
+proc tabulate data=VS;
+	class visit;
+	table visit;
+run;
+
 proc format;
 	invalue PAGENAME_invalue
 		'ECG' = 0
@@ -227,6 +232,24 @@ proc format;
 	value EGSTRESC1_value
 		0 = 'Normal'
 		1 = 'Abnormal, NCS'
+		;
+	invalue VISIT_invalue
+ 		'Screening Visit' = 1
+		'Unscheduled Screening' = 2
+ 		'Treatment Period 1: 30 hrs PD' = 3
+		'Unscheduled Treatment Period 1' = 4
+		'Treatment Period 2: 30 hrs PD' = 5
+		'Unscheduled Treatment Period 2' = 6
+		'Post Study' = 7
+		;
+	value VISIT_value
+	 	1 = 'Screening Visit'
+		2 = 'Unscheduled Screening'
+ 		3 = 'Treatment Period 1: 30 hrs PD'
+		4 = 'Unscheduled Treatment Period 1'
+		5 = 'Treatment Period 2: 30 hrs PD'
+		6 = 'Unscheduled Treatment Period 2'
+		7 = 'Post Study'
 		;
 run;
 
@@ -474,7 +497,7 @@ run;
 
 /* vital signs */
 
-/* TO DO: Adapt code (i.e., treat as numerical variable in comparisons) so that the order can be maintained in figures and tables. */ 
+/*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
 %ordervar(code=VS,var=VSTEST);
 %ordervar(code=VS,var=VSSTRESC); /* trial */
 %asnumeric(code=VS,var=VSORRES);
