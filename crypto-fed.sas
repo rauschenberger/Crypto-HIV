@@ -367,6 +367,7 @@ Find out how to get a character variable with the specified internal order.*/
 data &code.;
 	set &code.;
 	temp = input(&var.,&var._invalue.);
+	&var._ = put(temp,&var._value.); /* ISSUE: How can we access the labels of numerical variables? */
 	format temp &var._value.;
 	/* ISSUE: Check whether same entries are missing in both variables.*/
 	drop &var.;
@@ -377,16 +378,6 @@ run;
 Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
 Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
 This macro defines the internal order of the category levels.
-*/ 
-
-/*
-ISSUE: Why does this not work? (Think of adapting "PAGENAME ne" further below.)
-data EG;
-	set EG;
-	numeric = input(PAGENAME,PAGENAME_invalue.);
-	character = put(numeric,PAGENAME_value.);
-	rename character=PAGENAME;
-run;
 */
 
 /* withdrawals */
@@ -484,7 +475,7 @@ run;
 /* vital signs */
 
 /* TO DO: Adapt code (i.e., treat as numerical variable in comparisons) so that the order can be maintained in figures and tables. */ 
-/*%ordervar(code=VS,var=VSTEST);*/
+%ordervar(code=VS,var=VSTEST);
 /*%ordervar(code=VS,var=VSSTRESC);*/
 %asnumeric(code=VS,var=VSORRES);
 
@@ -628,7 +619,7 @@ run;
 /* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
 	proc tabulate data=VS;
-		where VSPOS=&position. and VSTEST=&test.;
+		where VSPOS=&position. and VSTEST_=&test.;
 		class VISIT treat FORM / order=internal;
 		var VSORRES;
 		table 	FORM * VSORRES * (mean std median min max n),
@@ -646,7 +637,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 %macro calcdiff(test,position='Supine');
 	data temp;
 		set VS;
-		where VSTEST=&test. and VSPOS=&position. and not missing(RID) and not missing(period);
+		where VSTEST_=&test. and VSPOS=&position. and not missing(RID) and not missing(period);
 	run;
 	data temp;
   		do until(last.RID);
@@ -802,7 +793,7 @@ run;
 %macro plotind(test,position='Supine');
 	data temp;
 		set VS;
-		where VSTEST=&test. and VSPOS=&position.;
+		where VSTEST_=&test. and VSPOS=&position.;
 		if RID in (&ids_ncs.);
 	run;
 	proc sort data=temp;
@@ -863,7 +854,7 @@ Plots the measurements against the visit names, with one line for each patient.
 %mend plot_internal;
 %macro plot_mean_value(test,position='Supine');
 	proc means data=VS mean clm alpha=0.05 noprint;
-		where VSTEST=&test. and VSPOS=&position.;
+		where VSTEST_=&test. and VSPOS=&position.;
 		var VSORRES;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
@@ -873,7 +864,7 @@ Plots the measurements against the visit names, with one line for each patient.
 %macro plot_mean_change(test,position='Supine');
 	%calcdiff(&test.);
 	proc means data=temp mean clm alpha=0.05 noprint;
-		where VSTEST=&test. and VSPOS=&position.;
+		where VSTEST_=&test. and VSPOS=&position.;
 		var diff;
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
