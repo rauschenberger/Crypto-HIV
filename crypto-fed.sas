@@ -220,6 +220,14 @@ proc format;
 		2 = 'SMOKER'
 		3 = 'OTHER'
 		;
+	invalue EGSTRESC1_invalue
+		'Normal' = 0
+		'Abnormal, NCS' = 1
+		;
+	value EGSTRESC1_value
+		0 = 'Normal'
+		1 = 'Abnormal, NCS'
+		;
 run;
 
 proc format; 
@@ -572,6 +580,7 @@ run;
 /* lead ECG */
 
 %ordervar(code=EG,var=PAGENAME);
+/*%ordervar(code=EG,var=EGSTRESC1);*/
 %asnumeric(code=EG,var=EGORRES);
 
 data EG;
