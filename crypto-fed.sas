@@ -565,6 +565,13 @@ run;
 %showncs(code=VS,visit='Screening Visit' 'Unscheduled Screening',name='VS');
 %report(data=wide,title="patients with abnormal NCS - screening visits",name='VS');
 
+
+%macro abnormal(code,check_visit,show_visit);
+	%listncs(code=&code.,check_visit=&check_visit.);
+	%showncs(code=&code.,show_visit=&show_visit.);
+	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)");
+%mend abnormal;
+
 /*
 CONSIDER: Combine all three macros, with arguments 'data', 'check_visit' and 'show_visit'.
 */ 
