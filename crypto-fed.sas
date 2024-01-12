@@ -117,11 +117,6 @@ Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable
 Description: Converts character variable to numeric.
 */
 
-proc tabulate data=VS;
-	class visit;
-	table visit;
-run;
-
 proc format;
 	invalue PAGENAME_invalue
 		'ECG' = 0
@@ -838,11 +833,12 @@ run;
     	yaxis label='value';
    		keylegend / title='RID';
 		%if &test.='Systolic Blood Pressure' %then %do;
-			refline 90 140 / axis=y;
+			refline 90 140 / axis=y lineattrs=(thickness=2);
 		%end;
 		%if &test.='Diastolic Blood Pressure' %then %do;
-			refline 45 90 / axis=y;
+			refline 45 90 / axis=y lineattrs=(thickness=2);
 		%end;
+		refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.5 pattern=dash);
 	run;
 %mend plotind;
 /*
