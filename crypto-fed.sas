@@ -478,7 +478,7 @@ proc tabulate data=SU;
     table SUTRT * SUOCCUR * n
           SUTRT * SUDOSE *(mean std median min max n),
           seq all='both';
-    title "alcohol and smoking";
+    title 'alcohol and smoking';
 run;
 
 /* medical history */
@@ -510,7 +510,7 @@ proc tabulate data=VS;
 	table	VSPOS * VSTEST * VSSTRESC * (N)
 			VSPOS * VSTEST * VSORRES * (mean std median min max N),
 			seq all='both';
-	title "vital signs";
+	title 'vital signs';
 run;
 
 /* vital signs - screening - listing */
@@ -602,13 +602,13 @@ data EG;
 run;
 
 proc tabulate data=EG;
-	where VISIT="SCREENING";
+	where VISIT='SCREENING';
 	class seq measure EGSTRESC1;
 	var EGORRES;
 	table 	measure * EGSTRESC1 * n
 			measure * EGORRES * (mean std median min max n),
 			seq all='both';
-	title "ECG";
+	title 'ECG';
 run;
 
 /* ECG - screening - listing */ 
@@ -646,7 +646,7 @@ run;
 		var VSORRES;
 		table 	FORM * VSORRES * (mean std median min max n),
 			treat;
-		title &position. " " &test. " - values";
+		title &position. ' ' &test. ' - values';
 	run;
 %mend tabval;
 /*
@@ -691,7 +691,7 @@ proc tabulate data=temp;
 	var diff;
 	table 	FORM * diff * (mean std median min max n),
 			treat;
-	title &position. " " &test. " - change";
+	title &position. '  ' &test. ' - change';
 run;
 %mend;
 /*
@@ -746,7 +746,7 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%report(data=wide,title="patients with abnormal NCS - scheduled visits",name="VS",temp='FALSE');
+%report(data=wide,title='patients with abnormal NCS - scheduled visits',name="VS",temp='FALSE');
 
 %abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
 
@@ -831,7 +831,7 @@ run;
 	run;
 	proc sgplot data=temp;
 		series x=time y=VSORRES / group=RID markers;
-    	title &position. " " &test.;
+    	title &position. ' ' &test.;
     	xaxis label='time'; /* ISSUE: rotate labels, i.e., valuesrotate=diagonal; ISSUE: show all values, i.e., values=(0 1 2 3 4 5 6 7 8 9 10 11), then add grid*/ 
     	yaxis label='value';
    		keylegend / title='RID';
@@ -883,7 +883,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(title="Mean " &position. " " &test.);
+	%plot_internal(title='Mean ' &position. ' ' &test.);
 %mend plot_mean_value;
 %macro plot_mean_change(test,position='Supine');
 	%calcdiff(&test.);
@@ -893,7 +893,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		class treat FORM;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(title="Mean change in " &position. " " &test.);
+	%plot_internal(title='Mean change in ' &position. ' ' &test.);
 %mend plot_mean_change;
 /*
 Arguments: Set 'test' to 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate',
@@ -930,7 +930,7 @@ proc tabulate data=VS;
 	table	VSPOS * VSTEST * VSSTRESC * (N)
 			VSPOS * VSTEST * VSORRES * (mean std median min max N),
 			seq all='both';
-	title "vital signs - post study";
+	title 'vital signs - post study';
 run;
 
 /* vital signs - overall change */
