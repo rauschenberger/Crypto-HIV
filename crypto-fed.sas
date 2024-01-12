@@ -293,7 +293,7 @@ run;
 
 /* colour extreme values */ 
 %macro color(name,temp='TRUE');
-	%if &name.="VS" %then %do;
+	%if &name.=VS %then %do;
 		%if &temp.='TRUE' %then %do;
 			compute Temperature;
 				call define(_col_,'style','style={background=temp.}');
@@ -324,7 +324,7 @@ run;
 		end;
 	endcomp;
 	%end;
-	%if &name.="EG" %then %do;
+	%if &name.=EG %then %do;
 	compute Heart_Rate;
 		call define(_col_,'style','style={background=ECG_HR.}');
 	endcomp;
@@ -571,7 +571,7 @@ run;
 		%color(name=&name.,temp=&temp.);
 		define RID / order order=internal;
 		define VISIT / order order=internal;
-		%if &name.="EG" %then %do;
+		%if &name.=EG %then %do;
 			define PAGENAME / order order=internal;
 		%end;
 		define _NAME_/noprint;
@@ -582,7 +582,7 @@ run;
 %macro abnormal(code,check_visit,show_visit,temp='TRUE');
 	%listncs(code=&code.,visit=&check_visit.);
 	%showncs(code=&code.,visit=&show_visit.);
-	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name="&code.",temp=&temp.);
+	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
 %mend abnormal;
 
 %abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening');
@@ -746,7 +746,7 @@ proc transpose data=long out=wide;
 	var VSORRES;
 run;
 
-%report(data=wide,title='patients with abnormal NCS - scheduled visits',name="VS",temp='FALSE');
+%report(data=wide,title='patients with abnormal NCS - scheduled visits',name=VS,temp='FALSE');
 
 %abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
 
