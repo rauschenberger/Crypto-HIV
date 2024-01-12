@@ -832,10 +832,10 @@ run;
     	xaxis label='time'; /* ISSUE: vertical orientation of labels */ 
     	yaxis label='value';
    		keylegend / title='RID';
-		%if &test.='Systolic Blood Pressure' %then %do;
+		%if &position.='Supine' and &test.='Systolic Blood Pressure' %then %do;
 			refline 90 140 / axis=y lineattrs=(thickness=2);
 		%end;
-		%if &test.='Diastolic Blood Pressure' %then %do;
+		%if &position.='Supine' and &test.='Diastolic Blood Pressure' %then %do;
 			refline 45 90 / axis=y lineattrs=(thickness=2);
 		%end;
 		refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.5 pattern=dash);
