@@ -829,7 +829,7 @@ run;
 	proc sgplot data=temp;
 		series x=time y=VSORRES / group=RID markers;
     	title &position. " " &test.;
-    	xaxis label='time'; /* ISSUE: vertical orientation of labels */ 
+    	xaxis label='time'; /* ISSUE: rotate labels, i.e., valuesrotate=diagonal; ISSUE: show all values, i.e., values=(0 1 2 3 4 5 6 7 8 9 10 11), then add grid*/ 
     	yaxis label='value';
    		keylegend / title='RID';
 		%if &position.='Supine' and &test.='Systolic Blood Pressure' %then %do;
