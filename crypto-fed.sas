@@ -593,9 +593,12 @@ run;
 %ordervar(code=EG,var=EGSTRESC1); /* trial */
 %asnumeric(code=EG,var=EGORRES);
 
+/* The following data statement creates the variable 'measure = test (unit)'. */
 data EG;
 	set EG;
-	measure = cat(EGTEST,'(',EGORRESU,')');
+	length measure $40;
+	if missing(EGORRESU) then measure = EGTEST;
+	else measure = cat(EGTEST,'(',EGORRESU,')'); /* ISSUE: too few/many spaces*/ 
 run;
 
 proc tabulate data=EG;
