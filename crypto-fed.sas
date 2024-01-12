@@ -43,8 +43,8 @@ proc import datafile="&path.\&code._*"
 run;
 %mend import;
 /*
-Arguments: Specify a directory (e.g., path="C:\Users\myname\Desktop")
-and a CDISC abbreviation (e.g., code=DM for demographics or code=VS for vital signs).
+Arguments: Expects a directory (e.g., path="C:\Users\myname\Desktop")
+and a CDISC abbreviation (e.g., code=VS for vital signs).
 Description: Imports the file starting with 'code_' and ending with 'xlsx',
 and stores it in the data set 'code'.
 */ 
@@ -57,7 +57,7 @@ data &code;
 run;
 %mend add_rid;
 /*
-Arguments: Specify a CDISC abbreviation (e.g., code=DM or code=VS).
+Arguments: Expects a CDISC abbreviation (e.g., code=VS for vital signs).
 Description: Splits USUBJID (formatted as ABC/XYZ)
 into two parts, extracts the second part (formatted as XYZ),
 and adds this part to the dataset 'code' in the column 'RID'.
@@ -70,7 +70,7 @@ and adds this part to the dataset 'code' in the column 'RID'.
 	run;
 %mend sort_rid;
 /*
-Arguments: Specify a CDISC abbreviation (e.g., code=DM or code=VS).
+Arguments: Expects a CDISC abbreviation (e.g., code=VS for vital signs).
 Description: Sorts the dataset 'code' by the random identifier (RID).
 */
 
@@ -83,7 +83,7 @@ Description: Sorts the dataset 'code' by the random identifier (RID).
 	run;
 %mend add_seq;
 /*
-Arguments: Specify a CDISC abbreviation (e.g., code=DM or code=VS).
+Arguments: Expects a CDISC abbreviation (e.g., code=VS for vital signs).
 Description: Merges dataset 'code' and dataset 'random' by the random identifier (RID),
 adding information on the treatment sequence to dataset 'code'.
 */
