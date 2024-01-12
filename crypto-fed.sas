@@ -7,9 +7,9 @@ This SAS code is divided into four sections.
 - Section 4: Analysis
 */
 
-/*******************************************************/
-/*** Section 1: Setup **********************************/
-/*******************************************************/
+/******************************************************************************/
+/*** Section 1: Setup *********************************************************/
+/******************************************************************************/
 
 /* clean workspace */
 
@@ -29,9 +29,9 @@ and specifying the path to the output directory for the tables and figures (path
 %let pathPhar=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Import files\15032023_Pharmetheus\0131FRM18_DNDi-5FC-02-CM_PK_20230315\0131FRM18_DNDi-5FC-02-CM_PK_20230315;
 %let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS;
 
-/*******************************************************/
-/*** Section 2: Macros *********************************/
-/*******************************************************/
+/******************************************************************************/
+/*** Section 2: Macros ********************************************************/
+/******************************************************************************/
 
 /* import clinical data */
 %macro import(path,code);
@@ -437,9 +437,9 @@ Description: Performs mixed modelling, returns estimated variance of random effe
 estimated fixed effects, geometric mean ratio (misnomer!) for binary effect of interest
 */
 
-/*******************************************************/
-/*** Section 3: Formats ********************************/
-/*******************************************************/
+/******************************************************************************/
+/*** Section 3: Formats *******************************************************/
+/******************************************************************************/
 
 proc format;
 	invalue PAGENAME_invalue
@@ -671,13 +671,13 @@ Arguments: Choose one of two CDISC abbreviations (either 'VS' or 'EG').
 Description: This macro uses colour for values below or above the normal range.
 */
 
-/*******************************************************/
-/*** Section 4: Analysis *******************************/
-/*******************************************************/
+/******************************************************************************/
+/*** Section 4: Analysis ******************************************************/
+/******************************************************************************/
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.1: import clinical data  * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.1: import clinical data  * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc import datafile="&pathRand.\Randomizationlist"
 		out=random
@@ -695,9 +695,9 @@ run;
 
 %prepare;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.2: withdrawals * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.2: withdrawals * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data DS;
 	set DS;
@@ -706,7 +706,7 @@ data DS;
 run;
 
 proc tabulate data=DS;
-	title 'early withdrawals';
+	title 'table: withdrawals';
 	where VISIT='Post Study';
 	class seq withdraw;
 	table withdraw * (n colpctn),
@@ -714,39 +714,39 @@ proc tabulate data=DS;
 run;
 
 proc print data=DS;
-	title 'lising of withdrawals';
+	title 'lising: withdrawals';
 	where DSTERM='DISCONTINUED';
 	var RID seq;
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.3: ineligibility * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.3: ineligibility * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=IE spanrows;
-	title 'listing of ineligible samples';
+	title 'listing: ineligible samples';
 	where (IECAT='INCLUSION' and IESTRESC='No') or (IECAT='EXCLUSION' and IESTRESC='Yes');
 	column SUBJID IECAT IETEST IESTRESC;
 	define SUBJID/order;
 	define IECAT/order;
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.4: protocol deviations   * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=DV spanrows;
+	title 'listing: protocol deviations';
 	column RID seq VISIT FORM DVTERM DVCAT;
 	define RID/order;
 	define seq/order;
 	define VISIT/order;
 	define FORM/order;
-	title 'protocol deviations';
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.5: demographics  * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.5: demographics  * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %asnumeric(code=DM,var=vsorres_weight);
 %asnumeric(code=DM,var=vsorres_height);
@@ -761,7 +761,7 @@ data DM;
 run;
 
 proc tabulate data=DM;
-	title 'demographics by sequence';
+	title 'table: demographics by sequence';
 	class seq sex race;
 	var age weight height bmi;
 	table (age)*(mean median std min max n)
@@ -770,16 +770,16 @@ proc tabulate data=DM;
 		seq all='both';
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.6: alcohol and smoking * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.6: alcohol and smoking * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %ordervar(code=SU,var=SUOCCUR);
 %ordervar(code=SU,var=SUTRT);
 %asnumeric(code=SU,var=SUDOSE);
 
 proc tabulate data=SU;
-    title 'alcohol and smoking by sequence';
+    title 'table: alcohol and smoking by sequence';
 	class seq SUTRT SUOCCUR / order=internal;
     var SUDOSE;
     table SUTRT * SUOCCUR * n
@@ -787,21 +787,21 @@ proc tabulate data=SU;
           seq all='both';
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.7: medical history * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.7: medical history * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=MH spanrows;
-	title 'medical history';
+	title 'listing: medical history';
 	where not missing(RID);
 	column RID seq MHTERM MHSTDAT MHENDAT MHONGO;
 	define RID/order;
 	define seq/order;
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.8: vital signs * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.8: vital signs * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
 %ordervar(code=VS,var=VSTEST);
@@ -814,7 +814,7 @@ data VS;
 run;
 
 proc tabulate data=VS;
-	title 'vital signs at screening by sequence';
+	title 'table: vital signs at screening by sequence';
 	where VISIT='Screening Visit';
 	class seq VSPOS VSTEST VSSTRESC / order=internal;
 	var VSORRES;
@@ -826,9 +826,9 @@ run;
 /* vital signs - listing of abnormal at screening */
 %abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening');
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.9: lead ECG  * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.9: lead ECG  * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %ordervar(code=EG,var=PAGENAME);
 %ordervar(code=EG,var=EGSTRESC1);
@@ -843,7 +843,7 @@ data EG;
 run;
 
 proc tabulate data=EG;
-	title 'ECG at screening by sequence';
+	title 'table: ECG at screening by sequence';
 	where VISIT='SCREENING';
 	class seq measure EGSTRESC1;
 	var EGORRES;
@@ -855,36 +855,19 @@ run;
 /* ECG - listing of abnormal at screening */ 
 %abnormal(code=EG,check_visit='SCREENING',show_visit='SCREENING' 'Unscheduled Screening');
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4. : hematology * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/* : data formatting will be different in actual clinical trial */
+/* Data formatting will be different in phase II trial! */
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : vital signs - values  * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : vital signs by time and treatment * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %add_period(code=VS);
 %add_treat(code=VS);
-
-data VS;
-	set VS;
-	length time $40;
-	if VISIT='Screening Visit' then time='screen';
-	else if FORM='Pre-dose' then time=cat('P',period,': pre-dose');
-	else if FORM='2 hours post-dose' then time=cat('P',period,': 2h');
-	else if FORM='4 hours post-dose' then time=cat('P',period,': 4h');
-	else if FORM='6 hours post-dose' then time=cat('P',period,': 6h');
-	else if FORM='48 hours post-dose' then time=cat('P',period,': 48h');
-	else if VISIT='Post Study' then time='post-study';
-	else if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Unscheduled Screening') then time='unscheduled';
-run;
-
 %ordervar(code=VS,var=FORM);
-%ordervar(code=VS,var=time);
-
-/* vital signs - both */
 
 %tabval(test='Systolic Blood Pressure');
 %calcdiff(test='Systolic Blood Pressure');
@@ -898,26 +881,26 @@ run;
 %calcdiff(test='Pulse Rate');
 %tabdiff(test='Pulse Rate');
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : vital signs - normal/abnormal * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : vital signs - normal/abnormal * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc summary data=VS nway;
 	where not missing(RID) and not missing(period);
-	class VSSTRESC RID FORM treat time;
+	class VSSTRESC RID FORM treat;
 	output out=temp;
 run;
 
 proc tabulate data=temp;
-	title 'vital signs results';
+	title 'vital signs normal/abnormal by treatment';
 	class treat VSSTRESC RID FORM / order=internal;
 	table FORM * VSSTRESC * n,
 		  treat;
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : vital signs - listing abnormal  * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : vital signs - listing abnormal* * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data long;
 	set VS;
@@ -945,81 +928,35 @@ compact alternative for the three blocks and two macro calls above:
 %abnormal(code=VS,check_visit=&check_visit.,show_visit=&show_visit.);
 */
 
-/* vital signs - trajectory */
-
-/* use propose time formatting (keep this code)
-
-data VS;
-	set VS;
-	temp = input(VSDAT, ddmmyy10.);
-	date = put(temp, yymmdd10.);
-	VSDTC = catx("T",date,VSTIM);
-	/* datetime = input(VSDTC, E8601DT.);
-	drop temp;
-run;
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : plot vital signs for abnormal * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data VS;
 	set VS;
-	before = lag(time);
-	if time='other' then do;
-		time = before || " - us";
-	end;
-	drop before;
+	length time $40;
+	if VISIT='Screening Visit' then time='screen';
+	else if FORM_='Pre-dose' then time=cat('P',period,': pre-dose');
+	else if FORM_='2 hours post-dose' then time=cat('P',period,': 2h');
+	else if FORM_='4 hours post-dose' then time=cat('P',period,': 4h');
+	else if FORM_='6 hours post-dose' then time=cat('P',period,': 6h');
+	else if FORM_='48 hours post-dose' then time=cat('P',period,': 48h');
+	else if VISIT='Post Study' then time='post-study';
+	else if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Unscheduled Screening') then time='unscheduled';
 run;
+%ordervar(code=VS,var=time);
 
-data VS;
-	set VS;
-	if length(datetime)<10 then do;
-		date_time=.;
-	end;
-	else do;
-		date_time = input(datetime, E8601DT.);
-	end;
-	format date_time E8601DT.;
-run;
-
-%macro plotvs(test);
-	data temp;
-		set VS;
-		where VSTEST=&test. and VSPOS='Supine';
-		if RID in (&ids_ncs.);
-	run;
-	proc sort data=temp;
-		by VSDTC RID;
-	run;
-	proc sgplot data=temp;
-		series x=VSDTC y=VSORRES / group=RID markers datalabel=time; 
-    	title "Supine &test.";
-    	xaxis label='time';
-    	yaxis label='value';
-   		keylegend / title='RID';
-	run;
-%mend plotvs;
-
-%plotvs('Systolic Blood Pressure');
-%plotvs('Diastolic Blood Pressure');
-*/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. :  * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*ods graphics / width=10in height=5in;*/
 %plotind(test='Systolic Blood Pressure');
 %plotind(test='Diastolic Blood Pressure');
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. :  * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/* vital signs - mean values and mean changes */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : VS - mean values and mean change* * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %plot_mean_value(test='Systolic Blood Pressure');
 %plot_mean_change(test='Systolic Blood Pressure');
 
 /*
-omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
-
 %plot_mean_value(test='Diastolic Blood Pressure');
 %plot_mean_change(test='Diastolic Blood Pressure');
 
@@ -1027,9 +964,9 @@ omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
 %plot_mean_change(test='Pulse Rate');
 */
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : vital signs - post study * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : vital signs - post study  * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc tabulate data=VS;
 	title 'vital signs - post study';
@@ -1070,9 +1007,9 @@ proc tabulate data=wide;
 	table VSTEST * diff * (mean std median min max n), seq;
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. :  * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. :  * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /* ECG during treatment */
 
@@ -1106,9 +1043,9 @@ proc report data=AE spanrows;
 	define RID/order;
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : pharmacokinetics * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : pharmacokinetics  * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 filename temp "&pathPhar.\0131FRM18_Flucytosine_20230314.csv";
 proc import datafile=temp
@@ -1265,6 +1202,7 @@ run;
 
 
 
+
 /* ---------------------- */
 /* --- PHASE II STUDY --- */
 /* ---------------------- */
@@ -1401,4 +1339,60 @@ x "&RCommand";
 Run everything with a single script from the command line (first SAS, then WinNonLin, then SAS, then LaTeX)?
 
 Start-Process -FilePath "C:\Program Files (x86)\Certara\Phoenix\application\phoenix.exe"
+*/
+
+
+/* vital signs - trajectory */
+
+/* use propose time formatting (keep this code)
+
+data VS;
+	set VS;
+	temp = input(VSDAT, ddmmyy10.);
+	date = put(temp, yymmdd10.);
+	VSDTC = catx("T",date,VSTIM);
+	/* datetime = input(VSDTC, E8601DT.);
+	drop temp;
+run;
+
+data VS;
+	set VS;
+	before = lag(time);
+	if time='other' then do;
+		time = before || " - us";
+	end;
+	drop before;
+run;
+
+data VS;
+	set VS;
+	if length(datetime)<10 then do;
+		date_time=.;
+	end;
+	else do;
+		date_time = input(datetime, E8601DT.);
+	end;
+	format date_time E8601DT.;
+run;
+
+%macro plotvs(test);
+	data temp;
+		set VS;
+		where VSTEST=&test. and VSPOS='Supine';
+		if RID in (&ids_ncs.);
+	run;
+	proc sort data=temp;
+		by VSDTC RID;
+	run;
+	proc sgplot data=temp;
+		series x=VSDTC y=VSORRES / group=RID markers datalabel=time; 
+    	title "Supine &test.";
+    	xaxis label='time';
+    	yaxis label='value';
+   		keylegend / title='RID';
+	run;
+%mend plotvs;
+
+%plotvs('Systolic Blood Pressure');
+%plotvs('Diastolic Blood Pressure');
 */
