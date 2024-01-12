@@ -22,7 +22,8 @@ options nonotes;
 
 /* define paths */
 
-/* Specifying the paths to the input directories for the randomisation list (pathRand), the clinical data (pathClin), and the pharmacokinetic data (pathPhar),
+/* Specifying the paths to the input directories for the randomisation list (pathRand),
+the clinical data (pathClin), and the pharmacokinetic data (pathPhar),
 and specifying the path to the output directory for the tables and figures (pathOut).*/ 
 %let pathRand=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\9 - Final analysis\Data;
 %let pathClin=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Export files\24032023;
@@ -42,8 +43,10 @@ proc import datafile="&path.\&code._*"
 run;
 %mend import;
 /*
-Arguments: Specify a directory (e.g., path="C:\Users\myname\Desktop") and a CDISC abbreviation (e.g., code=DM for demographics or code=VS for vital signs).
-Description: Imports the file starting with 'code_' and ending with 'xlsx' and stores it in the data set 'code'.
+Arguments: Specify a directory (e.g., path="C:\Users\myname\Desktop")
+and a CDISC abbreviation (e.g., code=DM for demographics or code=VS for vital signs).
+Description: Imports the file starting with 'code_' and ending with 'xlsx',
+and stores it in the data set 'code'.
 */ 
 
 /* extract random ID */
@@ -706,17 +709,17 @@ data DS;
 run;
 
 proc tabulate data=DS;
-	title 'table: withdrawals';
+	title 'withdrawals';
 	where VISIT='Post Study';
 	class seq withdraw;
 	table withdraw * (n colpctn),
 			seq all='both';
 run;
 
-proc print data=DS;
-	title 'lising: withdrawals';
+proc report data=DS;
+	title 'withdrawals';
 	where DSTERM='DISCONTINUED';
-	var RID seq;
+	column RID seq;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -724,7 +727,7 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=IE spanrows;
-	title 'listing: ineligible samples';
+	title 'ineligible samples';
 	where (IECAT='INCLUSION' and IESTRESC='No') or (IECAT='EXCLUSION' and IESTRESC='Yes');
 	column SUBJID IECAT IETEST IESTRESC;
 	define SUBJID/order;
@@ -732,11 +735,11 @@ proc report data=IE spanrows;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.4: protocol deviations   * * * * * * */
+/* * Subsection 4.4: protocol deviations   * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=DV spanrows;
-	title 'listing: protocol deviations';
+	title 'protocol deviations';
 	column RID seq VISIT FORM DVTERM DVCAT;
 	define RID/order;
 	define seq/order;
@@ -761,7 +764,7 @@ data DM;
 run;
 
 proc tabulate data=DM;
-	title 'table: demographics by sequence';
+	title 'demographics by sequence';
 	class seq sex race;
 	var age weight height bmi;
 	table (age)*(mean median std min max n)
@@ -779,7 +782,7 @@ run;
 %asnumeric(code=SU,var=SUDOSE);
 
 proc tabulate data=SU;
-    title 'table: alcohol and smoking by sequence';
+    title 'alcohol and smoking by sequence';
 	class seq SUTRT SUOCCUR / order=internal;
     var SUDOSE;
     table SUTRT * SUOCCUR * n
@@ -792,7 +795,7 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=MH spanrows;
-	title 'listing: medical history';
+	title 'medical history';
 	where not missing(RID);
 	column RID seq MHTERM MHSTDAT MHENDAT MHONGO;
 	define RID/order;
@@ -800,7 +803,7 @@ proc report data=MH spanrows;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.8: vital signs * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.8: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
@@ -814,7 +817,7 @@ data VS;
 run;
 
 proc tabulate data=VS;
-	title 'table: vital signs at screening by sequence';
+	title 'vital signs at screening by sequence';
 	where VISIT='Screening Visit';
 	class seq VSPOS VSTEST VSSTRESC / order=internal;
 	var VSORRES;
@@ -827,7 +830,7 @@ run;
 %abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.9: lead ECG  * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.9: electrocardiogram at screning * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %ordervar(code=EG,var=PAGENAME);
@@ -843,7 +846,7 @@ data EG;
 run;
 
 proc tabulate data=EG;
-	title 'table: ECG at screening by sequence';
+	title 'ECG at screening by sequence';
 	where VISIT='SCREENING';
 	class seq measure EGSTRESC1;
 	var EGORRES;
@@ -856,13 +859,13 @@ run;
 %abnormal(code=EG,check_visit='SCREENING',show_visit='SCREENING' 'Unscheduled Screening');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : hematology * * * * * * * * * */
+/* * Subsection 4.10: hematology * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /* Data formatting will be different in phase II trial! */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : vital signs by time and treatment * * * * * * * * * * * */
+/* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %add_period(code=VS);
@@ -882,7 +885,7 @@ run;
 %tabdiff(test='Pulse Rate');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : vital signs - normal/abnormal * * * * * * * * * * * * * */
+/* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc summary data=VS nway;
@@ -892,14 +895,14 @@ proc summary data=VS nway;
 run;
 
 proc tabulate data=temp;
-	title 'vital signs normal/abnormal by treatment';
+	title 'vital signs normal/abnormal by treatment and time';
 	class treat VSSTRESC RID FORM / order=internal;
 	table FORM * VSSTRESC * n,
 		  treat;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : vital signs - listing abnormal* * * * * * * * * * * * * */
+/* * Subsection 4.13: vital signs - abnormal during treatment  * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data long;
@@ -929,7 +932,7 @@ compact alternative for the three blocks and two macro calls above:
 */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : plot vital signs for abnormal * * */
+/* * Subsection 4.14: plot vital signs for abnormal  * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data VS;
@@ -950,7 +953,7 @@ run;
 %plotind(test='Diastolic Blood Pressure');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : VS - mean values and mean change* * * * * * * * * * * * */
+/* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %plot_mean_value(test='Systolic Blood Pressure');
@@ -965,11 +968,11 @@ run;
 */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : vital signs - post study  * * * * * * * * * * * * * * * */
+/* * Subsection 4.16: vital signs - post study * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc tabulate data=VS;
-	title 'vital signs - post study';
+	title 'vital signs at post study by sequence';
 	where visit='Post Study';
 	class seq VSPOS VSTEST VSSTRESC;
 	var VSORRES;
@@ -1001,23 +1004,21 @@ data wide;
 run;
 
 proc tabulate data=wide;
-	title 'vital signs - change from screening to post study';
+	title 'change in vital signs from screening to post study by sequence';
 	class seq RID VSTEST / order=internal;
 	var diff;
 	table VSTEST * diff * (mean std median min max n), seq;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. :  * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.17:  electrocardiogram during treatment  * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/* ECG during treatment */
 
 %add_period(code=EG);
 %add_treat(code=EG);
 
 proc tabulate data=EG;
-	title 'ECG during treatment';
+	title 'ECG during treatment by treatment and time';
 	class treat PAGENAME measure;
 	where not missing(RID) and PAGENAME_ ne 'ECG';
 	var EGORRES;
@@ -1025,17 +1026,15 @@ proc tabulate data=EG;
 run;
 
 /* abnormal ECG results during treatment */
-
 %let visits='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
 %abnormal(code=EG,check_visit=&visits.,show_visit=&visits.);
 
 /* abnormal ECG results post study */
-
 %abnormal(code=EG,check_visit='Post Study',show_visit='Post Study');
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : adverse events * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.18: adverse events * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=AE spanrows;
 	title 'adverse events';
@@ -1044,7 +1043,7 @@ proc report data=AE spanrows;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. : pharmacokinetics  * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.19: pharmacokinetics * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 filename temp "&pathPhar.\0131FRM18_Flucytosine_20230314.csv";
