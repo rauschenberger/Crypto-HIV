@@ -1,5 +1,15 @@
 
-/* FED STUDY */
+/* 
+This SAS code is divided into four sections.
+- Section 1: Setup
+- Section 2: Macros
+- Section 3: Formats
+- Section 4: Analysis
+*/
+
+/*******************************************************/
+/*** Section 1: Setup **********************************/
+/*******************************************************/
 
 /* clean workspace */
 
@@ -12,26 +22,16 @@ options nonotes;
 
 /* define paths */
 
+/* Specifying the paths to the input directories for the randomisation list (pathRand), the clinical data (pathClin), and the pharmacokinetic data (pathPhar),
+and specifying the path to the output directory for the tables and figures (pathOut).*/ 
 %let pathRand=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\9 - Final analysis\Data;
 %let pathClin=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Export files\24032023;
 %let pathPhar=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Import files\15032023_Pharmetheus\0131FRM18_DNDi-5FC-02-CM_PK_20230315\0131FRM18_DNDi-5FC-02-CM_PK_20230315;
 %let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS;
 
-/* import randomisation list */ 
-
-proc import datafile="&pathRand.\Randomizationlist"
-		out=random
-		dbms=xlsx;
-run;
-
-data random;
-	set random;
-	rename Subject_ID=RID;
-	if seqence=1 then
-		seq='1 (AB)';
-	else
-		seq='2 (BA)';
-run;
+/*******************************************************/
+/*** Section 2: Macros *********************************/
+/*******************************************************/
 
 /* import clinical data */
 %macro import(path,code);
@@ -101,8 +101,6 @@ Description: Prepares the datasets by importing the datasets, adding the random 
 sorting the datasets by random identifiers and adding information on the treatment sequence.
 */
 
-%prepare;
-
 /* convert character to numeric */
 %macro asnumeric(code,var);
 data &code;
@@ -116,6 +114,332 @@ run;
 Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable name (var=...).
 Description: Converts character variable to numeric.
 */
+
+/* derive treatment period */ 
+%macro add_period(code);
+	data &code.;
+		set &code.;
+		if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
+		else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
+		else period = '';
+	run;
+%mend add_period;
+/*
+Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS).
+Description: This macro uses the variable 'VISIT' to create the variable 'period'.
+*/
+
+/* derive treatment */ 
+%macro add_treat(code);
+	data &code.;
+		set &code.;
+    	if period='1' and seq='1 (AB)' then treat='A';
+		else if period='1' and seq='2 (BA)' then treat='B';
+		else if period='2' and seq='1 (AB)' then treat='B';
+		else if period='2' and seq='2 (BA)' then treat='A';
+		else treat = '';
+	run;
+%mend add_treat;
+/*
+Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS).
+Description: This macro uses the variable for the period (1 or 2)
+and the variable for the treatment sequence (AB or BA)
+to create the variable for the treatment (A or B).
+*/
+
+/* re-order category levels */ 
+/* ISSUE: (1) How should we specify the order of category levels?
+Should we transform a character variable to a numerical variable with labels,
+or is it possible to directly modify the internal order of the categories?
+In the first case, how can we directly access the labels of the numerical variable? */
+%macro ordervar(code,var);
+data &code.;
+	set &code.;
+	temp = input(&var.,&var._invalue.);
+	&var._ = put(temp,&var._value.);
+	format temp &var._value.;
+	/* ISSUE: Check whether same entries are missing in both variables.*/
+	drop &var.;
+	rename temp=&var.;
+run;
+%mend ordervar;
+/*
+Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
+Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
+This macro defines the internal order of the category levels.
+*/
+
+/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
+%macro listncs(code,visit);
+	%global ids_ncs;
+	%if &code.=VS %then %do;
+		%let var_test=VSSTRESC_;
+	%end;
+	%else %if &code.=EG %then %do;
+		%let var_test=EGSTRESC1_;
+	%end;
+	%else %do;
+		%put ERROR;
+	%end;
+    data temp;
+        set &code.;
+        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID); /* use numerical values */ 
+    run;
+    proc sql noprint;
+        select distinct RID
+        into :ids_ncs separated by ','
+        from temp;
+    quit;
+	%let ids_ncs=&ids_ncs.;
+	%put ids_ncs=&ids_ncs.;
+%mend listncs;
+
+%macro showncs(code,visit);
+	%if &code.=VS %then %do;
+		%let var_id=VSTEST;
+		%let state_by=RID VISIT VSPOS FORM;
+		%let var=VSORRES;
+	%end;
+	%else %if &code.=EG %then %do;
+		%let var_id=EGTEST;
+		%let state_by=RID VISIT PAGENAME;
+		%let var=EGORRES;
+	%end;
+	data long;
+		set &code.;
+		if RID in (&ids_ncs.);
+		if VISIT in (&visit.);
+	run; 
+	proc sort data=long;
+		by &state_by.;
+	run;
+	proc transpose data=long out=wide;
+		by &state_by.;
+		id &var_id.;
+		var &var.;
+	run;
+%mend;
+
+%macro report(data,title,name,temp='TRUE');
+	proc report data=&data. spanrows;
+		%color(name=&name.,temp=&temp.);
+		define RID / order order=internal;
+		define VISIT / order order=internal;
+		%if &name.=EG %then %do;
+			define PAGENAME / order order=internal;
+		%end;
+		define _NAME_/noprint;
+		title &title.;
+	run;
+%mend;
+
+%macro abnormal(code,check_visit,show_visit,temp='TRUE');
+	%listncs(code=&code.,visit=&check_visit.);
+	%showncs(code=&code.,visit=&show_visit.);
+	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
+%mend abnormal;
+
+/* summarise vital signs - values */ 
+%macro tabval(test,position='Supine');
+	proc tabulate data=VS;
+		where VSPOS=&position. and VSTEST_=&test.;
+		class VISIT treat FORM / order=internal;
+		var VSORRES;
+		table 	FORM * VSORRES * (mean std median min max n),
+			treat;
+		title &position. ' ' &test. ' - values';
+	run;
+%mend tabval;
+/*
+Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
+and select 'position' from 'Supine' and 'Standing'.
+Description: Summarises measurements for each time point (rows) and treatment (columns).
+*/ 
+
+/* calculate change */
+%macro calcdiff(test,position='Supine');
+	data temp;
+		set VS;
+		where VSTEST_=&test. and VSPOS=&position. and not missing(RID) and not missing(period);
+	run;
+	data temp;
+  		do until(last.RID);
+     		set temp;
+     		by RID;
+     		if treat = 'A' then do;
+        		if baseA = . then baseA = VSORRES;
+        		diff = VSORRES - baseA;
+     		end;
+			drop baseA;
+     		else if treat = 'B' then do;
+        		if baseB = . then baseB = VSORRES;
+				diff = VSORRES - baseB;
+    		end;
+			drop baseB;
+ 		output;
+		end;
+	run;
+%mend calcdiff;
+/*
+Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
+and select 'position' from 'Supine' and 'Standing'.
+*/
+
+/* summarise vital signs - change */
+%macro tabdiff(test,position='Supine');
+proc tabulate data=temp;
+	class VISIT treat FORM / order=internal;
+	var diff;
+	table 	FORM * diff * (mean std median min max n),
+			treat;
+	title &position. '  ' &test. ' - change';
+run;
+%mend;
+/*
+Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
+and select 'position' from 'Supine' and 'Standing'.
+Description: Summarises change with respect to pre-dose for each time point (rows) and treatment (columns).
+*/ 
+
+/* plot trajectories of vital signs */
+%macro plotind(test,position='Supine');
+	data temp;
+		set VS;
+		where VSTEST_=&test. and VSPOS=&position.;
+		if RID in (&ids_ncs.);
+	run;
+	proc sort data=temp;
+		by RID VSDTC;
+	run;
+	data temp;
+		set temp;
+		time_lag = lag(time);
+		if missing(time) then do;
+			time = time_lag + 0.5;
+		end;
+		drop time_lag;
+	run;
+	proc sgplot data=temp;
+		series x=time y=VSORRES / group=RID markers;
+    	title &position. ' ' &test.;
+    	xaxis label='time'; /* ISSUE: (1) rotate labels, i.e., valuesrotate=diagonal; (2) show all values, i.e., values=(0 1 2 3 4 5 6 7 8 9 10 11), then add grid*/ 
+    	yaxis label='value';
+   		keylegend / title='RID';
+		%if &position.='Supine' and &test.='Systolic Blood Pressure' %then %do;
+			refline 90 140 / axis=y lineattrs=(thickness=2);
+		%end;
+		%if &position.='Supine' and &test.='Diastolic Blood Pressure' %then %do;
+			refline 45 90 / axis=y lineattrs=(thickness=2);
+		%end;
+		refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.5 pattern=dash);
+	run;
+%mend plotind;
+/*
+Arguments: Choose between test='Systolic Blood Pressure' and test='Diastolic Blood Pressure',
+and choose between position='Supine' (default) and position='Standing'.
+Description: Extracts data from the dataset 'VS'  for the individuals in 'ids_ncs',
+the position 'Supine' and the chosen test (see arguments).
+Sorts the extracted data by the sample identifier and the time point.
+Replaces missing visit names by the visit name of the lagged time point.
+Plots the measurements against the visit names, with one line for each patient.
+*/
+
+/* plot mean value or mean change */
+%macro plot_internal(title);
+	data VS_means;
+		set VS_means;
+		where not missing(treat) and not missing(FORM);
+	run;
+	proc sgplot data=VS_means;
+		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
+    	title &title.;
+    	xaxis label='time';
+    	yaxis label='value';
+    	keylegend / title='treatment';
+		highlow x=FORM low=lclm high=uclm / group=treat;
+		scatter x=FORM y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
+	run;
+%mend plot_internal;
+%macro plot_mean_value(test,position='Supine');
+	proc means data=VS mean clm alpha=0.05 noprint;
+		where VSTEST_=&test. and VSPOS=&position.;
+		var VSORRES;
+		class treat FORM;
+		output out=VS_means mean=mean lclm=lclm uclm=uclm;
+	run;
+	%plot_internal(title='Mean ' &position. ' ' &test.);
+%mend plot_mean_value;
+%macro plot_mean_change(test,position='Supine');
+	%calcdiff(&test.);
+	proc means data=temp mean clm alpha=0.05 noprint;
+		where VSTEST_=&test. and VSPOS=&position.;
+		var diff;
+		class treat FORM;
+		output out=VS_means mean=mean lclm=lclm uclm=uclm;
+	run;
+	%plot_internal(title='Mean change in ' &position. ' ' &test.);
+%mend plot_mean_change;
+/*
+Arguments: Set 'test' to 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate',
+and set 'position' to 'Supine' (default) or 'Standing'.
+Description: Extracts the data from dataset 'VS' for the selected position and the selected test.
+Optionally (plot_mean_change), computes the differences with respect to the pre-dose measurement.
+Calculates the means of these measurement for the two treatments (A and B)
+and the different time points (pre-dose, 2/4/6/48 hours postdose),
+as well as the lower and upper confidence limits for these means.
+Plots the results.
+*/
+
+%macro mixmod(outcome,data=PKpars,class=rid seq period treat,fixed=seq period treat,random=rid(seq),lsmeans=treat,alpha=0.10);
+	proc mixed data=&data.;
+		Class &class.;
+		Model &outcome.= &fixed. / ddfm=kr; /* was seq period treat  */ 
+		Random &random. / type=vc; /* was rid(seq) */
+		lsmeans &lsmeans. /cl alpha=0.10; /* was treat*/ 
+		Estimate 'diff B-A' treat -1 1/cl alpha = &alpha.;
+		ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
+		ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
+	run;
+	proc print data=random;
+		id CovParm;
+		var Estimate;
+		title &outcome.;
+	run;
+	title;
+	proc print data=fixed;
+		id Effect;
+		var FValue ProbF;
+	run;
+	data means;
+		set means;
+		expEstim=exp(Estimate);
+		expLower=exp(Lower);
+		expUpper=exp(Upper);
+	run;
+	proc print data=means;
+		id treat;
+		var expEstim expLower expUpper;
+	run;
+	data diff;
+		set diff;
+		expEstim=exp(Estimate);
+		expLower=exp(Lower);
+		expUpper=exp(Upper);
+	run;
+	proc print data=diff;
+		id Label;
+		var expEstim expLower expUpper;
+	run;
+%mend mixmod;
+/* 
+Arguments: Specify the outcome (e.g. 'logCmax', 'logAUClast' or 'logAUCinf').
+Description: Performs mixed modelling, returns estimated variance of random effects,
+estimated fixed effects, geometric mean ratio (misnomer!) for binary effect of interest
+*/
+
+/*******************************************************/
+/*** Section 3: Formats ********************************/
+/*******************************************************/
 
 proc format;
 	invalue PAGENAME_invalue
@@ -347,59 +671,33 @@ Arguments: Choose one of two CDISC abbreviations (either 'VS' or 'EG').
 Description: This macro uses colour for values below or above the normal range.
 */
 
-/* derive treatment period */ 
-%macro add_period(code);
-	data &code.;
-		set &code.;
-		if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
-		else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
-		else period = '';
-	run;
-%mend add_period;
-/*
-Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS).
-Description: This macro uses the variable 'VISIT' to create the variable 'period'.
-*/
+/*******************************************************/
+/*** Section 4: Analysis *******************************/
+/*******************************************************/
 
-/* derive treatment */ 
-%macro add_treat(code);
-	data &code.;
-		set &code.;
-    	if period='1' and seq='1 (AB)' then treat='A';
-		else if period='1' and seq='2 (BA)' then treat='B';
-		else if period='2' and seq='1 (AB)' then treat='B';
-		else if period='2' and seq='2 (BA)' then treat='A';
-		else treat = '';
-	run;
-%mend add_treat;
-/*
-Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS).
-Description: This macro uses the variable for the period (1 or 2)
-and the variable for the treatment sequence (AB or BA)
-to create the variable for the treatment (A or B).
-*/
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.1: import clinical data  * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/* re-order category levels */ 
-/* ISSUE: This macro transform a character variable to a numerical variable with labels.
-Find out how to get a character variable with the specified internal order.*/ 
-%macro ordervar(code,var);
-data &code.;
-	set &code.;
-	temp = input(&var.,&var._invalue.);
-	&var._ = put(temp,&var._value.); /* ISSUE: How can we access the labels of numerical variables? */
-	format temp &var._value.;
-	/* ISSUE: Check whether same entries are missing in both variables.*/
-	drop &var.;
-	rename temp=&var.;
+proc import datafile="&pathRand.\Randomizationlist"
+		out=random
+		dbms=xlsx;
 run;
-%mend ordervar;
-/*
-Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
-Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
-This macro defines the internal order of the category levels.
-*/
 
-/* withdrawals */
+data random;
+	set random;
+	rename Subject_ID=RID;
+	if seqence=1 then
+		seq='1 (AB)';
+	else
+		seq='2 (BA)';
+run;
+
+%prepare;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.2: withdrawals * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data DS;
 	set DS;
@@ -421,7 +719,9 @@ proc print data=DS;
 	title 'lising of withdrawals';
 run;
 
-/* ineligibility */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.3: ineligibility * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=IE spanrows;
 	column SUBJID IECAT IETEST IESTRESC;
@@ -431,7 +731,9 @@ proc report data=IE spanrows;
 	title 'listing of ineligible samples';
 run;
 
-/* protocol deviations */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.4: protocol deviations   * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=DV spanrows;
 	column RID seq VISIT FORM DVTERM DVCAT;
@@ -442,7 +744,9 @@ proc report data=DV spanrows;
 	title 'protocol deviations';
 run;
 
-/* demographics */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.5: demographics  * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %asnumeric(code=DM,var=vsorres_weight);
 %asnumeric(code=DM,var=vsorres_height);
@@ -466,7 +770,9 @@ proc tabulate data=DM;
 	title 'demographics';
 run;
 
-/* alcohol and smoking */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.6: alcohol and smoking * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %ordervar(code=SU,var=SUOCCUR);
 %ordervar(code=SU,var=SUTRT);
@@ -481,7 +787,9 @@ proc tabulate data=SU;
     title 'alcohol and smoking';
 run;
 
-/* medical history */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.7: medical history * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=MH spanrows;
 	column RID seq MHTERM MHSTDAT MHENDAT MHONGO;
@@ -491,7 +799,9 @@ proc report data=MH spanrows;
 	title 'medical history';
 run;
 
-/* vital signs */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.8: vital signs * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
 %ordervar(code=VS,var=VSTEST);
@@ -515,82 +825,14 @@ run;
 
 /* vital signs - screening - listing */
 
-/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
-%macro listncs(code,visit);
-	%global ids_ncs;
-	%if &code.=VS %then %do;
-		%let var_test=VSSTRESC_;
-	%end;
-	%else %if &code.=EG %then %do;
-		%let var_test=EGSTRESC1_;
-	%end;
-	%else %do;
-		%put ERROR;
-	%end;
-    data temp;
-        set &code.;
-        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID); /* use numerical values */ 
-    run;
-    proc sql noprint;
-        select distinct RID
-        into :ids_ncs separated by ','
-        from temp;
-    quit;
-	%let ids_ncs=&ids_ncs.;
-	%put ids_ncs=&ids_ncs.;
-%mend listncs;
-
-%macro showncs(code,visit);
-	%if &code.=VS %then %do;
-		%let var_id=VSTEST;
-		%let state_by=RID VISIT VSPOS FORM;
-		%let var=VSORRES;
-	%end;
-	%else %if &code.=EG %then %do;
-		%let var_id=EGTEST;
-		%let state_by=RID VISIT PAGENAME;
-		%let var=EGORRES;
-	%end;
-	data long;
-		set &code.;
-		if RID in (&ids_ncs.);
-		if VISIT in (&visit.);
-	run; 
-	proc sort data=long;
-		by &state_by.;
-	run;
-	proc transpose data=long out=wide;
-		by &state_by.;
-		id &var_id.;
-		var &var.;
-	run;
-%mend;
-
-%macro report(data,title,name,temp='TRUE');
-	proc report data=&data. spanrows;
-		%color(name=&name.,temp=&temp.);
-		define RID / order order=internal;
-		define VISIT / order order=internal;
-		%if &name.=EG %then %do;
-			define PAGENAME / order order=internal;
-		%end;
-		define _NAME_/noprint;
-		title &title.;
-	run;
-%mend;
-
-%macro abnormal(code,check_visit,show_visit,temp='TRUE');
-	%listncs(code=&code.,visit=&check_visit.);
-	%showncs(code=&code.,visit=&show_visit.);
-	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
-%mend abnormal;
-
 %abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening');
 
-/* lead ECG */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.9: lead ECG  * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %ordervar(code=EG,var=PAGENAME);
-%ordervar(code=EG,var=EGSTRESC1); /* trial */
+%ordervar(code=EG,var=EGSTRESC1);
 %asnumeric(code=EG,var=EGORRES);
 
 /* The following data statement creates the variable 'measure = test (unit)'. */
@@ -615,9 +857,15 @@ run;
 
 %abnormal(code=EG,check_visit='SCREENING',show_visit='SCREENING' 'Unscheduled Screening');
 
-/* hematology: data formatting will be different in actual clinical trial */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : hematology * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/* vital signs - values */
+/* : data formatting will be different in actual clinical trial */
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : vital signs - values  * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %add_period(code=VS);
 %add_treat(code=VS);
@@ -638,69 +886,11 @@ run;
 %ordervar(code=VS,var=FORM);
 %ordervar(code=VS,var=time);
 
-/* summarise vital signs - values */ 
-%macro tabval(test,position='Supine');
-	proc tabulate data=VS;
-		where VSPOS=&position. and VSTEST_=&test.;
-		class VISIT treat FORM / order=internal;
-		var VSORRES;
-		table 	FORM * VSORRES * (mean std median min max n),
-			treat;
-		title &position. ' ' &test. ' - values';
-	run;
-%mend tabval;
-/*
-Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
-and select 'position' from 'Supine' and 'Standing'.
-Description: Summarises measurements for each time point (rows) and treatment (columns).
-*/ 
-
-/* calculate change */
-%macro calcdiff(test,position='Supine');
-	data temp;
-		set VS;
-		where VSTEST_=&test. and VSPOS=&position. and not missing(RID) and not missing(period);
-	run;
-	data temp;
-  		do until(last.RID);
-     		set temp;
-     		by RID;
-     		if treat = 'A' then do;
-        		if baseA = . then baseA = VSORRES;
-        		diff = VSORRES - baseA;
-     		end;
-			drop baseA;
-     		else if treat = 'B' then do;
-        		if baseB = . then baseB = VSORRES;
-				diff = VSORRES - baseB;
-    		end;
-			drop baseB;
- 		output;
-		end;
-	run;
-%mend calcdiff;
-/*
-Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
-and select 'position' from 'Supine' and 'Standing'.
-*/
-
-/* summarise vital signs - change */
-%macro tabdiff(test,position='Supine');
-proc tabulate data=temp;
-	class VISIT treat FORM / order=internal;
-	var diff;
-	table 	FORM * diff * (mean std median min max n),
-			treat;
-	title &position. '  ' &test. ' - change';
-run;
-%mend;
-/*
-Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
-and select 'position' from 'Supine' and 'Standing'.
-Description: Summarises change with respect to pre-dose for each time point (rows) and treatment (columns).
-*/ 
-
 /* vital signs - both */
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. :  * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %tabval(test='Systolic Blood Pressure');
 %calcdiff(test='Systolic Blood Pressure');
@@ -714,7 +904,9 @@ Description: Summarises change with respect to pre-dose for each time point (row
 %calcdiff(test='Pulse Rate');
 %tabdiff(test='Pulse Rate');
 
-/* vital signs - normal/abnormal */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : vital signs - normal/abnormal * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc summary data=VS nway;
 	where not missing(RID) and not missing(period);
@@ -729,7 +921,9 @@ proc tabulate data=temp;
 	title 'vital signs results';
 run;
 
-/* vital signs - listing abnormal */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : vital signs - listing abnormal  * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data long;
 	set VS;
@@ -750,7 +944,8 @@ run;
 
 %abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
 
-/* compact alternative for above:
+/*
+compact alternative for the three blocks and two macro calls above:
 %let check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
 %let show_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD' 'Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2';
 %abnormal(code=VS,check_visit=&check_visit.,show_visit=&show_visit.);
@@ -811,105 +1006,22 @@ run;
 %plotvs('Diastolic Blood Pressure');
 */
 
-/* plot trajectories of vital signs */
-%macro plotind(test,position='Supine');
-	data temp;
-		set VS;
-		where VSTEST_=&test. and VSPOS=&position.;
-		if RID in (&ids_ncs.);
-	run;
-	proc sort data=temp;
-		by RID VSDTC;
-	run;
-	data temp;
-		set temp;
-		time_lag = lag(time);
-		if missing(time) then do;
-			time = time_lag + 0.5;
-		end;
-		drop time_lag;
-	run;
-	proc sgplot data=temp;
-		series x=time y=VSORRES / group=RID markers;
-    	title &position. ' ' &test.;
-    	xaxis label='time'; /* ISSUE: rotate labels, i.e., valuesrotate=diagonal; ISSUE: show all values, i.e., values=(0 1 2 3 4 5 6 7 8 9 10 11), then add grid*/ 
-    	yaxis label='value';
-   		keylegend / title='RID';
-		%if &position.='Supine' and &test.='Systolic Blood Pressure' %then %do;
-			refline 90 140 / axis=y lineattrs=(thickness=2);
-		%end;
-		%if &position.='Supine' and &test.='Diastolic Blood Pressure' %then %do;
-			refline 45 90 / axis=y lineattrs=(thickness=2);
-		%end;
-		refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.5 pattern=dash);
-	run;
-%mend plotind;
-/*
-Arguments: Choose between test='Systolic Blood Pressure' and test='Diastolic Blood Pressure',
-and choose between position='Supine' (default) and position='Standing'.
-Description: Extracts data from the dataset 'VS'  for the individuals in 'ids_ncs',
-the position 'Supine' and the chosen test (see arguments).
-Sorts the extracted data by the sample identifier and the time point.
-Replaces missing visit names by the visit name of the lagged time point.
-Plots the measurements against the visit names, with one line for each patient.
-*/ 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. :  * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*ods graphics / width=10in height=5in;*/
 %plotind(test='Systolic Blood Pressure');
 %plotind(test='Diastolic Blood Pressure');
 
-/* vital signs - sample means (and change) */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. :  * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/* plot mean value or mean change */
-%macro plot_internal(title);
-	data VS_means;
-		set VS_means;
-		where not missing(treat) and not missing(FORM);
-	run;
-	proc sgplot data=VS_means;
-		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
-    	title &title.;
-    	xaxis label='time';
-    	yaxis label='value';
-    	keylegend / title='treatment';
-		highlow x=FORM low=lclm high=uclm / group=treat;
-		scatter x=FORM y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
-	run;
-%mend plot_internal;
-%macro plot_mean_value(test,position='Supine');
-	proc means data=VS mean clm alpha=0.05 noprint;
-		where VSTEST_=&test. and VSPOS=&position.;
-		var VSORRES;
-		class treat FORM;
-		output out=VS_means mean=mean lclm=lclm uclm=uclm;
-	run;
-	%plot_internal(title='Mean ' &position. ' ' &test.);
-%mend plot_mean_value;
-%macro plot_mean_change(test,position='Supine');
-	%calcdiff(&test.);
-	proc means data=temp mean clm alpha=0.05 noprint;
-		where VSTEST_=&test. and VSPOS=&position.;
-		var diff;
-		class treat FORM;
-		output out=VS_means mean=mean lclm=lclm uclm=uclm;
-	run;
-	%plot_internal(title='Mean change in ' &position. ' ' &test.);
-%mend plot_mean_change;
-/*
-Arguments: Set 'test' to 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate',
-and set 'position' to 'Supine' (default) or 'Standing'.
-Description: Extracts the data from dataset 'VS' for the selected position and the selected test.
-Optionally (plot_mean_change), computes the differences with respect to the pre-dose measurement.
-Calculates the means of these measurement for the two treatments (A and B)
-and the different time points (pre-dose, 2/4/6/48 hours postdose),
-as well as the lower and upper confidence limits for these means.
-Plots the results.
-*/ 
+/* vital signs - mean values and mean changes */
 
 %plot_mean_value(test='Systolic Blood Pressure');
 %plot_mean_change(test='Systolic Blood Pressure');
-
-/* ISSUE: add labels to plot (numeric or character) */
 
 /*
 omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
@@ -921,7 +1033,9 @@ omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
 %plot_mean_change(test='Pulse Rate');
 */
 
-/* vital signs - post study */ 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : vital signs - post study * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc tabulate data=VS;
 	where visit='Post Study';
@@ -962,6 +1076,10 @@ proc tabulate data=wide;
 	title 'vital signs - change from screening to post study';
 run;
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. :  * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 /* ECG during treatment */
 
 %add_period(code=EG);
@@ -984,7 +1102,9 @@ run;
 
 %abnormal(code=EG,check_visit='Post Study',show_visit='Post Study');
 
-/* adverse events */ 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : adverse events * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=AE spanrows;
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
@@ -992,7 +1112,9 @@ proc report data=AE spanrows;
 	title 'adverse events';
 run;
 
-/*--- PHARMACOKINETICS ---*/ 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4. : pharmacokinetics * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 filename temp "&pathPhar.\0131FRM18_Flucytosine_20230314.csv";
 proc import datafile=temp
@@ -1056,7 +1178,7 @@ data PC;
 	if VISIT='Treatment Period 1: 30 hrs PD' then
 		period=1;
 	else if VISIT='Treatment Period 2: 30 hrs PD' then
-	period=2;
+		period=2;
 	if PC_SAMPLING_TIME='Pre-dose' then
 		SAMPLETIME=0;
 	else if PC_SAMPLING_TIME='0,5' then
@@ -1143,56 +1265,11 @@ run;
 
 /* mixed model */
 
-%macro mixmod(outcome,data=PKpars,class=rid seq period treat,fixed=seq period treat,random=rid(seq),lsmeans=treat);
-	proc mixed data=&data.;
-		Class &class.;
-		Model &outcome.= &fixed. / ddfm=kr; /* was seq period treat  */ 
-		Random &random. / type=vc; /* was rid(seq) */
-		lsmeans &lsmeans. /cl alpha=0.10; /* was treat*/ 
-		Estimate 'diff B-A' treat -1 1/cl alpha = 0.10;
-		ods exclude CovParms ConvergenceStatus ClassLevels Dimensions Estimates FitStatistics IterHistory LSMeans ModelInfo NObs Tests3;
-		ods output CovParms=random Tests3=fixed LSMeans=means Estimates=diff;
-	run;
-	proc print data=random;
-		id CovParm;
-		var Estimate;
-		title &outcome.;
-	run;
-	title;
-	proc print data=fixed;
-		id Effect;
-		var FValue ProbF;
-	run;
-	data means;
-		set means;
-		expEstim=exp(Estimate);
-		expLower=exp(Lower);
-		expUpper=exp(Upper);
-	run;
-	proc print data=means;
-		id treat;
-		var expEstim expLower expUpper;
-	run;
-	data diff;
-		set diff;
-		expEstim=exp(Estimate);
-		expLower=exp(Lower);
-		expUpper=exp(Upper);
-	run;
-	proc print data=diff;
-		id Label;
-		var expEstim expLower expUpper;
-	run;
-%mend mixmod;
-/* 
-Arguments: Specify the outcome (e.g. 'logCmax', 'logAUClast' or 'logAUCinf').
-Description: Performs mixed modelling, returns estimated variance of random effects,
-estimated fixed effects, geometric mean ratio (misnomer!) for binary effect of interest
-*/
-
 %mixmod(outcome=logCmax);
 %mixmod(outcome=logAUClast);
 %mixmod(outcome=logAUCinf);
+
+
 
 /* ---------------------- */
 /* --- PHASE II STUDY --- */
@@ -1272,12 +1349,6 @@ footnote;
 /* ------------- */
 
 /*
-CONTINUE HERE:
-- SAS: save table as postscript
-- markdown: visualise postscript
-*/
-
-/*
 Things to do:
 
 - mixed models: combine tables
@@ -1296,34 +1367,15 @@ Consider using WinNonLin with SAS:
 
 Saving output to PDF or RTF:
 
-ods pdf file="&pathOut.\mixedmodel.pdf" style=journal;
-run;
+ods pdf file="&pathOut.\myfile.pdf" style=journal startpage=no;
 SOME CODE
 ods pdf close;
-*/
 
-/* export tables and figures to LaTeX */
-
-/*
-tagsets.TablesOnlyLaTeX
-*/
-
-/*
+Exporting tables to LaTeX:
 
 ods tagsets.TablesOnlyLaTeX file="&pathOut./table_example.tex" stylesheet="pathOut./sas.sty"(url="sas");
-ods pdf file="&pathOut./table_example.pdf";
-proc report data=AE spanrows;
-	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
-	define RID/order;
-	title 'adverse events';
-run;
-pds pdf close;
+SOME CODE
 ods tagsets.TablesOnlyLaTeX close;
-
-
-/*
-ods pdf file="&pathOut./trial_report.pdf" style=grayscaleprinter startpage=no;
-ods pdf close;
 */ 
 
 /*
