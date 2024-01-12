@@ -706,17 +706,17 @@ data DS;
 run;
 
 proc tabulate data=DS;
+	title 'early withdrawals';
 	where VISIT='Post Study';
 	class seq withdraw;
 	table withdraw * (n colpctn),
 			seq all='both';
-	title 'early withdrawals';
 run;
 
 proc print data=DS;
+	title 'lising of withdrawals';
 	where DSTERM='DISCONTINUED';
 	var RID seq;
-	title 'lising of withdrawals';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -724,11 +724,11 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=IE spanrows;
-	column SUBJID IECAT IETEST IESTRESC;
+	title 'listing of ineligible samples';
 	where (IECAT='INCLUSION' and IESTRESC='No') or (IECAT='EXCLUSION' and IESTRESC='Yes');
+	column SUBJID IECAT IETEST IESTRESC;
 	define SUBJID/order;
 	define IECAT/order;
-	title 'listing of ineligible samples';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -761,13 +761,13 @@ data DM;
 run;
 
 proc tabulate data=DM;
+	title 'demographics by sequence';
 	class seq sex race;
 	var age weight height bmi;
 	table (age)*(mean median std min max n)
 		(sex race)*(n colpctn)
 		(weight height bmi)*(mean median std min max n),
 		seq all='both';
-	title 'demographics';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -779,12 +779,12 @@ run;
 %asnumeric(code=SU,var=SUDOSE);
 
 proc tabulate data=SU;
-    class seq SUTRT SUOCCUR / order=internal;
+    title 'alcohol and smoking by sequence';
+	class seq SUTRT SUOCCUR / order=internal;
     var SUDOSE;
     table SUTRT * SUOCCUR * n
           SUTRT * SUDOSE *(mean std median min max n),
           seq all='both';
-    title 'alcohol and smoking';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -792,11 +792,11 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=MH spanrows;
-	column RID seq MHTERM MHSTDAT MHENDAT MHONGO;
+	title 'medical history';
 	where not missing(RID);
+	column RID seq MHTERM MHSTDAT MHENDAT MHONGO;
 	define RID/order;
 	define seq/order;
-	title 'medical history';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -814,17 +814,16 @@ data VS;
 run;
 
 proc tabulate data=VS;
+	title 'vital signs at screening by sequence';
 	where VISIT='Screening Visit';
 	class seq VSPOS VSTEST VSSTRESC / order=internal;
 	var VSORRES;
 	table	VSPOS * VSTEST * VSSTRESC * (N)
 			VSPOS * VSTEST * VSORRES * (mean std median min max N),
 			seq all='both';
-	title 'vital signs';
 run;
 
-/* vital signs - screening - listing */
-
+/* vital signs - listing of abnormal at screening */
 %abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -844,17 +843,16 @@ data EG;
 run;
 
 proc tabulate data=EG;
+	title 'ECG at screening by sequence';
 	where VISIT='SCREENING';
 	class seq measure EGSTRESC1;
 	var EGORRES;
 	table 	measure * EGSTRESC1 * n
 			measure * EGORRES * (mean std median min max n),
 			seq all='both';
-	title 'ECG';
 run;
 
-/* ECG - screening - listing */ 
-
+/* ECG - listing of abnormal at screening */ 
 %abnormal(code=EG,check_visit='SCREENING',show_visit='SCREENING' 'Unscheduled Screening');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -888,10 +886,6 @@ run;
 
 /* vital signs - both */
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4. :  * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 %tabval(test='Systolic Blood Pressure');
 %calcdiff(test='Systolic Blood Pressure');
 %tabdiff(test='Systolic Blood Pressure');
@@ -915,10 +909,10 @@ proc summary data=VS nway;
 run;
 
 proc tabulate data=temp;
+	title 'vital signs results';
 	class treat VSSTRESC RID FORM / order=internal;
 	table FORM * VSSTRESC * n,
 		  treat;
-	title 'vital signs results';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1038,13 +1032,13 @@ omitted: similar calls for Diastolic Blood Pressure and Pulse Rate
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc tabulate data=VS;
+	title 'vital signs - post study';
 	where visit='Post Study';
 	class seq VSPOS VSTEST VSSTRESC;
 	var VSORRES;
 	table	VSPOS * VSTEST * VSSTRESC * (N)
 			VSPOS * VSTEST * VSORRES * (mean std median min max N),
 			seq all='both';
-	title 'vital signs - post study';
 run;
 
 /* vital signs - overall change */
@@ -1070,10 +1064,10 @@ data wide;
 run;
 
 proc tabulate data=wide;
+	title 'vital signs - change from screening to post study';
 	class seq RID VSTEST / order=internal;
 	var diff;
 	table VSTEST * diff * (mean std median min max n), seq;
-	title 'vital signs - change from screening to post study';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1086,11 +1080,11 @@ run;
 %add_treat(code=EG);
 
 proc tabulate data=EG;
+	title 'ECG during treatment';
 	class treat PAGENAME measure;
 	where not missing(RID) and PAGENAME_ ne 'ECG';
 	var EGORRES;
 	table measure*EGORRES * (mean std median min max N), treat*PAGENAME;
-	title 'ECG during treatment';
 run;
 
 /* abnormal ECG results during treatment */
@@ -1107,9 +1101,9 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=AE spanrows;
+	title 'adverse events';
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	define RID/order;
-	title 'adverse events';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1140,9 +1134,9 @@ run;
 /* one separate scatterplot for each sample */
 
 proc sgpanel data=PK noautolegend;
+	title 'concentration against time by treatment';
 	panelby RID/columns=3 rows=4;
 	series x=SAMPLETIME y=CONCENTRATION/group=treat markers;
-	title 'concentration against time by treatment';
 run;
 
 /* one common scatterplot for all samples */
@@ -1161,8 +1155,8 @@ data PK_mean;
 run;
 
 proc sgplot data=PK_mean;
+	title 'concentration against time by treatment';
 	series x=SAMPLETIME y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
-    title 'concentration against time by treatment';
     xaxis label='time';
     yaxis label='concentration';
     keylegend / title='treatment';
