@@ -965,10 +965,10 @@ run;
 %add_treat(code=EG);
 
 proc tabulate data=EG;
-	class treat EGTEST PAGENAME / order=internal;
+	class treat PAGENAME measure;
 	where not missing(RID) and PAGENAME_ ne 'ECG';
 	var EGORRES;
-	table EGTEST*EGORRES * (mean std median min max N), treat*PAGENAME;
+	table measure*EGORRES * (mean std median min max N), treat*PAGENAME;
 	title 'ECG during treatment';
 run;
 
