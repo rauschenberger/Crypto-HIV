@@ -99,7 +99,7 @@ adding information on the treatment sequence to dataset 'code'.
    %end;
 %mend prepare;
 /*
-Options: Define list of abbreviations (code = ...).
+Options: Loops through a list of abbreviations (e.g., code = VS EG ).
 Description: Prepares the datasets by importing the datasets, adding the random identifiers,
 sorting the datasets by random identifiers and adding information on the treatment sequence.
 */
@@ -114,7 +114,7 @@ data &code;
 run;
 %mend asnumeric;
 /*
-Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable name (var=...).
+Arguments: Expects a CDISC abbreviation (e.g. code=DM or code=VS) and a variable name (var=...).
 Description: Converts character variable to numeric.
 */
 
@@ -128,7 +128,7 @@ Description: Converts character variable to numeric.
 	run;
 %mend add_period;
 /*
-Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS).
+Arguments: Expects a CDISC abbreviation (e.g. code=DM or code=VS).
 Description: This macro uses the variable 'VISIT' to create the variable 'period'.
 */
 
@@ -167,7 +167,7 @@ data &code.;
 run;
 %mend ordervar;
 /*
-Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
+Arguments: Expects a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
 Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
 This macro defines the internal order of the category levels.
 */
@@ -254,7 +254,7 @@ This macro defines the internal order of the category levels.
 	run;
 %mend tabval;
 /*
-Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
+Arguments: Expects that 'test' equals 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate',
 and select 'position' from 'Supine' and 'Standing'.
 Description: Summarises measurements for each time point (rows) and treatment (columns).
 */ 
