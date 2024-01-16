@@ -180,7 +180,7 @@ Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' a
 This macro defines the internal order of the category levels.
 */
 
-/* The macro 'listncs' returns the randomisation identifiers for the dataset VS or EG with abnormal results at a specific visit.*/ 
+/* find patients with abnormal results */ 
 %macro listncs(code,visit);
 	%global ids_ncs;
 	%if &code.=VS %then %do;
@@ -204,7 +204,15 @@ This macro defines the internal order of the category levels.
 	%let ids_ncs=&ids_ncs.;
 	%put ids_ncs=&ids_ncs.;
 %mend listncs;
+/*
+Arguments: Expects one of two possible CDISC abbreviations
+(either 'code=VS' for vital signs or 'code=EG' for electroencephalography),
+and one or more visits (e.g., "visit='Screening Visit' 'Post-Study Visit'").
+Description: Identifies patients with abnormal results at these visits
+and saves their randomisation identifers in the macro variable 'ids_ncs'.
+*/
 
+/* show results for some patients */ 
 %macro showncs(code,visit);
 	%if &code.=VS %then %do;
 		%let var_id=VSTEST;
@@ -230,7 +238,11 @@ This macro defines the internal order of the category levels.
 		var &var.;
 	run;
 %mend;
+/*
+XXX
+*/
 
+/* XXX */ 
 %macro report(data,title,name,temp='TRUE');
 	proc report data=&data. spanrows;
 		%color(name=&name.,temp=&temp.);
@@ -243,6 +255,9 @@ This macro defines the internal order of the category levels.
 		title &title.;
 	run;
 %mend;
+/*
+XXX
+*/
 
 /* report patients with abnormal values*/ 
 %macro abnormal(code,check_visit,show_visit,temp='TRUE');
@@ -251,7 +266,7 @@ This macro defines the internal order of the category levels.
 	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
 %mend abnormal;
 /*
-Arguments: Expects CDISC abbreviation (e.g., 'code=VS' for vital signs),
+Arguments: Expects CDISC abbreviation (either 'code=VS' or 'code=EG'),
 the visit(s) to be checked for abnormal results (e.g., "check_visit='Screening Visit'"),
 and the visit(s) to be shown (e.g., "show_visit='Unscheduled Screening Visit'").
 The optional argument can changed from "temp='TRUE'" (default) to "temp='FALSE'"
