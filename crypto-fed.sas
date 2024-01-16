@@ -243,8 +243,8 @@ Arguments: Expects one of two possible CDISC abbreviations (either 'code=VS' or 
 and one or more visits (e.g., visit='Screening Visit' 'Unscheduled Screening').
 */
 
-/* XXX */ 
-%macro report(data,title,name,temp='TRUE');
+/* report with colour for extreme values */ 
+%macro report(data,title,name=none,temp='TRUE');
 	proc report data=&data. spanrows;
 		%color(name=&name.,temp=&temp.);
 		define RID / order order=internal;
@@ -257,7 +257,9 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled Screening').
 	run;
 %mend;
 /*
-XXX
+Arguments: Expects  a dataset (e.g., 'data=mydata') and a title for the output (e.g., "title='a title'").
+The first optional argument can be changed from 'name=none' (default) to 'name=EG' to also order by PAGENAME.
+And the second optional argument 'temp=TRUE' (default) to 'name=FALSE' to suppress the formatting for temperature.
 */
 
 /* report patients with abnormal values*/ 
@@ -372,10 +374,10 @@ Description: Summarises change with respect to pre-dose for each time point (row
 	run;
 %mend plotind;
 /*
-Arguments: Choose between test='Systolic Blood Pressure' and test='Diastolic Blood Pressure',
-and choose between position='Supine' (default) and position='Standing'.
+Arguments: Expects test 'Systolic Blood Pressure' or 'Diastolic Blood Pressure'
+and position 'Supine' (default) or 'Standing'.
 Description: Extracts data from the dataset 'VS'  for the individuals in 'ids_ncs',
-the position 'Supine' and the chosen test (see arguments).
+the position 'Supine' and the chosen test.
 Sorts the extracted data by the sample identifier and the time point.
 Replaces missing visit names by the visit name of the lagged time point.
 Plots the measurements against the visit names, with one line for each patient.
@@ -417,8 +419,8 @@ Plots the measurements against the visit names, with one line for each patient.
 	%plot_internal(title='Mean change in ' &position. ' ' &test.);
 %mend plot_mean_change;
 /*
-Arguments: Set 'test' to 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate',
-and set 'position' to 'Supine' (default) or 'Standing'.
+Arguments: Expects test='Systolic Blood Pressure', test='Diastolic Blood Pressure' or test='Pulse Rate',
+and expects position='Supine' (default) or position='Standing'.
 Description: Extracts the data from dataset 'VS' for the selected position and the selected test.
 Optionally (plot_mean_change), computes the differences with respect to the pre-dose measurement.
 Calculates the means of these measurement for the two treatments (A and B)
@@ -427,6 +429,7 @@ as well as the lower and upper confidence limits for these means.
 Plots the results.
 */
 
+/* perform mixed modelling */ 
 %macro mixmod(outcome,data=PKpars,class=rid seq period treat,fixed=seq period treat,random=rid(seq),lsmeans=treat,alpha=0.10);
 	proc mixed data=&data.;
 		Class &class.;
