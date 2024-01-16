@@ -1222,13 +1222,14 @@ proc format;
  					2='experimental';
 	value country 	1='Tanzania'
 					2='Malawi';
-	value hospital 	1='Mwananyamala Hospital (Dar es Salaam, Tanzania)'
-					2='Amana Hospital (Dar es Salaam, Tanzania)'
-					3='Kamuzu Central Hospital (Lilongwe, Malawi)';
+	value hospital 	1='Kamuzu Central Hospital (Lilongwe, Malawi)'
+					2='Queen Elisabeth Central Hospital (Blantyre, Malawi)'
+					3='Mwananyamala Hospital (Dar es Salaam, Tanzania)'
+					4='Amana Hospital (Dar es Salaam, Tanzania)';
 run;
 
 proc plan seed=20240103;
-	factors hospital=3 block=10 random treatment=6 random/noprint;
+	factors hospital=4 block=10 random treatment=6 random/noprint;
 	output out=rand
 	treatment nvals=(1 1 1 2 2 2)
 	random;
