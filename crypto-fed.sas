@@ -1,4 +1,9 @@
 
+/******************************************************************************/
+/*** Fed-Study: Reproducibility ***********************************************/
+/*** Armin Rauschenberger *****************************************************/
+/******************************************************************************/
+
 /* 
 This SAS code is divided into four sections.
 - Section 1: Setup
@@ -1201,7 +1206,6 @@ run;
 
 
 
-
 /* ---------------------- */
 /* --- PHASE II STUDY --- */
 /* ---------------------- */
@@ -1274,6 +1278,7 @@ footnote;
 
 /*%scheme(first_name=Armin,last_name=Rauschenberger);*/
 /*%scheme(first_name=Michel,last_name=Vaillant);*/
+
 
 
 /* ------------- */
