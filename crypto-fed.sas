@@ -260,6 +260,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled Screening').
 Arguments: Expects  a dataset (e.g., 'data=mydata') and a title for the output (e.g., "title='a title'").
 The first optional argument can be changed from 'name=none' (default) to 'name=EG' to also order by PAGENAME.
 And the second optional argument 'temp=TRUE' (default) to 'name=FALSE' to suppress the formatting for temperature.
+Description: Adds colour for extreme values (see format section). Defines order of category levels.
 */
 
 /* report patients with abnormal values*/ 
@@ -322,6 +323,8 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 /*
 Arguments: Expects a test ('Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate')
 and a position ('Supine' or 'Standing').
+Description: Calculates the difference between the first values and the other values.
+Use this macro to obtain the change with respect to baseline.
 */
 
 /* summarise vital signs - change */
