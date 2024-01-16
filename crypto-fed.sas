@@ -847,7 +847,7 @@ data EG;
 	set EG;
 	length measure $40;
 	if missing(EGORRESU) then measure = EGTEST;
-	else measure = cat(EGTEST,'(',EGORRESU,')'); /* ISSUE: too few/many spaces*/ 
+	else measure = cat(EGTEST,' (',EGORRESU,')'); /* ISSUE: too few/many spaces*/ 
 run;
 
 proc tabulate data=EG;
