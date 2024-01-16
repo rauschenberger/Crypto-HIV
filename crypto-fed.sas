@@ -1267,7 +1267,7 @@ proc format;
 					4='Amana Hospital (Dar es Salaam, Tanzania)';
 run;
 
-proc plan seed=20240103;
+proc plan seed=20240103; /* this is not the real seed */ 
 	factors hospital=4 block=10 random treatment=6 random/noprint;
 	output out=rand
 	treatment nvals=(1 1 1 2 2 2)
