@@ -239,7 +239,8 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 	run;
 %mend;
 /*
-XXX
+Arguments: Expects one of two possible CDISC abbreviations (either 'code=VS' or 'code=EG'),
+and one or more visits (e.g., visit='Screening Visit' 'Unscheduled Screening').
 */
 
 /* XXX */ 
@@ -268,7 +269,7 @@ XXX
 /*
 Arguments: Expects CDISC abbreviation (either 'code=VS' or 'code=EG'),
 the visit(s) to be checked for abnormal results (e.g., "check_visit='Screening Visit'"),
-and the visit(s) to be shown (e.g., "show_visit='Unscheduled Screening Visit'").
+and the visit(s) to be shown (e.g., "show_visit='Unscheduled Screening'").
 The optional argument can changed from "temp='TRUE'" (default) to "temp='FALSE'"
 to omit the formatting for the variable temperature (if available).
 Description: Identifies patients with abnormal results at one or more visits ('check_visit')
