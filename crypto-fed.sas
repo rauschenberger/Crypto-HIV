@@ -12,6 +12,15 @@ This SAS code is divided into four sections.
 - Section 4: Analysis
 */
 
+/*
+This SAS script requires three manual interventions:
+(1) Specify the paths to your input and output directories in Section 1.
+(2) a) First run the SAS script before the WinNonlin part.
+	b) Then calculate the PK parameters in WinNonlin (see below '%put Note:')
+	c) Finally run the SAS script after the WinNonlin part.
+(3) Copy-and-paste tables and figure from the results viewer (or use SAS ODS).
+*/
+
 /******************************************************************************/
 /*** Section 1: Setup *********************************************************/
 /******************************************************************************/
