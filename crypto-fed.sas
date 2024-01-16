@@ -49,7 +49,7 @@ run;
 %mend import;
 /*
 Arguments: Expects a directory (e.g., path="C:\Users\myname\Desktop")
-and a CDISC abbreviation (e.g., code=VS for vital signs).
+and a CDISC abbreviation (e.g., 'code=VS' for vital signs).
 Description: Imports the file starting with 'code_' and ending with 'xlsx',
 and stores it in the data set 'code'.
 */ 
@@ -75,7 +75,7 @@ and adds this part to the dataset 'code' in the column 'RID'.
 	run;
 %mend sort_rid;
 /*
-Arguments: Expects a CDISC abbreviation (e.g., code=VS for vital signs).
+Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
 Description: Sorts the dataset 'code' by the random identifier (RID).
 */
 
@@ -88,9 +88,9 @@ Description: Sorts the dataset 'code' by the random identifier (RID).
 	run;
 %mend add_seq;
 /*
-Arguments: Expects a CDISC abbreviation (e.g., code=VS for vital signs).
-Description: Merges dataset 'code' and dataset 'random' by the random identifier (RID),
-adding information on the treatment sequence to dataset 'code'.
+Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
+Description: Merges dataset 'code' and dataset 'random' by the random identifier (RID).
+This adds information on the treatment sequence to dataset 'code'.
 */
 
 /* import and process clinical data */
@@ -104,7 +104,8 @@ adding information on the treatment sequence to dataset 'code'.
    %end;
 %mend prepare;
 /*
-Options: Loops through a list of abbreviations (e.g., code = VS EG ).
+Arguments: -
+Note: Loops through a list of abbreviations (e.g., 'code = VS DM' for vital signs and demographics).
 Description: Prepares the datasets by importing the datasets, adding the random identifiers,
 sorting the datasets by random identifiers and adding information on the treatment sequence.
 */
@@ -119,7 +120,8 @@ data &code;
 run;
 %mend asnumeric;
 /*
-Arguments: Expects a CDISC abbreviation (e.g. code=DM or code=VS) and a variable name (var=...).
+Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs)
+and a variable name (e.g., 'var=vsorres_weight').
 Description: Converts character variable to numeric.
 */
 
@@ -133,8 +135,8 @@ Description: Converts character variable to numeric.
 	run;
 %mend add_period;
 /*
-Arguments: Expects a CDISC abbreviation (e.g. code=DM or code=VS).
-Description: This macro uses the variable 'VISIT' to create the variable 'period'.
+Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
+Description: Uses the variable 'VISIT' to create the variable 'period'.
 */
 
 /* derive treatment */ 
@@ -149,8 +151,8 @@ Description: This macro uses the variable 'VISIT' to create the variable 'period
 	run;
 %mend add_treat;
 /*
-Arguments: Specify a CDISC abbreviation (e.g. code=DM or code=VS).
-Description: This macro uses the variable for the period (1 or 2)
+Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
+Description: Uses the variable for the period (1 or 2)
 and the variable for the treatment sequence (AB or BA)
 to create the variable for the treatment (A or B).
 */
@@ -172,7 +174,8 @@ data &code.;
 run;
 %mend ordervar;
 /*
-Arguments: Expects a CDISC abbreviation (e.g. code=DM or code=VS) and a variable.
+Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs)
+and a variable name (e.g., 'var=VSTEST').
 Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
 This macro defines the internal order of the category levels.
 */
@@ -241,11 +244,21 @@ This macro defines the internal order of the category levels.
 	run;
 %mend;
 
+/* report patients with abnormal values*/ 
 %macro abnormal(code,check_visit,show_visit,temp='TRUE');
 	%listncs(code=&code.,visit=&check_visit.);
 	%showncs(code=&code.,visit=&show_visit.);
 	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
 %mend abnormal;
+/*
+Arguments: Expects CDISC abbreviation (e.g., 'code=VS' for vital signs),
+the visit(s) to be checked for abnormal results (e.g., "check_visit='Screening Visit'"),
+and the visit(s) to be shown (e.g., "show_visit='Unscheduled Screening Visit'").
+The optional argument can changed from "temp='TRUE'" (default) to "temp='FALSE'"
+to omit the formatting for the variable temperature (if available).
+Description: Identifies patients with abnormal results at one or more visits ('check_visit')
+and shows the results for these patients at one or more visits ('show_visit').
+*/ 
 
 /* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
@@ -259,8 +272,8 @@ This macro defines the internal order of the category levels.
 	run;
 %mend tabval;
 /*
-Arguments: Expects that 'test' equals 'Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate',
-and select 'position' from 'Supine' and 'Standing'.
+Arguments: Expects a test ('Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate')
+and a position (default 'Supine' or 'Standing').
 Description: Summarises measurements for each time point (rows) and treatment (columns).
 */ 
 
@@ -289,8 +302,8 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 	run;
 %mend calcdiff;
 /*
-Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
-and select 'position' from 'Supine' and 'Standing'.
+Arguments: Expects a test ('Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate')
+and a position ('Supine' or 'Standing').
 */
 
 /* summarise vital signs - change */
@@ -304,8 +317,8 @@ proc tabulate data=temp;
 run;
 %mend;
 /*
-Arguments: Select 'test' from 'Systolic Blood Pressure', 'Diastolic Blood Pressure' and 'Pulse Rate',
-and select 'position' from 'Supine' and 'Standing'.
+Arguments: Expects a test ('Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate')
+and a position ('Supine' or 'Standing').
 Description: Summarises change with respect to pre-dose for each time point (rows) and treatment (columns).
 */ 
 
