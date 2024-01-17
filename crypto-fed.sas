@@ -374,7 +374,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 	proc sgplot data=temp;
 		series x=time y=VSORRES / group=RID markers;
     	title &position. ' ' &test.;
-    	xaxis label='time'; /* ISSUE: (1) rotate labels, i.e., valuesrotate=diagonal; (2) show all values, i.e., values=(0 1 2 3 4 5 6 7 8 9 10 11), then add grid*/ 
+    	xaxis label='time'; 
     	yaxis label='value';
    		keylegend / title='RID';
 		%if &position.='Supine' and &test.='Systolic Blood Pressure' %then %do;
@@ -892,7 +892,7 @@ data EG;
 	set EG;
 	length measure $40;
 	if missing(EGORRESU) then measure = EGTEST;
-	else measure = cat(EGTEST,' (',EGORRESU,')'); /* ISSUE: too few/many spaces*/ 
+	else measure = cat(EGTEST,' (',EGORRESU,')');
 run;
 
 proc tabulate data=EG;
@@ -1394,7 +1394,7 @@ Start-Process -FilePath "C:\Program Files (x86)\Certara\Phoenix\application\phoe
 
 /* vital signs - trajectory */
 
-/* use propose time formatting (keep this code)
+/* time formatting (keep this code)
 
 data VS;
 	set VS;
