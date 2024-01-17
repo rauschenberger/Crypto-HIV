@@ -166,27 +166,28 @@ and the variable for the treatment sequence (AB or BA)
 to create the variable for the treatment (A or B).
 */
 
-/* re-order category levels */ 
-/* ISSUE: (1) How should we specify the order of category levels?
-Should we transform a character variable to a numerical variable with labels,
-or is it possible to directly modify the internal order of the categories?
-In the first case, how can we directly access the labels of the numerical variable? */
+/* re-order category levels */
 %macro ordervar(code,var);
 data &code.;
 	set &code.;
 	temp = input(&var.,&var._invalue.);
 	&var._ = put(temp,&var._value.);
 	format temp &var._value.;
-	/* ISSUE: Check whether same entries are missing in both variables.*/
 	drop &var.;
 	rename temp=&var.;
 run;
 %mend ordervar;
 /*
 Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs)
-and a variable name (e.g., 'var=VSTEST').
-Description: Given var=XXX, this macro assumes that the formats 'XXX_invalue.' and 'XXX_value.' exist.
+and the name of a character variable (e.g., 'var=VSTEST').
+Description: Given 'var=XXX', this macro assumes that
+the formats 'XXX_invalue.' and 'XXX_value.' exist (see macro section).
 This macro defines the internal order of the category levels.
+It returns a numerical variable with labels (called 'XXX')
+and a character variable of the labels (called 'XXX_').
+Both variables have the specified order of the category levels,
+'XXX' can be used for subsetting with the internal values (e.g., 'where XXX ne 0'),
+and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne baseline')
 */
 
 /* find patients with abnormal results */ 
