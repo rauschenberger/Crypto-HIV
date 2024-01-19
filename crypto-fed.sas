@@ -875,8 +875,8 @@ proc tabulate data=VS;
 	where VISIT='Screening Visit';
 	class seq VSPOS VSTEST VSSTRESC / order=internal;
 	var VSORRES;
-	table	VSPOS * VSTEST * VSSTRESC * (N)
-			VSPOS * VSTEST * VSORRES * (mean std median min max N),
+	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>)
+			VSPOS * VSTEST * VSORRES * (mean std median min max n),
 			seq all='both';
 run;
 
@@ -1030,8 +1030,8 @@ proc tabulate data=VS;
 	where visit='Post Study';
 	class seq VSPOS VSTEST VSSTRESC;
 	var VSORRES;
-	table	VSPOS * VSTEST * VSSTRESC * (N)
-			VSPOS * VSTEST * VSORRES * (mean std median min max N),
+	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>)
+			VSPOS * VSTEST * VSORRES * (mean std median min max n),
 			seq all='both';
 run;
 
