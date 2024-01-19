@@ -904,7 +904,7 @@ proc tabulate data=EG;
 	where VISIT='SCREENING';
 	class seq measure EGSTRESC1;
 	var EGORRES;
-	table 	measure * EGSTRESC1 * n
+	table 	measure * EGSTRESC1 * (n='n' pctn<EGSTRESC1>='%')
 			measure * EGORRES * (mean std median min max n),
 			seq all='both';
 run;
@@ -951,7 +951,7 @@ run;
 proc tabulate data=temp;
 	title 'vital signs normal/abnormal by treatment and time';
 	class treat VSSTRESC RID FORM / order=internal;
-	table FORM * VSSTRESC * n,
+	table FORM * VSSTRESC * (n pctn<VSSTRESC>),
 		  treat;
 run;
 
