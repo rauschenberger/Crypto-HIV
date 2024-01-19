@@ -766,6 +766,7 @@ proc tabulate data=DS;
 			seq all='both';
 run;
 
+/* TO DO: Add "time of early withdrawal" and "reason of withdrawal". */ 
 proc report data=DS;
 	title 'withdrawals';
 	where DSTERM='DISCONTINUED';
@@ -788,6 +789,8 @@ run;
 /* * Subsection 4.4: protocol deviations   * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/* TO DO: Add table of number of minor and major deviations. */
+ 
 proc report data=DV spanrows;
 	title 'protocol deviations';
 	column RID seq VISIT FORM DVTERM DVCAT;
@@ -796,6 +799,7 @@ proc report data=DV spanrows;
 	define VISIT/order;
 	define FORM/order;
 run;
+/* TO DO: Add specific reason.*/ 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.5: demographics  * * * * * * * * * * * * * * * * * * * * * */
@@ -835,7 +839,7 @@ proc tabulate data=SU;
     title 'alcohol and smoking by sequence';
 	class seq SUTRT SUOCCUR / order=internal;
     var SUDOSE;
-    table SUTRT * SUOCCUR * n
+    table SUTRT * SUOCCUR * (n pctn<SUOCCUR>)
           SUTRT * SUDOSE *(mean std median min max n),
           seq all='both';
 run;
