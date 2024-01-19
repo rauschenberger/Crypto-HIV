@@ -762,7 +762,7 @@ proc tabulate data=DS;
 	title 'withdrawals';
 	where VISIT='Post Study';
 	class seq withdraw;
-	table withdraw * (n colpctn),
+	table withdraw * (n colpctn='%'),
 			seq all='both';
 run;
 
@@ -822,7 +822,7 @@ proc tabulate data=DM;
 	class seq sex race;
 	var age weight height bmi;
 	table (age)*(mean median std min max n)
-		(sex race)*(n colpctn)
+		(sex race)*(n colpctn='%')
 		(weight height bmi)*(mean median std min max n),
 		seq all='both';
 run;
@@ -839,7 +839,7 @@ proc tabulate data=SU;
     title 'alcohol and smoking by sequence';
 	class seq SUTRT SUOCCUR / order=internal;
     var SUDOSE;
-    table SUTRT * SUOCCUR * (n pctn<SUOCCUR>)
+    table SUTRT * SUOCCUR * (n pctn<SUOCCUR>='%')
           SUTRT * SUDOSE *(mean std median min max n),
           seq all='both';
 run;
@@ -875,7 +875,7 @@ proc tabulate data=VS;
 	where VISIT='Screening Visit';
 	class seq VSPOS VSTEST VSSTRESC / order=internal;
 	var VSORRES;
-	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>)
+	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
 			VSPOS * VSTEST * VSORRES * (mean std median min max n),
 			seq all='both';
 run;
@@ -904,7 +904,7 @@ proc tabulate data=EG;
 	where VISIT='SCREENING';
 	class seq measure EGSTRESC1;
 	var EGORRES;
-	table 	measure * EGSTRESC1 * (n='n' pctn<EGSTRESC1>='%')
+	table 	measure * EGSTRESC1 * (n pctn<EGSTRESC1>='%')
 			measure * EGORRES * (mean std median min max n),
 			seq all='both';
 run;
@@ -951,7 +951,7 @@ run;
 proc tabulate data=temp;
 	title 'vital signs normal/abnormal by treatment and time';
 	class treat VSSTRESC RID FORM / order=internal;
-	table FORM * VSSTRESC * (n pctn<VSSTRESC>),
+	table FORM * VSSTRESC * (n pctn<VSSTRESC>='%'),
 		  treat;
 run;
 
@@ -1030,7 +1030,7 @@ proc tabulate data=VS;
 	where visit='Post Study';
 	class seq VSPOS VSTEST VSSTRESC;
 	var VSORRES;
-	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>)
+	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
 			VSPOS * VSTEST * VSORRES * (mean std median min max n),
 			seq all='both';
 run;
