@@ -4,12 +4,17 @@
 /*** Armin Rauschenberger *****************************************************/
 /******************************************************************************/
 
-/* define paths */
+/* 
+This script generates the randomisation list for the Crypto-HIV phase II study.
+The macrovariable "seed" defines the random seed, and the macrovariable "path"
+defines the output directory. Running the macro "scheme" with arguments
+"first_name" and "last_name" generates personalised copies of the randomisation
+list, with visible and invisible watermarks.
+*/
 
-%let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV;
 %let seed=20240213; /* this is not the real seed */ 
-
-/* randomisation schedule */ 
+%let path=C:\Users\arauschenberger\Desktop\Crypto-HIV;
+/*%let path=\\shareccms.crp-sante.healthnet.lu\ccms\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-Phase2 Study\6 - Randomization*/
 
 proc format;
 	value treatment 1='control'
@@ -43,12 +48,11 @@ run;
 
 data rand;
 	set rand;
-	/*RID=catx('',put(hospital,z1.),put(count,z2.));*/
 	RID=cat(put(hospital,z1.),put(count,z2.));
 run;
 
 %macro scheme(first_name,last_name);
-ods pdf file="&pathOut./randomisation_&last_name..pdf" style=grayscaleprinter;
+ods pdf file="&path./randomisation_&last_name..pdf" style=grayscaleprinter;
 title1 font=timesroman "Randomisation list for";
 title2 font=timesroman bold "'A 10 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, 
 efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis'";
@@ -68,4 +72,4 @@ footnote;
 %mend scheme;
 
 %scheme(first_name=Armin,last_name=Rauschenberger);
-
+/*%scheme(first_name=Armin,last_name=Rauschenberger);*/
