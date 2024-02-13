@@ -48,6 +48,7 @@ run;
 
 data rand;
 	set rand;
+	/*SID=cat(put(hospital,z1.),put(count,z3.));*/
 	RID=cat(put(hospital,z1.),put(count,z2.));
 run;
 
