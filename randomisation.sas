@@ -7,6 +7,7 @@
 /* define paths */
 
 %let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV;
+%let seed=20240213; /* this is not the real seed */ 
 
 /* randomisation schedule */ 
 
@@ -21,7 +22,7 @@ proc format;
 					4='Amana Hospital (Dar es Salaam, Tanzania)';
 run;
 
-proc plan seed=20240103; /* this is not the real seed */ 
+proc plan seed=&seed.; 
 	factors hospital=4 block=10 random treatment=6 random/noprint;
 	output out=rand
 	treatment nvals=(1 1 1 2 2 2)
@@ -42,7 +43,8 @@ run;
 
 data rand;
 	set rand;
-	RID=catx('.',put(hospital,z1.),put(count,z2.));
+	/*RID=catx('',put(hospital,z1.),put(count,z2.));*/
+	RID=cat(put(hospital,z1.),put(count,z2.));
 run;
 
 %macro scheme(first_name,last_name);
@@ -50,7 +52,7 @@ ods pdf file="&pathOut./randomisation_&last_name..pdf" style=grayscaleprinter;
 title1 font=timesroman "Randomisation list for";
 title2 font=timesroman bold "'A 10 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, 
 efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis'";
-title3 font=timesroman "(confidential copy for &first_name. &last_name.)";
+title3 font=timesroman "(random seed: &seed., confidential copy for &first_name. &last_name.)";
 title4 font=timesroman color=red "THESE ARE DUMMY DATA - NOT MEANT FOR REAL USE";
 footnote1 justify=left font=timesroman "control treatment: immediate release, experimental treatment: sustained release";
 footnote2 justify=left font=timesroman "Please note that this is a watermarked copy.";
@@ -65,6 +67,5 @@ ods pdf close;
 footnote;
 %mend scheme;
 
-/*%scheme(first_name=Armin,last_name=Rauschenberger);*/
-/*%scheme(first_name=Michel,last_name=Vaillant);*/
+%scheme(first_name=Armin,last_name=Rauschenberger);
 
