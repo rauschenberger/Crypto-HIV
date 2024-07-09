@@ -63,7 +63,7 @@ footnote1 justify=left font=timesroman "control treatment: immediate release, ex
 footnote2 justify=left font=timesroman "Please note that this is a watermarked copy.";
 footnote3 justify=left font=timesroman height=0.1 color=white "This copy is for &first_name. &last_name..";
 proc report data=rand spanrows;
-	column hospital block RID treatment;
+	column hospital RID treatment;
 	define hospital/order order=internal format=hospital.;
 	define block/order;
 	define treatment/format=treatment.;
