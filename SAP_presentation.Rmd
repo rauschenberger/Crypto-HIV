@@ -92,7 +92,7 @@ $$
  & \text{day}~1 & \text{days}~2-5 & \text{day}~6 & \text{days}~7-14 & \text{day}~15 \\ \hline
 \text{doses} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & -\\
 \text{data} & 7 & - & 7 & - &  1 \\ \hline
-& \text{AUC}_{\color{red}{\text{IR}}/\color{blue}{\text{SR}},1} & - & \text{AUC}_{\color{red}{\text{IR}}/\color{blue}{\text{SR}},6} & - & -  
+& \text{AUC}_{{\color{red}{\text{IR}}}/{\color{blue}{\text{SR}}},1} & - & \text{AUC}_{{\color{red}{\text{IR}}}/{\color{blue}{\text{SR}}},6} & - & -  
 \end{array}
 $$
 
@@ -100,13 +100,36 @@ $~$
 
 - \textcolor{red}{4} or \textcolor{blue}{2} drug administrations per day
 
-- 7 measurements of drug plasma concentration on day 1 (sparse data)
+- 7 measurements of drug plasma concentration on day 1 (sparse data!)
 
 - comparison of AUC between \textcolor{red}{IR} and \textcolor{blue}{SR} on day 1
 
 
 ## PK - model
 
+$$
+\log\text{AUC}_{i} = \alpha + \beta \times \mathbb{I}[\text{treatment}_i={\color{blue}{\text{SR}}}] + \alpha_j + \epsilon_{i}
+$$
+
+$$
+\begin{array}{l}
+\text{where} \quad i \in \{1,\ldots,72\} \quad (\text{patient}) \\
+\phantom{where} \quad j \in \{1,2,3,\ldots\} \quad (\text{hospital})
+\end{array}
+$$
+
+$$
+H_0: \beta \leq -\delta ~\cup~ \delta \leq \beta \qquad \text{vs} \qquad H_1: - \delta < \beta < \delta
+$$
+
+$~$
+
+- aim: find evidence for equivalence ($\text{AUC}_{\color{blue}{\text{SR}}} \approx \text{AUC}_{\color{red}{\text{IR}}}$)
+
+- alternative: two one-sided two-sample $t$-tests
+
+<!--
+combined model for both days
 $$
 \log\text{AUC}_{i,t} = \alpha + \beta \times \mathbb{I}[\text{treatment}_i=\text{SR}] + \gamma \times \mathbb{I}[\text{day}_{i,t}=6] + \alpha_i + \epsilon_{i,t}
 $$
@@ -123,22 +146,29 @@ H_0: \beta \leq -\delta ~\cup~ \delta \leq \beta \qquad \text{vs} \qquad H_1: - 
 $$
 
 Assumption: Difference between SR and IR is constant over time (i.e., same on days 1 and 6).
+-->
 
 ## EFA - schedule
 
 $$
 \begin{array}{r|ccccccc}
  & \text{day}~1 & \text{day}~2 & \text{day}~3 & \text{days}~4-6 & \text{day}~7 & \text{day}~8-14 & \text{day}~15 \\ \hline
-\text{doses} & \text{2 or 4} & \text{2 or 4} & \text{2 or 4} & \text{2 or 4} & \text{2 or 4} & \text{2 or 4} & - \\
+\text{doses} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & - \\
 \text{data} & 1 & - & 1 & - &  1 & - & 1 \\ \hline
-& \text{CFU}_{\text{SR/IR},1} & - & \text{CFU}_{\text{SR/IR},3} & - & \text{CFU}_{\text{SR/IR},7} & - & \text{CFU}_{\text{SR/IR},15}
+& \text{CFU}_{{\color{red}{\text{IR}}}/{\color{blue}{\text{SR}}},1} & - & \text{CFU}_{{\color{red}{\text{IR}}}/{\color{blue}{\text{SR}}},3} & - & \text{CFU}_{{\color{red}{\text{IR}}}/{\color{blue}{\text{SR}}},7} & - & \text{CFU}_{{\color{red}{\text{IR}}}/{\color{blue}{\text{SR}}},15}
 \end{array}
 $$
+
+$~$
+
+- measurement of colony forming units (CFU) on four days
+
+- comparison of CFU between \textcolor{red}{IR} and \textcolor{blue}{SR}
 
 ## EFA - model
 
 $$
-\mathrm{log10}~\text{CFU}_{i,t} = \alpha + \beta \times \mathbb{I}[\text{treatment}_i=\text{SR}] + \gamma \times \text{day}_{i,t} + \alpha_i + \epsilon_{i,t}
+\mathrm{log10}~\text{CFU}_{i,t} = \alpha + \beta \times \mathbb{I}[\text{treatment}_i={\color{blue}{\text{SR}}}] + \gamma \times \text{day}_{i,t} + \alpha_i + \epsilon_{i,t}
 $$
 $$
 \begin{array}{l}
@@ -150,10 +180,59 @@ $$
 $$
 H_0: \beta \leq - \delta \qquad \text{vs} \qquad H_1: \beta > -\delta 
 $$
-Assumptions:
 
-- Linear decrease/increase with respect to time.
-- Difference between SR and IR is constant over time (i.e., same on days 1 and 6).
+$~$
+
+- aim: find evidence for non-inferiority ($\text{CFU}_{\color{blue}{\text{SR}}} \gtrsim \text{CFU}_{\color{red}{\text{IR}}}$)
+
+- assumption: linear decrease/increase with respect to time
+
+- assumption: constant difference between IR and SR over time
+
+## Multiplicity
+
+$$
+\begin{array}{cc}
+\begin{array}{l}
+\text{co-primary endpoints:} \\
+\text{significance required for \textit{both} endpoints} \\
+\Rightarrow \text{no multiple-testing correction}
+\end{array}
+&
+\begin{array}{l}
+\text{two primary endpoints:} \\
+\text{significance required for \textit{one} endpoint} \\
+\Rightarrow \text{multiple-testing correction} \\
+\end{array}
+\\
+~ \hspace{3cm} \huge\color{red}{\boldsymbol{\times}} \hspace{3cm} ~
+&
+~ \hspace{3cm} \huge\color{green}{\boldsymbol{\checkmark}} \hspace{3cm} ~
+\end{array}
+$$
+$~$
+
+$~$
+
+$$
+\begin{array}{cc}
+\begin{array}{l}
+\text{Bonferroni-correction:} \\
+max(p_{\text{AUC,above}},p_{\text{AUC,below}}) \leq 2.5\% \\
+p_{\text{CFU,above}} \leq 1.25\% \\
+\end{array}
+&
+\begin{array}{l}
+\text{Bonferroni-Holm correction:} \\
+\Rightarrow \text{adaptive significance levels} \\
+\phantom{-}
+\end{array}
+\\
+~ \hspace{3cm} \huge\color{red}{\boldsymbol{\times}} \hspace{3cm} ~
+&
+~ \hspace{3cm} \huge\color{green}{\boldsymbol{\checkmark}} \hspace{3cm} ~
+\end{array}
+$$
 
 ## Bonferroni-Holm correction
 
@@ -161,7 +240,7 @@ Assumptions:
 
   - IF $max(p_{\text{AUC,above}},p_{\text{AUC,below}}) \leq 2.5\%$ THEN
   
-    - "PK equivalence"
+    - "PK equivalence" ($\text{AUC}_{\color{blue}{\text{SR}}} \approx \text{AUC}_{\color{red}{\text{IR}}}$)
     
     - IF $p_{\text{CFU,above}} \leq 2.5\%$ THEN "EFA non-inferiority"
     
@@ -173,7 +252,7 @@ $~$
 
   - IF $p_{\text{CFU,above}} \leq 1.25\%$ THEN
   
-    - "EFA non-inferiority"
+    - "EFA non-inferiority" ($\text{CFU}_{\color{blue}{\text{SR}}} \gtrsim \text{CFU}_{\color{red}{\text{IR}}}$)
     
     - IF $max(p_{\text{AUC,above}},p_{\text{AUC,below}}) \leq 5\%$ THEN "PK equivalence"
     
@@ -183,8 +262,38 @@ $~$
 testing with CI: 95\%, 95\%; 97.5\%, 90\%  
 -->
 
+## Summary
+
+- stratified blocked randomisation
+
 $~$
 
-\tiny
+- two primary endpoints:
 
-$^*$not co-primary endpoints (significance required for both) but primary endpoints (significance required for at least one)
+  - PK equivalence ($\text{CFU}_{\color{blue}{\text{SR}}} \gtrsim \text{CFU}_{\color{red}{\text{IR}}}$)
+
+  - EFA non-inferiority ($\text{CFU}_{\color{blue}{\text{SR}}} \gtrsim \text{CFU}_{\color{red}{\text{IR}}}$)
+  
+$~$
+
+- multiplicity: Bonferroni-Holm correction
+
+<!--
+SAP Crypto-HIV (selective overview)
+
+randomisation: stratified blocked randomisation, randomisation for each hospital separately, randomisation with permuted blocks of size 4, small and fixed block size so that hospitals with slow recruitment can easily complete their last block; sample size calculation requires 18 completed blocks (18 x 4 = 72 participants), allowing for 3 non-evaluable participants in each treatment arm; there are two primary endpoints, one for pharmacokinetics and one for early fungicidal acticity
+
+PK - schedule: pharmacokinetics (PK); participants will receive 4 doses (reference treatment “immediate-release”) or 2 doses (experimental treatment “sustained-release”) per day during two weeks; drug plasma concentrations will be measured 7 times on day 1, 7 times on day 6, and once on day 15; after each dose, we expect first a sharp increase and then a flat decrease of the concentration, but this will not be visible in a graph as there are too few measurements; the area under the concentration curve will be calculated for days 1 and 6 separately; only the AUC on day 1 is a primary endpoint; AUC on day 1 (based on 7 measurements) will be compared between the two treatment groups
+
+PK - model: linear mixed model to compare the AUC between the two treatment groups; log-transformation of the AUC, fixed intercept, fixed effect for the treatment (SR vs IR), random effect for the hospital; test the null hypothesis that the effect of the experimental treatment (i.e., different with respect to the reference treatment) is smaller than minus delta or larger than plus delta against the alternative hypothesis that the effect is between minus and plus delta; this involves two one-sided hypothesis tests; if the random effect for the hospital is not needed, this can also be done with two one-sided two-sample t-tests; the aim is to find evidence for bioequivalence (i.e., the AUC is more or less the same for SR and IR)
+
+EFA - schedule: early fungicidal activity (EFA); colony forming units (CFU) will be measured on four days (day 1, 3, 7 and 15); 
+
+EFA - model:
+
+multiplicity:
+
+Bonferroni-Holm correction:
+
+summary:
+-->
