@@ -1,0 +1,190 @@
+---
+title: "SAP Crypto-HIV"
+subtitle: "(selective overview)"
+author: "Armin Rauschenberger"
+date: '`r Sys.Date()`'
+output:
+  beamer_presentation:
+    theme: "Madrid"
+    colortheme: "dolphin"
+    fonttheme: "structurebold"
+classoption: "aspectratio=169"
+editor_options: 
+  chunk_output_type: console
+header-includes:
+  - \usepackage{xcolor}
+  - \definecolor{darkblue}{RGB}{0,33,71}
+  - \usepackage[justification=centering,labelformat=empty,font=small]{caption}
+  - \setbeamercolor{palette primary}{bg=darkblue,fg=white}
+  - \setbeamercolor{palette secondary}{bg=darkblue,fg=white}
+  - \setbeamercolor{palette tertiary}{bg=darkblue,fg=white}
+  - \setbeamercolor{structure}{fg=darkblue,bg=white}
+  - \renewcommand\thefootnote{\textcolor{white}{\arabic{footnote}}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=TRUE,echo=FALSE)
+```
+
+## Randomisation
+
+$$
+\begin{array}{ccccccc}
+\begin{array}{cc}
+\text{RID} & \text{treatment} \\ \hline
+101 & \color{red}{\text{SR}} \\
+102 & \color{red}{\text{SR}} \\
+103 & \color{blue}{\text{IR}} \\
+104 & \color{blue}{\text{IR}} \\ \hline 
+105 & \color{red}{\text{SR}} \\
+106 & \color{blue}{\text{IR}} \\
+107 & \color{red}{\text{SR}} \\
+108 & \color{blue}{\text{IR}} \\ \hline
+\vdots & \vdots
+\end{array}
+&
+\quad
+&
+\begin{array}{cc}
+\text{RID} & \text{treatment} \\ \hline
+201 & \color{red}{\text{SR}} \\
+202 & \color{blue}{\text{IR}} \\
+203 & \color{blue}{\text{IR}} \\
+204 & \color{red}{\text{SR}} \\ \hline 
+205 & \color{blue}{\text{IR}} \\
+206 & \color{red}{\text{SR}} \\
+207 & \color{red}{\text{SR}} \\
+208 & \color{blue}{\text{IR}} \\ \hline
+\vdots & \vdots
+\end{array}
+&
+\quad
+&
+\begin{array}{cc}
+\text{RID} & \text{treatment} \\ \hline
+301 & \color{blue}{\text{IR}} \\
+302 & \color{red}{\text{SR}} \\
+303 & \color{blue}{\text{IR}} \\
+304 & \color{red}{\text{SR}} \\ \hline 
+305 & \color{blue}{\text{IR}} \\
+306 & \color{blue}{\text{IR}} \\
+307 & \color{red}{\text{SR}} \\
+308 & \color{red}{\text{SR}} \\ \hline
+\vdots & \vdots
+\end{array}
+&
+\quad
+&
+\cdots
+\end{array}
+$$
+
+- immediate-release (\textcolor{red}{IR}, 4 doses) vs sustained-release (\textcolor{blue}{SR}, 2 doses)
+
+- randomisation in blocks of 4 for each hospital
+
+- 72 participants (at least \textcolor{red}{33}+\textcolor{blue}{33}=66 evaluable participants)
+
+## PK - schedule
+
+$$
+\begin{array}{r|ccccc}
+ & \text{day}~1 & \text{days}~2-5 & \text{day}~6 & \text{days}~7-14 & \text{day}~15 \\ \hline
+\text{doses} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & {\color{red}{4}}~\text{or}~{\color{blue}{2}} & -\\
+\text{data} & 7 & - & 7 & - &  1 \\ \hline
+& \text{AUC}_{\color{red}{\text{IR}}/\color{blue}{\text{SR}},1} & - & \text{AUC}_{\color{red}{\text{IR}}/\color{blue}{\text{SR}},6} & - & -  
+\end{array}
+$$
+
+$~$
+
+- \textcolor{red}{4} or \textcolor{blue}{2} drug administrations per day
+
+- 7 measurements of drug plasma concentration on day 1 (sparse data)
+
+- comparison of AUC between \textcolor{red}{IR} and \textcolor{blue}{SR} on day 1
+
+
+## PK - model
+
+$$
+\log\text{AUC}_{i,t} = \alpha + \beta \times \mathbb{I}[\text{treatment}_i=\text{SR}] + \gamma \times \mathbb{I}[\text{day}_{i,t}=6] + \alpha_i + \epsilon_{i,t}
+$$
+
+$$
+\begin{array}{l}
+\text{where} \quad i \in \{1,\ldots,72\} \quad (\text{patient}) \\
+\phantom{where} \quad t \in \{1,2\} \quad (\text{time})
+\end{array}
+$$
+
+$$
+H_0: \beta \leq -\delta ~\cup~ \delta \leq \beta \qquad \text{vs} \qquad H_1: - \delta < \beta < \delta
+$$
+
+Assumption: Difference between SR and IR is constant over time (i.e., same on days 1 and 6).
+
+## EFA - schedule
+
+$$
+\begin{array}{r|ccccccc}
+ & \text{day}~1 & \text{day}~2 & \text{day}~3 & \text{days}~4-6 & \text{day}~7 & \text{day}~8-14 & \text{day}~15 \\ \hline
+\text{doses} & \text{2 or 4} & \text{2 or 4} & \text{2 or 4} & \text{2 or 4} & \text{2 or 4} & \text{2 or 4} & - \\
+\text{data} & 1 & - & 1 & - &  1 & - & 1 \\ \hline
+& \text{CFU}_{\text{SR/IR},1} & - & \text{CFU}_{\text{SR/IR},3} & - & \text{CFU}_{\text{SR/IR},7} & - & \text{CFU}_{\text{SR/IR},15}
+\end{array}
+$$
+
+## EFA - model
+
+$$
+\mathrm{log10}~\text{CFU}_{i,t} = \alpha + \beta \times \mathbb{I}[\text{treatment}_i=\text{SR}] + \gamma \times \text{day}_{i,t} + \alpha_i + \epsilon_{i,t}
+$$
+$$
+\begin{array}{l}
+\text{where} \quad i \in \{1,\ldots,72\} \quad (\text{patient}) \\
+\phantom{where} \quad t \in \{1,2,3,4\} \quad (\text{time})
+\end{array}
+$$
+
+$$
+H_0: \beta \leq - \delta \qquad \text{vs} \qquad H_1: \beta > -\delta 
+$$
+Assumptions:
+
+- Linear decrease/increase with respect to time.
+- Difference between SR and IR is constant over time (i.e., same on days 1 and 6).
+
+## Bonferroni-Holm correction
+
+- IF $max(p_{\text{AUC,above}},p_{\text{AUC,below}})$ < $2 \times p_{\text{CFU,above}}$
+
+  - IF $max(p_{\text{AUC,above}},p_{\text{AUC,below}}) \leq 2.5\%$ THEN
+  
+    - "PK equivalence"
+    
+    - IF $p_{\text{CFU,above}} \leq 2.5\%$ THEN "EFA non-inferiority"
+    
+  - ELSE "failure"
+    
+$~$
+        
+- IF $max(p_{\text{AUC,above}},p_{\text{AUC,below}})$ > $2 \times p_{\text{CFU,above}}$
+
+  - IF $p_{\text{CFU,above}} \leq 1.25\%$ THEN
+  
+    - "EFA non-inferiority"
+    
+    - IF $max(p_{\text{AUC,above}},p_{\text{AUC,below}}) \leq 5\%$ THEN "PK equivalence"
+    
+  - ELSE "failure"
+  
+<!--
+testing with CI: 95\%, 95\%; 97.5\%, 90\%  
+-->
+
+$~$
+
+\tiny
+
+$^*$not co-primary endpoints (significance required for both) but primary endpoints (significance required for at least one)
