@@ -268,15 +268,15 @@ testing with CI: 95\%, 95\%; 97.5\%, 90\%
 
 $~$
 
-- two primary endpoints:
+- PK equivalence ($\text{AUC}_{\color{blue}{\text{SR}}} \approx \text{AUC}_{\color{red}{\text{IR}}}$)
 
-  - PK equivalence ($\text{CFU}_{\color{blue}{\text{SR}}} \gtrsim \text{CFU}_{\color{red}{\text{IR}}}$)
+$~$
 
-  - EFA non-inferiority ($\text{CFU}_{\color{blue}{\text{SR}}} \gtrsim \text{CFU}_{\color{red}{\text{IR}}}$)
+- EFA non-inferiority ($\text{CFU}_{\color{blue}{\text{SR}}} \gtrsim \text{CFU}_{\color{red}{\text{IR}}}$)
   
 $~$
 
-- multiplicity: Bonferroni-Holm correction
+- Bonferroni-Holm correction
 
 <!--
 SAP Crypto-HIV (selective overview)
@@ -285,15 +285,15 @@ randomisation: stratified blocked randomisation, randomisation for each hospital
 
 PK - schedule: pharmacokinetics (PK); participants will receive 4 doses (reference treatment “immediate-release”) or 2 doses (experimental treatment “sustained-release”) per day during two weeks; drug plasma concentrations will be measured 7 times on day 1, 7 times on day 6, and once on day 15; after each dose, we expect first a sharp increase and then a flat decrease of the concentration, but this will not be visible in a graph as there are too few measurements; the area under the concentration curve will be calculated for days 1 and 6 separately; only the AUC on day 1 is a primary endpoint; AUC on day 1 (based on 7 measurements) will be compared between the two treatment groups
 
-PK - model: linear mixed model to compare the AUC between the two treatment groups; log-transformation of the AUC, fixed intercept, fixed effect for the treatment (SR vs IR), random effect for the hospital; test the null hypothesis that the effect of the experimental treatment (i.e., different with respect to the reference treatment) is smaller than minus delta or larger than plus delta against the alternative hypothesis that the effect is between minus and plus delta; this involves two one-sided hypothesis tests; if the random effect for the hospital is not needed, this can also be done with two one-sided two-sample t-tests; the aim is to find evidence for bioequivalence (i.e., the AUC is more or less the same for SR and IR)
+PK - model: linear mixed model to compare the AUC between the two treatment groups; log-transformation of the AUC, fixed intercept, fixed effect for the treatment (SR vs IR), random effect for the hospital; test the null hypothesis that the effect of the experimental treatment (i.e., different with respect to the reference treatment) is smaller than minus delta or larger than plus delta against the alternative hypothesis that the effect is between minus and plus delta; this involves two one-sided hypothesis tests;  the aim is to find evidence for bioequivalence (i.e., the AUC is more or less the same for SR and IR); if the random effect for the hospital is not needed, this can also be done with two one-sided two-sample t-tests
 
-EFA - schedule: early fungicidal activity (EFA); colony forming units (CFU) will be measured on four days (day 1, 3, 7 and 15); 
+EFA - schedule: early fungicidal activity (EFA); colony forming units (CFU) in the cerebrospinal fluid (CSF) will be measured on four days (day 1, 3, 7 and 15); the aim is to compare CFU between the two treatment groups
 
-EFA - model:
+EFA - model: linear mixed model to compare CFU between the two treatment groups; log10 transformation for CFU, fixed intercept, fixed effect of experimental treatment (SR) as compared to reference treatment (IR), fixed effect for time, random intercept for the participant (each participant is measured at four time points); test the null hypothesis that the effect is is below minus delta against the alternative hypothesis that the effect is above  minus delta; the aim is to find evidence for non-inferiority; this model assumes (among other things) that the decrease/increase in CFU is linear with respect to time and that there is a constant difference between the two treatments over time
 
-multiplicity:
+multiplicity: The aim is to control the family-wise error rate at 5% (i.e., the probability of making at least one false discovery). In the case of co-primary endpoints, significance is required for both endpoints. Then no multiple testing correction is needed. But here we have two primary endpoints, where significance is required for at least one endpoint (PK, EFA, or both). So multiple testing correction is needed. If we used the Bonferroni correction, we would split the 5% level into two for the two primary endpoints. For PK, this leads to a 2.5% level (two one-sided test but intersection-union principle). For EFA, this leads to a 1.25% level (2.5% divided by two sides). The Bonferroni-Holm correction is superior (leading to a higher statistical power) but has adaptive significance levels.
 
-Bonferroni-Holm correction:
+Bonferroni-Holm correction: First, we compare the Bonferroni-adjusted p-values (times 2 for PK, times 4 for EFA). First scenario: PK is more significant, we first test PK at the 2.5% level (two remaining comparisons), and then - if PK is significant - EFA at the 2.5% level (one remaining comparison but one-sided test). Second scenario: EFA is more significant, we first test EFA at the 1.25% level (two remaining comparisons and one-sided test), and then - if EFA is significant - PK at the 5% level (one remaining comparison). If one of the two p-values is significant, the clinical trial is a success.
 
-summary:
+summary: This was a selective overview of the statistical analysis plan. Stratified blocked randomisation will be used to assign the participants to the two treatment groups. There are two primary endpoints. The aims is to detect PK bioequivalence (approximately equal AUCs) and EFA non-inferiority (higher or approximately equal CFU). The Bonferroni-Holm procedure will be used for multiplicity adjustment.
 -->
