@@ -100,12 +100,9 @@ $~$
 
 - \textcolor{red}{4} or \textcolor{blue}{2} drug administrations per day
 
-- 7 measurements of drug plasma concentration on day 1
-
-- AUC from 0h to 12h (doses: \textcolor{red}{2} vs \textcolor{blue}{1}; data: 1 pre-dose + 5 post-dose)
+- AUC on day 1 for 12 hours (\textcolor{red}{2} vs \textcolor{blue}{1} doses, 1 pre-dose + 5 post-dose measurements)
 
 - comparison of AUC between \textcolor{red}{IR} and \textcolor{blue}{SR} on day 1
-
 
 ## PK - model
 
