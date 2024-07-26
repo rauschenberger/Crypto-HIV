@@ -100,7 +100,9 @@ $~$
 
 - \textcolor{red}{4} or \textcolor{blue}{2} drug administrations per day
 
-- 7 measurements of drug plasma concentration on day 1 (sparse data!)
+- 7 measurements of drug plasma concentration on day 1
+
+- AUC from 0h to 12h (doses: \textcolor{red}{2} vs \textcolor{blue}{1}; data: 1 pre-dose + 5 post-dose)
 
 - comparison of AUC between \textcolor{red}{IR} and \textcolor{blue}{SR} on day 1
 
@@ -161,7 +163,7 @@ $$
 
 $~$
 
-- measurement of colony forming units (CFU) on four days
+- measurement of colony forming units (CFU) on 4 days
 
 - comparison of CFU between \textcolor{red}{IR} and \textcolor{blue}{SR}
 
