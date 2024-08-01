@@ -12,7 +12,7 @@ defines the output directory. Running the macro "scheme" with arguments
 list, with visible and invisible watermarks.
 */
 
-%let seed=20240213; /* this is not the real seed */ 
+%let seed=20240801; /* this is not the real seed */ 
 %let path=C:\Users\arauschenberger\Desktop\Crypto-HIV;
 /*%let path=\\shareccms.crp-sante.healthnet.lu\ccms\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-Phase2 Study\6 - Randomization*/
 
