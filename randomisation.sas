@@ -28,7 +28,7 @@ proc format;
 run;
 
 proc plan seed=&seed.; 
-	factors hospital=4 block=10 random treatment=4 random/noprint;
+	factors hospital=4 block=15 random treatment=4 random/noprint;
 	output out=rand
 	treatment nvals=(1 1 2 2)
 	random;
