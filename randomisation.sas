@@ -19,8 +19,6 @@ list, with visible and invisible watermarks.
 proc format;
 	value treatment 1='sustained-release (SR)'
  					2='immediate-release (IR)';
-	/*value country	1='Tanzania'*/
-	/*				2='Malawi';*/
 	value hospital 	1='Kamuzu Central Hospital (Lilongwe, Malawi)'
 					2='Mwananyamala Referral Hospital (Dar es Salaam, Tanzania)'
 					3='Amana Referral Hospital (Dar es Salaam, Tanzania)'
@@ -48,7 +46,6 @@ run;
 
 data rand;
 	set rand;
-	/*SID=cat(put(hospital,z1.),put(count,z3.));*/
 	RID=cat(put(hospital,z1.),put(count,z2.));
 run;
 
@@ -64,7 +61,6 @@ footnote3 justify=left font=timesroman height=0.1 color=white "This copy is for 
 proc report data=rand spanrows;
 	column hospital RID treatment;
 	define hospital/order order=internal format=hospital. left;
-	/*define block/order;*/
 	define treatment/format=treatment. left;
 run;
 ods pdf close;
