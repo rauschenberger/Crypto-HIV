@@ -19,11 +19,11 @@ list, with visible and invisible watermarks.
 proc format;
 	value treatment 1='sustained-release (SR)'
  					2='immediate-release (IR)';
-	value country	1='Tanzania'
-					2='Malawi';
+	/*value country	1='Tanzania'*/
+	/*				2='Malawi';*/
 	value hospital 	1='Kamuzu Central Hospital (Lilongwe, Malawi)'
-					2='Mwananyamala Hospital (Dar es Salaam, Tanzania)'
-					3='Amana Hospital (Dar es Salaam, Tanzania)'
+					2='Mwananyamala Referral Hospital (Dar es Salaam, Tanzania)'
+					3='Amana Referral Hospital (Dar es Salaam, Tanzania)'
 					4='Queen Elisabeth Central Hospital (Blantyre, Malawi)';
 run;
 
@@ -63,9 +63,9 @@ footnote2 justify=left font=timesroman "Please note that this is a watermarked c
 footnote3 justify=left font=timesroman height=0.1 color=white "This copy is for &first_name. &last_name..";
 proc report data=rand spanrows;
 	column hospital RID treatment;
-	define hospital/order order=internal format=hospital.;
+	define hospital/order order=internal format=hospital. left;
 	/*define block/order;*/
-	define treatment/format=treatment.;
+	define treatment/format=treatment. left;
 run;
 ods pdf close;
 footnote;
