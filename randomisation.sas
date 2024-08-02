@@ -19,16 +19,16 @@ list, with visible and invisible watermarks.
 proc format;
 	value treatment 1='sustained-release (SR)'
  					2='immediate-release (IR)';
-	value country 	1='Tanzania'
+	value country	1='Tanzania'
 					2='Malawi';
 	value hospital 	1='Kamuzu Central Hospital (Lilongwe, Malawi)'
-					2='Queen Elisabeth Central Hospital (Blantyre, Malawi)'
-					3='Mwananyamala Hospital (Dar es Salaam, Tanzania)'
-					4='Amana Hospital (Dar es Salaam, Tanzania)';
+					2='Mwananyamala Hospital (Dar es Salaam, Tanzania)'
+					3='Amana Hospital (Dar es Salaam, Tanzania)'
+					4='Queen Elisabeth Central Hospital (Blantyre, Malawi)';
 run;
 
 proc plan seed=&seed.; 
-	factors hospital=4 block=15 random treatment=4 random/noprint;
+	factors hospital=4 block=20 random treatment=4 random/noprint;
 	output out=rand
 	treatment nvals=(1 1 2 2)
 	random;
