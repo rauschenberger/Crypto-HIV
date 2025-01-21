@@ -57,7 +57,7 @@ proc export data=rand(drop=block count)
 run;
 
 
-ods pdf file="&path./randomisation_list..pdf" style=grayscaleprinter;
+ods pdf file="&path./randomisation_list.pdf" style=grayscaleprinter;
 title1 font=timesroman height=14pt "Randomisation list for all Hospitals";
 
 proc report data=rand spanrows;
