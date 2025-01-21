@@ -85,7 +85,7 @@ title;
 	footnote2 justify=left font=timesroman 
 		"Please note that this is a watermarked copy.";
 	footnote3 justify=left font=timesroman height=0.1 color=white 
-		"This copy is for &first_name. &last_name.."
+		"This copy is for &first_name. &last_name..";
 	proc report data=rand spanrows;
 	    /* Filter based on hospital number */
 		where hospital=&hospital_number.; 
