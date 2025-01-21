@@ -21,11 +21,12 @@ proc format;
 	value treatment 1='sustained-release (SR)' 2='immediate-release (IR)';
 	value hospital 1='Kamuzu Central Hospital (Lilongwe, Malawi)' 
 		2='Mwananyamala Referral Hospital (Dar es Salaam, Tanzania)' 
-		3='Amana Referral Hospital (Dar es Salaam, Tanzania)';
+		3='Amana Referral Hospital (Dar es Salaam, Tanzania)'
+                4='Queen Elisabeth Central Hospital (Blantyre, Malawi)';
 run;
 
 proc plan seed=&seed.;
-	factors hospital=3 block=20 random treatment=4 random/noprint;
+	factors hospital=4 block=20 random treatment=4 random/noprint;
 	output out=rand treatment nvals=(1 1 2 2) random;
 	run;
 
@@ -107,3 +108,6 @@ title;
 
 /* PDF for Hospital 3 */
 %scheme(first_name=E, last_name=F, hospital_number=3);
+
+/* PDF for Hospital 4 */
+%scheme(first_name=G, last_name=H, hospital_number=4);
