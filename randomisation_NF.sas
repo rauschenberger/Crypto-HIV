@@ -48,6 +48,15 @@ data rand;
 	RID=cat(put(hospital, z1.), put(count, z2.));
 run;
 
+
+/* Export the data to CSV */
+proc export data=rand(drop=block count) 
+		outfile="&path./randomisation_list.csv" dbms=csv 
+		replace;
+	putnames=yes;
+run;
+
+
 ods pdf file="&path./randomisation_list..pdf" style=grayscaleprinter;
 title1 font=timesroman height=14pt "Randomisation list for all Hospitals";
 
@@ -72,10 +81,11 @@ title;
 	title3 font=timesroman height=10pt 
 		"(random seed: &seed., confidential copy for &first_name. &last_name.)";
 	footnote1 justify=left font=timesroman 
+                 "Please note the SAP is not signed and the signed protocol is in version 1.0 dating from June 2, 2023.";
+	footnote2 justify=left font=timesroman 
 		"Please note that this is a watermarked copy.";
-	footnote2 justify=left font=timesroman height=0.1 color=white 
-		"This copy is for &first_name. &last_name..";
-
+	footnote3 justify=left font=timesroman height=0.1 color=white 
+		"This copy is for &first_name. &last_name.."
 	proc report data=rand spanrows;
 	    /* Filter based on hospital number */
 		where hospital=&hospital_number.; 
