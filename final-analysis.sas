@@ -735,17 +735,20 @@ Description: This macro uses colour for values below or above the normal range.
 /* * Subsection 4.1: import clinical data  * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc import datafile="&pathRand.\randomisation-list"
+proc import datafile="&pathRand.\randomisation_list.csv"
 		out=random
-		dbms=xlsx;
+		dbms=csv;
+run;
+
+proc print data=random;
 run;
 
 data random;
 	set random;
 	if treatment=1 then
-		seq='sustained-release (SR)';
+		treat='sustained-release (SR)';
 	else
-		seq='immediate-release (IR)';
+		treat='immediate-release (IR)';
 run;
 
 %prepare;
@@ -766,10 +769,6 @@ proc report data=ART;
 	column RID VISIT ARTREGIMEN;
 	define RID/order;
 run;
-
-proc report data=DM;
-run;
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: withdrawals * * * * * * * * * * * * * * * * * * * * * * */
@@ -818,7 +817,7 @@ proc report data=DV spanrows;
 	title 'protocol deviations';
 	column RID seq VISIT FORM DVTERM DVCAT;
 	define RID/order;
-	define seq/order;
+	define treatment/order;
 	define VISIT/order;
 	define FORM/order;
 run;
@@ -842,12 +841,12 @@ run;
 
 proc tabulate data=DM;
 	title 'demographics by sequence';
-	class seq sex race;
+	class treatment sex race;
 	var age weight height bmi;
 	table (age)*(mean median std min max n)
 		(sex race)*(n colpctn='%')
 		(weight height bmi)*(mean median std min max n),
-		seq all='both';
+		treatment all='both';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -874,9 +873,12 @@ run;
 proc report data=MH spanrows;
 	title 'medical history';
 	where not missing(RID);
-	column RID seq MHTERM MHSTDAT MHENDAT MHONGO;
+	column RID treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
 	define RID/order;
 	define seq/order;
+run;
+
+proc report data=MH;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
