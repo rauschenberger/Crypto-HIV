@@ -1,7 +1,7 @@
 /******************************************************************************/
 /*** Crypto-HIV phase II - randomisation schedule *****************************/
 /*** Armin Rauschenberger *****************************************************/
-/**** Adjusted By Franck Ngangom on 20/01/2025 **********************************/
+/**** adjusted by Franck Ngangom on 2025-01-20 ********************************/
 /******************************************************************************/
 /*
 This script generates the randomisation list for the Crypto-HIV phase II study.
@@ -11,9 +11,8 @@ defines the output directory. Running the macro "scheme" with arguments
 list, with visible and invisible watermarks.
 */
 
-%let seed=20240802;
+%let seed=20240802; /* this is not the real seed */
 
-/* this is not the real seed */
 *%let path=C:\Users\arauschenberger\Desktop\Crypto-HIV;
  %let path=\\shareccms.crp-sante.healthnet.lu\ccms\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-Phase2 Study\6 - Randomization;
 
@@ -22,7 +21,7 @@ proc format;
 	value hospital 1='Kamuzu Central Hospital (Lilongwe, Malawi)' 
 		2='Mwananyamala Referral Hospital (Dar es Salaam, Tanzania)' 
 		3='Amana Referral Hospital (Dar es Salaam, Tanzania)'
-                4='Queen Elisabeth Central Hospital (Blantyre, Malawi)';
+        4='Queen Elisabeth Central Hospital (Blantyre, Malawi)';
 run;
 
 proc plan seed=&seed.;
@@ -49,14 +48,12 @@ data rand;
 	RID=cat(put(hospital, z1.), put(count, z2.));
 run;
 
-
 /* Export the data to CSV */
 proc export data=rand(drop=block count) 
 		outfile="&path./randomisation_list.csv" dbms=csv 
 		replace;
 	putnames=yes;
 run;
-
 
 ods pdf file="&path./randomisation_list.pdf" style=grayscaleprinter;
 title1 font=timesroman height=14pt "Randomisation list for all Hospitals";
@@ -71,7 +68,6 @@ run;
 
 ods pdf close;
 title;
-
 
 %macro scheme(first_name, last_name, hospital_number);
 	ods pdf file="&path./randomisation_&last_name..pdf" style=grayscaleprinter;
