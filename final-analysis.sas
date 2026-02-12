@@ -50,7 +50,7 @@ and specifying the path to the output directory for the tables and figures (path
 
 /* import clinical data */
 %macro import(path,code);
-proc import datafile="&path.\&code.*"
+proc import datafile="&path.\&code._*"
     out=&code
     dbms=xlsx
 	REPLACE;
@@ -104,7 +104,7 @@ This adds information on the treatment sequence to dataset 'code'.
 
 /* import and process clinical data */
 %macro prepare;
-   %let code = AE ART_INIT ART_TREAT CE CM DD DI DM DS DV EG EX GC IE LB LP MH PE PM PREG RANK VS; /* Also add files without code! */
+   %let code = AE ART ARTT CE CM DD DI DM DS DV EG EX GC IE LB LP MH PE PM PR QUEST RANKIN VS; /* Also add files without code! */
    %do i = 1 %to %sysfunc(countw(&code));
       %import(&pathClin,%scan(&code,&i));
 	  %add_rid(%scan(&code,&i));
@@ -118,6 +118,9 @@ Note: Loops through a list of abbreviations (e.g., 'code = VS DM' for vital sign
 Description: Prepares the datasets by importing the datasets, adding the random identifiers,
 sorting the datasets by random identifiers and adding information on the treatment sequence.
 */
+
+proc report data=random;
+run;
 
 /* convert character to numeric */
 %macro asnumeric(code,var);
@@ -752,16 +755,20 @@ run;
 /* * Subsection 4.XXX: adverse events * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=AE;
-	title 'test';
-run;
-
 proc report data=AE spanrows;
 	title 'adverse events';
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	define RID/order;
 run;
 
+proc report data=ART;
+	title 'art initiation';
+	column RID VISIT ARTREGIMEN;
+	define RID/order;
+run;
+
+proc report data=DM;
+run;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
