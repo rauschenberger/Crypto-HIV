@@ -69,3 +69,10 @@ footnote;
 
 %scheme(first_name=Armin,last_name=Rauschenberger);
 /*%scheme(first_name=Armin,last_name=Rauschenberger);*/
+
+proc export 
+  data=rand
+  dbms=xlsx 
+  outfile="&path./randomisation-list.xlsx" 
+  replace;
+run;
