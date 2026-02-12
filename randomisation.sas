@@ -36,7 +36,6 @@ run;
 data rand;
 	set rand;
 	by hospital;
-
 	if first.hospital then
 		count=0;
 	count + 1;
@@ -50,14 +49,14 @@ run;
 
 /* Export the data to CSV */
 proc export data=rand(drop=block count) 
-		outfile="&path./randomisation_list.csv" dbms=csv 
+		outfile="&path./randomisation_list.csv"
+		dbms=csv
 		replace;
 	putnames=yes;
 run;
 
 ods pdf file="&path./randomisation_list.pdf" style=grayscaleprinter;
 title1 font=timesroman height=14pt "Randomisation list for all Hospitals";
-
 proc report data=rand spanrows;
 	by hospital;
 	column hospital RID treatment;
@@ -65,7 +64,6 @@ proc report data=rand spanrows;
 	define RID / display left;
 	define treatment / display format=treatment. left;
 run;
-
 ods pdf close;
 title;
 
@@ -90,7 +88,6 @@ title;
 		define RID / display left;
 		define treatment / display format=treatment. left;
 	run;
-
 	ods pdf close;
 	title;
 	footnote;
