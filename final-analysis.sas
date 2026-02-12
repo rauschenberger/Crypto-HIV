@@ -40,7 +40,7 @@ options nonotes;
 the clinical data (pathClin), and the pharmacokinetic data (pathPhar),
 and specifying the path to the output directory for the tables and figures (pathOut).*/ 
 %let pathRand=C:\Users\arauschenberger\Desktop\Crypto-HIV;
-%let pathClin=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-Phase2 Study\4 - Data Management\7-Data transfers\Export files\30-Jul-2025_Aljosa;
+%let pathClin=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-Phase2 Study\4 - Data Management\7-Data transfers\Export files\30-Jul-2025_Franck;
 %let pathPhar=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Import files\15032023_Pharmetheus\0131FRM18_DNDi-5FC-02-CM_PK_20230315\0131FRM18_DNDi-5FC-02-CM_PK_20230315;
 %let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS;
 
@@ -50,7 +50,7 @@ and specifying the path to the output directory for the tables and figures (path
 
 /* import clinical data */
 %macro import(path,code);
-proc import datafile="&path.\&code._*"
+proc import datafile="&path.\&code.*"
     out=&code
     dbms=xlsx
 	REPLACE;
@@ -104,7 +104,7 @@ This adds information on the treatment sequence to dataset 'code'.
 
 /* import and process clinical data */
 %macro prepare;
-   %let code = IE AE DM DS DV SU MH VS EG LB PC; /* add other abbreviations*/
+   %let code = AE ART_INIT ART_TREAT CE CM DD DI DM DS DV EG EX GC IE LB LP MH PE PM PREG RANK VS; /* Also add files without code! */
    %do i = 1 %to %sysfunc(countw(&code));
       %import(&pathClin,%scan(&code,&i));
 	  %add_rid(%scan(&code,&i));
@@ -747,9 +747,21 @@ run;
 
 %prepare;
 
-proc report data=random;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.XXX: adverse events * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+proc report data=AE;
 	title 'test';
 run;
+
+proc report data=AE spanrows;
+	title 'adverse events';
+	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
+	define RID/order;
+run;
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1099,6 +1111,7 @@ proc report data=AE spanrows;
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	define RID/order;
 run;
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.19: pharmacokinetics * * * * * * * * * * * * * * * * * * * */
