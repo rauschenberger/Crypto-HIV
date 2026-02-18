@@ -119,9 +119,6 @@ Description: Prepares the datasets by importing the datasets, adding the random 
 sorting the datasets by random identifiers and adding information on the treatment sequence.
 */
 
-proc report data=random;
-run;
-
 /* convert character to numeric */
 %macro asnumeric(code,var);
 data &code;
@@ -446,7 +443,7 @@ Plots the results.
 */
 
 /* perform mixed modelling */ 
-%macro mixmod(outcome,data=PKpars,class=rid seq period treat,fixed=seq period treat,random=rid(seq),lsmeans=treat,alpha=0.10);
+%macro mixmod(outcome,data=PKpars,class=rid treat period treat,fixed=treat period treat,random=rid(treat),lsmeans=treat,alpha=0.10);
 	proc mixed data=&data.;
 		Class &class.;
 		Model &outcome.= &fixed. / ddfm=kr; /* was seq period treat  */ 
@@ -753,22 +750,97 @@ run;
 
 %prepare;
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.XXX: adverse events * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=AE spanrows;
-	title 'adverse events';
-	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
-	define RID/order;
-run;
 
 proc report data=ART;
 	title 'art initiation';
 	column RID VISIT ARTREGIMEN;
 	define RID/order;
 run;
+
+
+proc report data=ARTT;
+	title 'art treatment';
+	column RID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH;
+	define RID/order;
+run;
+
+proc report data=CE;
+	title 'current symptoms';
+	column RID treat VISIT CETERM CEDUR;
+	define RID/order;
+run;
+
+proc report data=CM;
+	title 'concomitant medications';
+	column RID CMINDC CMTRT;
+	define RID/order;
+run;
+
+proc report data=DD;
+	title 'death';
+	column RID;
+run;
+
+proc report data=DI;
+	title 'discharge';
+	column RID LPPERF DISCHARGED;
+run;
+
+proc report data=DS;
+	title 'disposition milestones';
+	column RID VISIT DSDECOD;
+	define RID/order;
+run;
+
+proc report data=EX;
+	title 'treatment exposure';
+	define RID/order;
+run;
+
+proc report data=GC;
+	title 'Glasgow coma score';
+run;
+
+proc report data=LB;
+	title 'laboratory';
+run;
+
+proc report data=LP;
+	title 'lumbar punctures';
+	column RID VISIT LPORRES LPORRESU;
+	define RID/order;
+run;
+
+
+proc report data=PE;
+	title 'physical examination';
+	where PEORRES='Abnormal, CS';
+	column RID VISIT PETESTCD PEORRES PEORRES_SP;
+	define RID/order;
+run;
+
+proc report data=PM;
+	title 'prior medications';
+	column RID CMTRT CMROUTE;
+	define RID/order;
+run;
+
+proc report data=PR;
+	title 'pregnancy';
+run;
+
+proc report data=QUEST;
+	title 'palatability acceptability';
+run;
+
+proc report data=RANKIN;
+	title 'disability';
+run;
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: withdrawals * * * * * * * * * * * * * * * * * * * * * * */
@@ -783,26 +855,29 @@ run;
 proc tabulate data=DS;
 	title 'withdrawals';
 	where VISIT='Post Study';
-	class seq withdraw;
+	class treat withdraw;
 	table withdraw * (n colpctn='%'),
-			seq all='both';
+			treat all='both';
 run;
 
 /* TO DO: Add "time of early withdrawal" and "reason of withdrawal". */ 
 proc report data=DS;
 	title 'withdrawals';
 	where DSTERM='DISCONTINUED';
-	column RID seq;
+	column RID treat;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.3: ineligibility * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+proc report data=IE;
+run;
+
 proc report data=IE spanrows;
 	title 'ineligible samples';
-	where (IECAT='INCLUSION' and IESTRESC='No') or (IECAT='EXCLUSION' and IESTRESC='Yes');
-	column SUBJID IECAT IETEST IESTRESC;
+	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
+	column SUBJID IECAT IETEST IEORRES;
 	define SUBJID/order;
 	define IECAT/order;
 run;
@@ -815,9 +890,9 @@ run;
  
 proc report data=DV spanrows;
 	title 'protocol deviations';
-	column RID seq VISIT FORM DVTERM DVCAT;
+	column RID VISIT FORM DVTERM DVCAT;
 	define RID/order;
-	define treatment/order;
+	*define treatment/order;
 	define VISIT/order;
 	define FORM/order;
 run;
@@ -840,7 +915,7 @@ data DM;
 run;
 
 proc tabulate data=DM;
-	title 'demographics by sequence';
+	title 'demographics by treatment';
 	class treatment sex race;
 	var age weight height bmi;
 	table (age)*(mean median std min max n)
@@ -859,11 +934,11 @@ run;
 
 proc tabulate data=SU;
     title 'alcohol and smoking by sequence';
-	class seq SUTRT SUOCCUR / order=internal;
+	class treat SUTRT SUOCCUR / order=internal;
     var SUDOSE;
     table SUTRT * SUOCCUR * (n pctn<SUOCCUR>='%')
           SUTRT * SUDOSE *(mean std median min max n),
-          seq all='both';
+          treat all='both';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -875,7 +950,7 @@ proc report data=MH spanrows;
 	where not missing(RID);
 	column RID treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
 	define RID/order;
-	define seq/order;
+	define treat/order;
 run;
 
 proc report data=MH;
@@ -888,6 +963,7 @@ run;
 /*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
 %ordervar(code=VS,var=VSTEST);
 %ordervar(code=VS,var=VSSTRESC);
+%ordervar(code=VS,var=VSTESTCD);
 %asnumeric(code=VS,var=VSORRES);
 
 data VS;
@@ -895,14 +971,17 @@ data VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
 run;
 
+proc report data=VS;
+run;
+
 proc tabulate data=VS;
-	title 'vital signs at screening by sequence';
-	where VISIT='Screening Visit';
-	class seq VSPOS VSTEST VSSTRESC / order=internal;
+	title 'vital signs at screening by treatment';
+	where VISIT='Screening';
+	class treat VSPOS VSTESTCD VSSTRESC / order=internal;
 	var VSORRES;
-	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
-			VSPOS * VSTEST * VSORRES * (mean std median min max n),
-			seq all='both';
+	table	VSPOS * VSTESTCD * VSSTRESC * (n pctn<VSSTRESC>='%')
+			VSPOS * VSTESTCD * VSORRES * (mean std median min max n),
+			treat all='both';
 run;
 
 /* vital signs - listing of abnormal at screening */
@@ -911,6 +990,9 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.9: electrocardiogram at screning * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+proc report data=EG;
+run;
 
 %ordervar(code=EG,var=PAGENAME);
 %ordervar(code=EG,var=EGSTRESC1);
@@ -925,17 +1007,17 @@ data EG;
 run;
 
 proc tabulate data=EG;
-	title 'ECG at screening by sequence';
-	where VISIT='SCREENING';
-	class seq measure EGSTRESC1;
+	title 'ECG at DAY 1 by treatment';
+	where VISIT='DAY 1';
+	class treat measure EGSTRESC1;
 	var EGORRES;
 	table 	measure * EGSTRESC1 * (n pctn<EGSTRESC1>='%')
 			measure * EGORRES * (mean std median min max n),
-			seq all='both';
+			treat all='both';
 run;
 
 /* ECG - listing of abnormal at screening */ 
-%abnormal(code=EG,check_visit='SCREENING',show_visit='SCREENING' 'Unscheduled Screening');
+%abnormal(code=EG,check_visit='DAY 1',show_visit='DAY 1');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.10: hematology * * * * * * * * * * * * * * * * * * * * * * */
@@ -1053,11 +1135,11 @@ run;
 proc tabulate data=VS;
 	title 'vital signs at post study by sequence';
 	where visit='Post Study';
-	class seq VSPOS VSTEST VSSTRESC;
+	class treat VSPOS VSTEST VSSTRESC;
 	var VSORRES;
 	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
 			VSPOS * VSTEST * VSORRES * (mean std median min max n),
-			seq all='both';
+			treat all='both';
 run;
 
 /* vital signs - overall change */
@@ -1072,7 +1154,7 @@ proc sort data=long;
 run;
 
 proc transpose data=long out=wide;
-	by RID VSTEST seq;
+	by RID VSTEST treat;
 	id VISIT;
 	var VSORRES;
 run;
@@ -1084,9 +1166,9 @@ run;
 
 proc tabulate data=wide;
 	title 'change in vital signs from screening to post study by sequence';
-	class seq RID VSTEST / order=internal;
+	class treat RID VSTEST / order=internal;
 	var diff;
-	table VSTEST * diff * (mean std median min max n), seq;
+	table VSTEST * diff * (mean std median min max n), treat;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1114,6 +1196,13 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.18: adverse events * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+data AE;
+	set AE;
+	if AEREL in ('A') then AEREL='';
+	if AEREL1 in ('A') then AEREL1='';
+run;
+
 
 proc report data=AE spanrows;
 	title 'adverse events';
@@ -1259,11 +1348,11 @@ run;
 data PKpars;
 	set PKpars;
 	if seqence=1 then
-        seq='1 (AB)';
+        treat='1 (AB)';
     else if seqence=2 then
-        seq='2 (BA)';
+        treat='2 (BA)';
     else
-        seq='';
+        treat='';
 run;
 
 data PKpars;
