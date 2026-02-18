@@ -295,8 +295,8 @@ run;
 /* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
 	proc tabulate data=VS;
-		where VSPOS=&position. and VSTEST=&test.;
-		class VSTEST VSPOS VISIT treat / order=internal;
+		where VSPOS=&position. and VSTEST_=&test.;
+		class VSTEST_ VSPOS VISIT treat / order=internal;
 		var VSORRES;
 		table 	VSORRES * (mean std median min max n),
 			treat;
@@ -313,7 +313,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 %macro calcdiff(test,position='Supine');
 	data temp;
 		set VS;
-		where VSTEST=&test. and VSPOS=&position. and not missing(RID);
+		where VSTEST_=&test. and VSPOS=&position. and not missing(RID);
 	run;
 	data temp;
   		do until(last.RID);
@@ -343,9 +343,9 @@ Use this macro to obtain the change with respect to baseline.
 /* summarise vital signs - change */
 %macro tabdiff(test,position='Supine');
 proc tabulate data=temp;
-	class VISIT treat FORM / order=internal;
+	class VISIT treat / order=internal;
 	var diff;
-	table 	FORM * diff * (mean std median min max n),
+	table 	diff * (mean std median min max n),
 			treat;
 	title &position. '  ' &test. ' - change';
 run;
@@ -1039,8 +1039,6 @@ run;
 /* * Subsection 4.8: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/* %prepare; current*/
-
 proc report data=VS;
 run;
 
@@ -1071,15 +1069,10 @@ run;
 /* vital signs - listing of abnormal at screening */
 %abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
 
-/*
-debugging
-
-%listncs(code=VS,visit='Screening');
-%showncs(code=&code.,visit=&show_visit.);
-%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
 
 
-*/
+
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.9: electrocardiogram at screning * * * * * * * * * * * * * */
