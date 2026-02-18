@@ -606,22 +606,34 @@ proc format;
 		1 = 'Abnormal, NCS'
 		;
 	invalue VISIT_invalue
- 		'Screening Visit' = 1
-		'Unscheduled Screening' = 2
- 		'Treatment Period 1: 30 hrs PD' = 3
-		'Unscheduled Treatment Period 1' = 4
-		'Treatment Period 2: 30 hrs PD' = 5
-		'Unscheduled Treatment Period 2' = 6
-		'Post Study' = 7
+ 		'Screening' = 0
+		'Day 1' = 1
+ 		'Day 2' = 2
+		'Day 3' = 3
+		'Day 4' = 4
+		'Day 5' = 5
+		'Day 6' = 6
+		'Day 7' = 7
+		'Day 15' = 8
+		'Week 4' = 9
+		'Week 6' = 10
+		'Week 10' = 11
+		'Unscheduled' = 12
 		;
 	value VISIT_value
-	 	1 = 'Screening Visit'
-		2 = 'Unscheduled Screening'
- 		3 = 'Treatment Period 1: 30 hrs PD'
-		4 = 'Unscheduled Treatment Period 1'
-		5 = 'Treatment Period 2: 30 hrs PD'
-		6 = 'Unscheduled Treatment Period 2'
-		7 = 'Post Study'
+ 		0 = 'Screening'
+		1 = 'Day 1'
+ 		2 = 'Day 2'
+		3 = 'Day 3'
+		4 = 'Day 4'
+		5 = 'Day 5'
+		6 = 'Day 6'
+		7 = 'Day 7'
+		8 = 'Day 15'
+		9 = 'Week 4'
+		10 = 'Week 6'
+		11 = 'Week 10'
+		12 = 'Unscheduled'
 		;
 run;
 
@@ -737,9 +749,6 @@ proc import datafile="&pathRand.\randomisation_list.csv"
 		dbms=csv;
 run;
 
-proc print data=random;
-run;
-
 data random;
 	set random;
 	if treatment=1 then
@@ -751,27 +760,26 @@ run;
 %prepare;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.XXX: adverse events * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
 proc report data=ART;
-	title 'art initiation';
-	column RID VISIT ARTREGIMEN;
+	title 'ART initiation';
+	*column RID VISIT ARTREGIMEN;
 	define RID/order;
 run;
 
-
 proc report data=ARTT;
-	title 'art treatment';
+	title 'ART treatment';
 	column RID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH;
 	define RID/order;
 run;
 
-proc report data=CE;
+proc report data=CE spanrows;
 	title 'current symptoms';
-	column RID treat VISIT CETERM CEDUR;
+	column RID VISIT CETERM CEDUR;
 	define RID/order;
+	define VISIT/order=internal;
 run;
 
 proc report data=CM;
