@@ -204,7 +204,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%end;
     data temp;
         set &code.;
-        where VISIT in (&visit.) and &var_test. in ('NCS','Abnormal, NCS') and not missing(RID); /* use numerical values */ 
+        where VISIT in (&visit.) and &var_test. in ('NCS','CS','Abnormal, NCS') and not missing(RID); /* use numerical values */ 
     run;
     proc sql noprint;
         select distinct RID
@@ -225,8 +225,8 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 /* show results for some patients */ 
 %macro showncs(code,visit);
 	%if &code.=VS %then %do;
-		%let var_id=VSTEST;
-		%let state_by=RID VISIT VSPOS FORM;
+		%let var_id=VSTESTCD;
+		%let state_by=RID VISIT VSPOS;
 		%let var=VSORRES;
 	%end;
 	%else %if &code.=EG %then %do;
@@ -289,13 +289,16 @@ Description: Identifies patients with abnormal results at one or more visits ('c
 and shows the results for these patients at one or more visits ('show_visit').
 */ 
 
+proc report data=VS;
+run;
+
 /* summarise vital signs - values */ 
 %macro tabval(test,position='Supine');
 	proc tabulate data=VS;
-		where VSPOS=&position. and VSTEST_=&test.;
-		class VISIT treat FORM / order=internal;
+		where VSPOS=&position. and VSTEST=&test.;
+		class VSTEST VSPOS VISIT treat / order=internal;
 		var VSORRES;
-		table 	FORM * VSORRES * (mean std median min max n),
+		table 	VSORRES * (mean std median min max n),
 			treat;
 		title &position. ' ' &test. ' - values';
 	run;
@@ -310,18 +313,18 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 %macro calcdiff(test,position='Supine');
 	data temp;
 		set VS;
-		where VSTEST_=&test. and VSPOS=&position. and not missing(RID) and not missing(period);
+		where VSTEST=&test. and VSPOS=&position. and not missing(RID);
 	run;
 	data temp;
   		do until(last.RID);
      		set temp;
      		by RID;
-     		if treat = 'A' then do;
+     		if treat = 'immediate-release (IR)' then do;
         		if baseA = . then baseA = VSORRES;
         		diff = VSORRES - baseA;
      		end;
 			drop baseA;
-     		else if treat = 'B' then do;
+     		else if treat = 'sustained-release (SR)' then do;
         		if baseB = . then baseB = VSORRES;
 				diff = VSORRES - baseB;
     		end;
@@ -557,27 +560,33 @@ proc format;
 		'Weight' = 1
  		'Height' = 2
  		'Body Mass Index' = 3
- 		'Temperature' = 4
+ 		'Body Temperature' = 4
 		'Systolic Blood Pressure' = 5
 		'Diastolic Blood Pressure' = 6
 		'Pulse Rate' = 7
+		'Oxygen Saturation' = 8
+		'Respiratory Rate' = 9
 		;
 	value VSTEST_value
 		1 = 'Weight'
  		2 = 'Height'
  		3 = 'Body Mass Index'
- 		4 = 'Temperature'
+ 		4 = 'Body Temperature'
 		5 = 'Systolic Blood Pressure'
 		6 = 'Diastolic Blood Pressure'
 		7 = 'Pulse Rate'
+		8 = 'Oxygen Saturation'
+		9 = 'Respiratory Rate'
 		;
 	invalue VSSTRESC_invalue
 		'Normal' = 0
 		'NCS' = 1
+		'CS' = 2
 		;
 	value VSSTRESC_value
 	 	0 = 'Normal'
 		1 = 'NCS'
+		2 = 'CS'
 		;
 	invalue SUOCCUR_invalue
 		'No' = 0
@@ -678,6 +687,15 @@ proc format;
 	value ECG_wave 		low-0=&low.  
 						0-130='white' /*unknown normal range*/
 						130-high=&high.;
+	/* GCS */
+	value GCS_total		15 = 'white'
+						other = &low.;
+	value $GCS_eye		'Eye open spontaneously' = 'white'
+						other = &low.;
+	value $GCS_verbal	'Orientated' = 'white'
+						other = &low.;
+	value $GCS_motor	'Obeys commands' = 'white'
+						other = &low.;
 run; 
 
 /* colour extreme values */ 
@@ -728,6 +746,20 @@ run;
 	endcomp;
 	compute P_Wave_Duration__Aggregate;
 		call define(_col_,'style','style={background=ECG_wave.}');
+	endcomp;
+	%end;
+	%if &name.=GC %then %do;
+	compute GCS_TOTAL;
+		call define(_col_,'style','style={background=GCS_total.}');
+	endcomp;
+	compute BESTEYERESPONSE;
+		call define(_col_,'style','style={background=GCS_eye.}');
+	endcomp;
+	compute BESTVERBALRESPONSE;
+		call define(_col_,'style','style={background=GCS_verbal.}');
+	endcomp;
+	compute BESTMOTORRESPONSE;
+		call define(_col_,'style','style={background=GCS_motor.}');
 	endcomp;
 	%end;
 %mend color;
@@ -809,13 +841,52 @@ proc report data=EX;
 	define RID/order;
 run;
 
+/* only show patients with GCS<15 ? */
+/* then add eye verbal and motor*/
+
+%asnumeric(code=GC,var=GCS_TOTAL);
+
+data GC_sub;
+	set GC(keep=RID VISIT GCSPERF GCS_TOTAL BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE);
+	where GCSPERF="Yes" and GCS_TOTAL < 15;
+	eye = BESTEYERESPONSE;
+	verbal = BESTVERBALRESPONSE;
+	motor = BESTMOTORRESPONSE;
+	drop GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE;
+run;
+
+%report(data=GC_sub,title='Glasgow coma scale',name=GC,temp='FALSE');
+
 proc report data=GC;
 	title 'Glasgow coma score';
+	title2 'details: asdfdf';
+	where GCSPERF="Yes" and GCS_TOTAL < 15;
+	columns RID VISIT eye verbal motor GCS_TOTAL;
+	define RID/order;
+	define VISIT/order=internal;
 run;
+
+/* laboratory */
+
+
+%asnumeric(code=LB,var=LBORRES);
 
 proc report data=LB;
 	title 'laboratory';
 run;
+
+proc tabulate data=LB;
+	title 'laboratory at screening by treatment';
+	where visit='Screening';
+	class treat LBTEST LBCLSIG;
+	var LBORRES;
+	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
+			LBTEST * LBORRES * (mean std median min max n),
+			treat all='both';
+run;
+
+
+
 
 proc report data=LP;
 	title 'lumbar punctures';
@@ -968,10 +1039,15 @@ run;
 /* * Subsection 4.8: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/* %prepare; current*/
+
+proc report data=VS;
+run;
+
 /*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
 %ordervar(code=VS,var=VSTEST);
 %ordervar(code=VS,var=VSSTRESC);
-%ordervar(code=VS,var=VSTESTCD);
+%ordervar(code=VS,var=VSTEST);
 %asnumeric(code=VS,var=VSORRES);
 
 data VS;
@@ -993,7 +1069,17 @@ proc tabulate data=VS;
 run;
 
 /* vital signs - listing of abnormal at screening */
-%abnormal(code=VS,check_visit='Screening Visit',show_visit='Screening Visit' 'Unscheduled Screening');
+%abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
+
+/*
+debugging
+
+%listncs(code=VS,visit='Screening');
+%showncs(code=&code.,visit=&show_visit.);
+%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
+
+
+*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.9: electrocardiogram at screning * * * * * * * * * * * * * */
@@ -1037,19 +1123,24 @@ run;
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%add_period(code=VS);
-%add_treat(code=VS);
+/*%add_period(code=VS);*/
+/*%add_treat(code=VS);*/
 %ordervar(code=VS,var=FORM);
 
-%tabval(test='Systolic Blood Pressure');
-%calcdiff(test='Systolic Blood Pressure');
+/*
+proc report data=VS;
+run;
+*/
+
+%tabval(test='Systolic Blood Pressure',position='Sitting');
+%calcdiff(test='Systolic Blood Pressure',position='Sitting');
 %tabdiff(test='Systolic Blood Pressure');
 
-%tabval(test='Diastolic Blood Pressure');
+%tabval(test='Diastolic Blood Pressure',position='Sitting');
 %calcdiff(test='Diastolic Blood Pressure');
 %tabdiff(test='Diastolic Blood Pressure');
 
-%tabval(test='Pulse Rate');
+%tabval(test='Pulse Rate',position='Sitting');
 %calcdiff(test='Pulse Rate');
 %tabdiff(test='Pulse Rate');
 
