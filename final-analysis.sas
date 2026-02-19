@@ -464,11 +464,11 @@ Plots the measurements against the visit names, with one line for each patient.
 
 /* plot mean value or mean change */
 %macro plot_internal(title);
-	data VS_means;
-		set VS_means;
+	data DATA_MEAN;
+		set DATA_MEAN;
 		where not missing(RID);
 	run;
-	proc sgplot data=VS_means;
+	proc sgplot data=DATA_MEAN;
 		series x=visit y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
     	xaxis label='time';
@@ -479,21 +479,23 @@ Plots the measurements against the visit names, with one line for each patient.
 	run;
 %mend plot_internal;
 %macro plot_mean_value(code,test,position);
+	%getvars(&code.);
 	proc means data=VS mean clm alpha=0.05 noprint;
-		where VSTEST_=&test. and VSPOS=&position.;
-		var VSORRES;
+		where &var_test.=&test. and VSPOS=&position.;
+		var &var_score.;
 		class treat visit;
-		output out=VS_means mean=mean lclm=lclm uclm=uclm;
+		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(title='Mean ' &position. ' ' &test.);
 %mend plot_mean_value;
 %macro plot_mean_change(code,test,position);
+	%getvars(&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
-	proc means data=temp mean clm alpha=0.05 noprint;
-		where VSTEST_=&test. and VSPOS=&position.;
+	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
+		where &var_test.=&test. and VSPOS=&position.;
 		var diff;
 		class treat visit;
-		output out=VS_means mean=mean lclm=lclm uclm=uclm;
+		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(title='Mean change in ' &position. ' ' &test.);
 %mend plot_mean_change;
