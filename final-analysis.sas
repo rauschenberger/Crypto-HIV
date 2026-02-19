@@ -341,7 +341,7 @@ proc report data=VS;
 run;
 
 /* summarise vital signs - values */ 
-%macro tabval(code,test,position);
+%macro table_values(code,test,position);
 	%getvars(&code.);
 	proc tabulate data=&code.;
 		%if &code.=VS %then %do;
@@ -364,7 +364,7 @@ run;
 			treat;
 		title &position. ' ' &test. ' - values';
 	run;
-%mend tabval;
+%mend table_values;
 /*
 Arguments: Expects a test ('Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate')
 and a position (default 'Supine' or 'Standing').
@@ -403,15 +403,16 @@ Use this macro to obtain the change with respect to baseline.
 */
 
 /* summarise vital signs - change */
-%macro tabdiff(test,position);
-proc tabulate data=temp;
-	class VISIT treat / order=internal;
-	var diff;
-	table 	VISIT * diff * (mean std median min max n),
+%macro table_change(code,test,position);
+	%calcdiff(code=&code.,test=&test.,position=&position.);
+	proc tabulate data=temp;
+		class VISIT treat / order=internal;
+		var diff;
+		table 	VISIT * diff * (mean std median min max n),
 			treat;
-	title &position. '  ' &test. ' - change';
-run;
-%mend;
+		title &position. ' ' &test. ' - change';
+	run;
+%mend table_change;
 /*
 Arguments: Expects a test ('Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate')
 and a position ('Supine' or 'Standing').
@@ -477,7 +478,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		scatter x=visit y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
 	run;
 %mend plot_internal;
-%macro plot_mean_value(test,position);
+%macro plot_mean_value(code,test,position);
 	proc means data=VS mean clm alpha=0.05 noprint;
 		where VSTEST_=&test. and VSPOS=&position.;
 		var VSORRES;
@@ -486,8 +487,8 @@ Plots the measurements against the visit names, with one line for each patient.
 	run;
 	%plot_internal(title='Mean ' &position. ' ' &test.);
 %mend plot_mean_value;
-%macro plot_mean_change(test,position);
-	%calcdiff(&test.);
+%macro plot_mean_change(code,test,position);
+	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=temp mean clm alpha=0.05 noprint;
 		where VSTEST_=&test. and VSPOS=&position.;
 		var diff;
@@ -901,18 +902,21 @@ run;
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%tabval(code=VS,test='Systolic Blood Pressure',position='Sitting');
-%calcdiff(code=VS,test='Systolic Blood Pressure',position='Sitting');
-%tabdiff(test='Systolic Blood Pressure');
+%table_values(code=VS,test='Systolic Blood Pressure',position='Sitting');
+%table_change(code=VS,test='Systolic Blood Pressure',position='Sitting');
+
+/*%calcdiff(code=VS,test='Systolic Blood Pressure',position='Sitting');*/
 /* combine calcdiff and tabdiff in single macro!*/ 
 
-%tabval(code=VS,test='Diastolic Blood Pressure',position='Sitting');
+/*
+%table_values(code=VS,test='Diastolic Blood Pressure',position='Sitting');
 %calcdiff(code=VS,test='Diastolic Blood Pressure',position='Sitting');
 %tabdiff(test='Diastolic Blood Pressure');
 
-%tabval(code=VS,test='Pulse Rate',position='Sitting');
+%table_values(code=VS,test='Pulse Rate',position='Sitting');
 %calcdiff(code=VS,test='Pulse Rate',position='Sitting');
 %tabdiff(test='Pulse Rate');
+*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
@@ -1002,8 +1006,8 @@ run;
 /* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%plot_mean_value(test='Systolic Blood Pressure',position='Sitting');
-%plot_mean_change(test='Systolic Blood Pressure',position='Sitting');
+%plot_mean_value(code=VS,test='Systolic Blood Pressure',position='Sitting');
+%plot_mean_change(code=VS,test='Systolic Blood Pressure',position='Sitting');
 
 /*
 %plot_mean_value(test='Diastolic Blood Pressure');
@@ -1121,10 +1125,13 @@ run;
 %abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
 
 /*here*/
-%tabval(code=LB,test='Haemoglobin',position='');
+%table_values(code=LB,test='Haemoglobin',position='');
+%table_change(code=LB,test='Haemoglobin',position='');
+
+/*
 %calcdiff(code=LB,test='Haemoglobin',position='');
 %tabdiff(test='Systolic Blood Pressure');
-
+*/
 
 
 
