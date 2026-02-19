@@ -199,6 +199,9 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%else %if &code.=EG %then %do;
 		%let var_test=EGSTRESC1_;
 	%end;
+	%else %if &code.=LB %then %do;
+		%let var_test=LBLSIG;
+	%end;
 	%else %do;
 		%put ERROR;
 	%end;
@@ -233,6 +236,11 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 		%let var_id=EGTEST;
 		%let state_by=RID VISIT_;
 		%let var=EGORRES;
+	%end;
+	%if &code.=LB %then %do;
+		%let var_id=LBTEST;
+		%let state_by=RID VISIT_;
+		%let var=LBORRES;
 	%end;
 	data long;
 		set &code.;
@@ -1032,6 +1040,35 @@ run;
 
 
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * *  laboratory * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%prepare;
+
+%ordervar(code=LB,var=VISIT);
+%asnumeric(code=LB,var=LBORRES);
+
+proc report data=LB;
+	title 'laboratory';
+run;
+
+proc tabulate data=LB;
+	title 'laboratory at screening by treatment';
+	where VISIT_='Screening';
+	class treat LBTEST LBCLSIG;
+	var LBORRES;
+	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
+			LBTEST * LBORRES * (mean std median min max n),
+			treat all='both';
+run;
+
+
+/* vital signs - listing of abnormal at screening */
+/*%abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');*/
+
+
+
 
 
 
@@ -1108,25 +1145,6 @@ proc report data=GC;
 	columns RID VISIT eye verbal motor GCS_TOTAL;
 	define RID/order;
 	define VISIT/order=internal;
-run;
-
-/* laboratory */
-
-
-%asnumeric(code=LB,var=LBORRES);
-
-proc report data=LB;
-	title 'laboratory';
-run;
-
-proc tabulate data=LB;
-	title 'laboratory at screening by treatment';
-	where visit='Screening';
-	class treat LBTEST LBCLSIG;
-	var LBORRES;
-	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
-			LBTEST * LBORRES * (mean std median min max n),
-			treat all='both';
 run;
 
 
