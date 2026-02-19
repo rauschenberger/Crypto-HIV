@@ -364,7 +364,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		if RID in (&ids_ncs.);
 	run;
 	proc sort data=temp;
-		by RID VSDTC;
+		by RID; /*included VSDTC*/ 
 	run;
 	data temp;
 		set temp;
@@ -375,7 +375,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		drop time_lag;
 	run;
 	proc sgplot data=temp;
-		series x=time y=VSORRES / group=RID markers;
+		series x=visit y=VSORRES / group=RID markers;
     	title &position. ' ' &test.;
     	xaxis label='time'; 
     	yaxis label='value';
@@ -403,23 +403,23 @@ Plots the measurements against the visit names, with one line for each patient.
 %macro plot_internal(title);
 	data VS_means;
 		set VS_means;
-		where not missing(treat) and not missing(FORM);
+		where not missing(RID);
 	run;
 	proc sgplot data=VS_means;
-		series x=FORM y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
+		series x=visit y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
     	xaxis label='time';
     	yaxis label='value';
     	keylegend / title='treatment';
-		highlow x=FORM low=lclm high=uclm / group=treat;
-		scatter x=FORM y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
+		highlow x=visit low=lclm high=uclm / group=treat;
+		scatter x=visit y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
 	run;
 %mend plot_internal;
 %macro plot_mean_value(test,position);
 	proc means data=VS mean clm alpha=0.05 noprint;
 		where VSTEST_=&test. and VSPOS=&position.;
 		var VSORRES;
-		class treat FORM;
+		class treat visit;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(title='Mean ' &position. ' ' &test.);
@@ -429,7 +429,7 @@ Plots the measurements against the visit names, with one line for each patient.
 	proc means data=temp mean clm alpha=0.05 noprint;
 		where VSTEST_=&test. and VSPOS=&position.;
 		var diff;
-		class treat FORM;
+		class treat visit;
 		output out=VS_means mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(title='Mean change in ' &position. ' ' &test.);
@@ -918,10 +918,13 @@ compact alternative for the three blocks and two macro calls above:
 /* * Subsection 4.14: plot vital signs for abnormal  * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+proc report data=VS;
+run;
+
 data VS;
 	set VS;
 	length time $40;
-	if VISIT='Screening Visit' then time='screen';
+	if VISIT='Screening' then time='screen';
 	else if FORM_='Pre-dose' then time=cat('P',period,': pre-dose');
 	else if FORM_='2 hours post-dose' then time=cat('P',period,': 2h');
 	else if FORM_='4 hours post-dose' then time=cat('P',period,': 4h');
@@ -932,15 +935,15 @@ data VS;
 run;
 %ordervar(code=VS,var=time);
 
-%plotind(test='Systolic Blood Pressure');
-%plotind(test='Diastolic Blood Pressure');
+%plotind(test='Systolic Blood Pressure',position='Sitting');
+%plotind(test='Diastolic Blood Pressure',position='Sitting');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%plot_mean_value(test='Systolic Blood Pressure');
-%plot_mean_change(test='Systolic Blood Pressure');
+%plot_mean_value(test='Systolic Blood Pressure',position='Sitting');
+%plot_mean_change(test='Systolic Blood Pressure',position='Sitting');
 
 /*
 %plot_mean_value(test='Diastolic Blood Pressure');
@@ -955,9 +958,9 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc tabulate data=VS;
-	title 'vital signs at post study by sequence';
-	where visit='Post Study';
-	class treat VSPOS VSTEST VSSTRESC;
+	title 'vital signs at post study by treatment';
+	where VISIT_='Week 10';
+	class treat VISIT_ VSPOS VSTEST VSSTRESC;
 	var VSORRES;
 	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
 			VSPOS * VSTEST * VSORRES * (mean std median min max n),
@@ -968,7 +971,7 @@ run;
 
 data long;
 	set VS;
-	where VISIT in ('Screening Visit','Post Study') and VSPOS='Supine' and not missing(RID);
+	where VISIT_ in ('Screening','Week 10') and VSPOS='Sitting' and not missing(RID);
 run;
 
 proc sort data=long;
@@ -983,7 +986,7 @@ run;
 
 data wide;
 	set wide;
-	diff = Post_Study - Screening_Visit;
+	diff = Week_10 - Screening;
 run;
 
 proc tabulate data=wide;
