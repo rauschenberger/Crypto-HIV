@@ -373,13 +373,13 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 
 /* calculate change */
 %macro calcdiff(code,test,position);
-	data temp;
+	data DATA_DIFF;
 		set &code.;
 		where VSTEST_=&test. and VSPOS=&position. and not missing(RID);
 	run;
-	data temp;
+	data DATA_DIFF;
   		do until(last.RID);
-     		set temp;
+     		set DATA_DIFF;
      		by RID;
      		if treat = 'immediate-release (IR)' then do;
         		if baseA = . then baseA = VSORRES;
@@ -405,7 +405,7 @@ Use this macro to obtain the change with respect to baseline.
 /* summarise vital signs - change */
 %macro table_change(code,test,position);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
-	proc tabulate data=temp;
+	proc tabulate data=DATA_DIFF;
 		class VISIT treat / order=internal;
 		var diff;
 		table 	VISIT * diff * (mean std median min max n),
