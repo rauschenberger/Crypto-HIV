@@ -791,6 +791,193 @@ run;
 
 %prepare;
 
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+proc report data=VS;
+run;
+
+/*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
+%ordervar(code=VS,var=VSTEST);
+%ordervar(code=VS,var=VSSTRESC);
+%ordervar(code=VS,var=VSTEST);
+%asnumeric(code=VS,var=VSORRES);
+
+data VS;
+	set VS;
+	if VSPOS in (' ','.') then VSPOS='N/A';
+run;
+
+proc tabulate data=VS;
+	title 'vital signs at screening by treatment';
+	where VISIT='Screening';
+	class treat VSPOS VSTESTCD VSSTRESC / order=internal;
+	var VSORRES;
+	table	VSPOS * VSTESTCD * VSSTRESC * (n pctn<VSSTRESC>='%')
+			VSPOS * VSTESTCD * VSORRES * (mean std median min max n),
+			treat all='both';
+run;
+
+/* vital signs - listing of abnormal at screening */
+%abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*%add_period(code=VS);*/
+/*%add_treat(code=VS);*/
+%ordervar(code=VS,var=FORM);
+
+%tabval(test='Systolic Blood Pressure',position='Sitting');
+%calcdiff(test='Systolic Blood Pressure',position='Sitting');
+%tabdiff(test='Systolic Blood Pressure');
+
+%tabval(test='Diastolic Blood Pressure',position='Sitting');
+%calcdiff(test='Diastolic Blood Pressure');
+%tabdiff(test='Diastolic Blood Pressure');
+
+%tabval(test='Pulse Rate',position='Sitting');
+%calcdiff(test='Pulse Rate');
+%tabdiff(test='Pulse Rate');
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+proc summary data=VS nway;
+	where not missing(RID) and not missing(period);
+	class VSSTRESC RID FORM treat;
+	output out=temp;
+run;
+
+proc tabulate data=temp;
+	title 'vital signs normal/abnormal by treatment and time';
+	class treat VSSTRESC RID FORM / order=internal;
+	table FORM * VSSTRESC * (n pctn<VSSTRESC>='%'),
+		  treat;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.13: vital signs - abnormal during treatment  * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+data long;
+	set VS;
+	where VSSTRESC_='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
+run;
+
+proc sort data=long;
+	by RID treat period VISIT FORM VSPOS;
+run;
+
+proc transpose data=long out=wide;
+	by RID treat period VISIT FORM VSPOS;
+	id VSTEST;
+	var VSORRES;
+run;
+
+%report(data=wide,title='patients with abnormal NCS - scheduled visits',name=VS,temp='FALSE');
+
+%abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
+
+/*
+compact alternative for the three blocks and two macro calls above:
+%let check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
+%let show_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD' 'Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2';
+%abnormal(code=VS,check_visit=&check_visit.,show_visit=&show_visit.);
+*/
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.14: plot vital signs for abnormal  * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+data VS;
+	set VS;
+	length time $40;
+	if VISIT='Screening Visit' then time='screen';
+	else if FORM_='Pre-dose' then time=cat('P',period,': pre-dose');
+	else if FORM_='2 hours post-dose' then time=cat('P',period,': 2h');
+	else if FORM_='4 hours post-dose' then time=cat('P',period,': 4h');
+	else if FORM_='6 hours post-dose' then time=cat('P',period,': 6h');
+	else if FORM_='48 hours post-dose' then time=cat('P',period,': 48h');
+	else if VISIT='Post Study' then time='post-study';
+	else if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Unscheduled Screening') then time='unscheduled';
+run;
+%ordervar(code=VS,var=time);
+
+%plotind(test='Systolic Blood Pressure');
+%plotind(test='Diastolic Blood Pressure');
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%plot_mean_value(test='Systolic Blood Pressure');
+%plot_mean_change(test='Systolic Blood Pressure');
+
+/*
+%plot_mean_value(test='Diastolic Blood Pressure');
+%plot_mean_change(test='Diastolic Blood Pressure');
+
+%plot_mean_value(test='Pulse Rate');
+%plot_mean_change(test='Pulse Rate');
+*/
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.16: vital signs - post study * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+proc tabulate data=VS;
+	title 'vital signs at post study by sequence';
+	where visit='Post Study';
+	class treat VSPOS VSTEST VSSTRESC;
+	var VSORRES;
+	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
+			VSPOS * VSTEST * VSORRES * (mean std median min max n),
+			treat all='both';
+run;
+
+/* vital signs - overall change */
+
+data long;
+	set VS;
+	where VISIT in ('Screening Visit','Post Study') and VSPOS='Supine' and not missing(RID);
+run;
+
+proc sort data=long;
+	by RID VSTEST;
+run;
+
+proc transpose data=long out=wide;
+	by RID VSTEST treat;
+	id VISIT;
+	var VSORRES;
+run;
+
+data wide;
+	set wide;
+	diff = Post_Study - Screening_Visit;
+run;
+
+proc tabulate data=wide;
+	title 'change in vital signs from screening to post study by sequence';
+	class treat RID VSTEST / order=internal;
+	var diff;
+	table VSTEST * diff * (mean std median min max n), treat;
+run;
+
+
+
+
+
+
+
+
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1035,39 +1222,6 @@ run;
 proc report data=MH;
 run;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.8: vital signs at screening  * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-proc report data=VS;
-run;
-
-/*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
-%ordervar(code=VS,var=VSTEST);
-%ordervar(code=VS,var=VSSTRESC);
-%ordervar(code=VS,var=VSTEST);
-%asnumeric(code=VS,var=VSORRES);
-
-data VS;
-	set VS;
-	if VSPOS in (' ','.') then VSPOS='N/A';
-run;
-
-proc report data=VS;
-run;
-
-proc tabulate data=VS;
-	title 'vital signs at screening by treatment';
-	where VISIT='Screening';
-	class treat VSPOS VSTESTCD VSSTRESC / order=internal;
-	var VSORRES;
-	table	VSPOS * VSTESTCD * VSSTRESC * (n pctn<VSSTRESC>='%')
-			VSPOS * VSTESTCD * VSORRES * (mean std median min max n),
-			treat all='both';
-run;
-
-/* vital signs - listing of abnormal at screening */
-%abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
 
 
 
@@ -1111,157 +1265,6 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /* Data formatting will be different in phase II trial! */
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*%add_period(code=VS);*/
-/*%add_treat(code=VS);*/
-%ordervar(code=VS,var=FORM);
-
-/*
-proc report data=VS;
-run;
-*/
-
-%tabval(test='Systolic Blood Pressure',position='Sitting');
-%calcdiff(test='Systolic Blood Pressure',position='Sitting');
-%tabdiff(test='Systolic Blood Pressure');
-
-%tabval(test='Diastolic Blood Pressure',position='Sitting');
-%calcdiff(test='Diastolic Blood Pressure');
-%tabdiff(test='Diastolic Blood Pressure');
-
-%tabval(test='Pulse Rate',position='Sitting');
-%calcdiff(test='Pulse Rate');
-%tabdiff(test='Pulse Rate');
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-proc summary data=VS nway;
-	where not missing(RID) and not missing(period);
-	class VSSTRESC RID FORM treat;
-	output out=temp;
-run;
-
-proc tabulate data=temp;
-	title 'vital signs normal/abnormal by treatment and time';
-	class treat VSSTRESC RID FORM / order=internal;
-	table FORM * VSSTRESC * (n pctn<VSSTRESC>='%'),
-		  treat;
-run;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.13: vital signs - abnormal during treatment  * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-data long;
-	set VS;
-	where VSSTRESC_='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
-run;
-
-proc sort data=long;
-	by RID treat period VISIT FORM VSPOS;
-run;
-
-proc transpose data=long out=wide;
-	by RID treat period VISIT FORM VSPOS;
-	id VSTEST;
-	var VSORRES;
-run;
-
-%report(data=wide,title='patients with abnormal NCS - scheduled visits',name=VS,temp='FALSE');
-
-%abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
-
-/*
-compact alternative for the three blocks and two macro calls above:
-%let check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
-%let show_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD' 'Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2';
-%abnormal(code=VS,check_visit=&check_visit.,show_visit=&show_visit.);
-*/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.14: plot vital signs for abnormal  * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-data VS;
-	set VS;
-	length time $40;
-	if VISIT='Screening Visit' then time='screen';
-	else if FORM_='Pre-dose' then time=cat('P',period,': pre-dose');
-	else if FORM_='2 hours post-dose' then time=cat('P',period,': 2h');
-	else if FORM_='4 hours post-dose' then time=cat('P',period,': 4h');
-	else if FORM_='6 hours post-dose' then time=cat('P',period,': 6h');
-	else if FORM_='48 hours post-dose' then time=cat('P',period,': 48h');
-	else if VISIT='Post Study' then time='post-study';
-	else if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Unscheduled Screening') then time='unscheduled';
-run;
-%ordervar(code=VS,var=time);
-
-%plotind(test='Systolic Blood Pressure');
-%plotind(test='Diastolic Blood Pressure');
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%plot_mean_value(test='Systolic Blood Pressure');
-%plot_mean_change(test='Systolic Blood Pressure');
-
-/*
-%plot_mean_value(test='Diastolic Blood Pressure');
-%plot_mean_change(test='Diastolic Blood Pressure');
-
-%plot_mean_value(test='Pulse Rate');
-%plot_mean_change(test='Pulse Rate');
-*/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.16: vital signs - post study * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-proc tabulate data=VS;
-	title 'vital signs at post study by sequence';
-	where visit='Post Study';
-	class treat VSPOS VSTEST VSSTRESC;
-	var VSORRES;
-	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
-			VSPOS * VSTEST * VSORRES * (mean std median min max n),
-			treat all='both';
-run;
-
-/* vital signs - overall change */
-
-data long;
-	set VS;
-	where VISIT in ('Screening Visit','Post Study') and VSPOS='Supine' and not missing(RID);
-run;
-
-proc sort data=long;
-	by RID VSTEST;
-run;
-
-proc transpose data=long out=wide;
-	by RID VSTEST treat;
-	id VISIT;
-	var VSORRES;
-run;
-
-data wide;
-	set wide;
-	diff = Post_Study - Screening_Visit;
-run;
-
-proc tabulate data=wide;
-	title 'change in vital signs from screening to post study by sequence';
-	class treat RID VSTEST / order=internal;
-	var diff;
-	table VSTEST * diff * (mean std median min max n), treat;
-run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.17:  electrocardiogram during treatment  * * * * * * * * * */
