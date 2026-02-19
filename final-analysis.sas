@@ -480,8 +480,13 @@ Plots the measurements against the visit names, with one line for each patient.
 %mend plot_internal;
 %macro plot_mean_value(code,test,position);
 	%getvars(&code.);
-	proc means data=VS mean clm alpha=0.05 noprint;
-		where &var_test.=&test. and VSPOS=&position.;
+	proc means data=&code. mean clm alpha=0.05 noprint;
+		%if &code.=VS %then %do;
+			where &var_test.=&test. and VSPOS=&position.;
+		%end;
+		%else %do;
+			where &var_test.=&test.;
+		%end;
 		var &var_score.;
 		class treat visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
@@ -492,7 +497,12 @@ Plots the measurements against the visit names, with one line for each patient.
 	%getvars(&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
-		where &var_test.=&test. and VSPOS=&position.;
+		%if &code.=VS %then %do;
+			where &var_test.=&test. and VSPOS=&position.;
+		%end;
+		%else %do;
+			where &var_test.=&test.;
+		%end;
 		var diff;
 		class treat visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
@@ -866,8 +876,7 @@ run;
 /*
 Comments on dummy data:
 - SUBJD=1009 at VISIT="Screening": PULSE=58 (inside normal range) but VSSTRESC="NCS".
-- one abnormal vital sign does not make 
-
+- one abnormal vital sign does not make all results for one patient at one visit abnormal
 */
 
 
@@ -875,10 +884,9 @@ Comments on dummy data:
 /* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%ordervar(code=VS,var=VISIT); /*requires accessing label with VISIT_ below*/
+%ordervar(code=VS,var=VISIT);
 %ordervar(code=VS,var=VSTEST);
 %ordervar(code=VS,var=VSSTRESC);
-/*%ordervar(code=VS,var=VSTEST);*/
 /*%ordervar(code=VS,var=FORM); does not exist */ 
 %asnumeric(code=VS,var=VSORRES);
 
@@ -907,17 +915,24 @@ run;
 %table_values(code=VS,test='Systolic Blood Pressure',position='Sitting');
 %table_change(code=VS,test='Systolic Blood Pressure',position='Sitting');
 
-/*%calcdiff(code=VS,test='Systolic Blood Pressure',position='Sitting');*/
-/* combine calcdiff and tabdiff in single macro!*/ 
-
-/*
 %table_values(code=VS,test='Diastolic Blood Pressure',position='Sitting');
-%calcdiff(code=VS,test='Diastolic Blood Pressure',position='Sitting');
-%tabdiff(test='Diastolic Blood Pressure');
+%table_change(code=VS,test='Diastolic Blood Pressure',position='Sitting');
 
 %table_values(code=VS,test='Pulse Rate',position='Sitting');
-%calcdiff(code=VS,test='Pulse Rate',position='Sitting');
-%tabdiff(test='Pulse Rate');
+%table_change(code=VS,test='Pulse Rate',position='Sitting');
+
+/*
+%macro process_table;
+	%let tests = 'Systolic Blood Pressure' 'Diastolic Blood Pressure' 'Pulse Rate';
+	%local i test;
+	%do i = 1 %to %sysfunc(countw(&tests));
+  	%let test = %scan(&tests, &i);
+  		%table_values(code=VS,test=&test,position='Sitting');
+  		%table_change(code=VS,test=&test,position='Sitting');
+	%end;
+%mend process_table;
+
+%process_table;
 */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1126,14 +1141,12 @@ run;
 
 %abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
 
-/*here*/
 %table_values(code=LB,test='Haemoglobin',position='');
 %table_change(code=LB,test='Haemoglobin',position='');
 
-/*
-%calcdiff(code=LB,test='Haemoglobin',position='');
-%tabdiff(test='Systolic Blood Pressure');
-*/
+%plot_mean_value(code=LB,test='Haemoglobin',position='');
+%plot_mean_change(code=LB,test='Haemoglobin',position='');
+
 
 
 
@@ -1368,16 +1381,6 @@ run;
 
 
 
-
-
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.10: hematology * * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/* Data formatting will be different in phase II trial! */
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.18: adverse events * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1394,6 +1397,8 @@ proc report data=AE spanrows;
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	define RID/order;
 run;
+
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
