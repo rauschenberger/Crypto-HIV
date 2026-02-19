@@ -204,7 +204,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%end;
     data temp;
         set &code.;
-        where VISIT in (&visit.) and &var_test. in ('NCS','CS','Abnormal, NCS') and not missing(RID); /* use numerical values */ 
+        where VISIT_ in (&visit.) and &var_test. in ('NCS','CS','Abnormal, NCS') and not missing(RID); /* use numerical values */ 
     run;
     proc sql noprint;
         select distinct RID
@@ -226,18 +226,18 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 %macro showncs(code,visit);
 	%if &code.=VS %then %do;
 		%let var_id=VSTESTCD;
-		%let state_by=RID VISIT VSPOS;
+		%let state_by=RID VISIT_ VSPOS;
 		%let var=VSORRES;
 	%end;
 	%else %if &code.=EG %then %do;
 		%let var_id=EGTEST;
-		%let state_by=RID VISIT PAGENAME;
+		%let state_by=RID VISIT_ PAGENAME;
 		%let var=EGORRES;
 	%end;
 	data long;
 		set &code.;
 		if RID in (&ids_ncs.);
-		if VISIT in (&visit.);
+		if VISIT_ in (&visit.);
 	run; 
 	proc sort data=long;
 		by &state_by.;
@@ -258,7 +258,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled Screening').
 	proc report data=&data. spanrows;
 		%color(name=&name.,temp=&temp.);
 		define RID / order order=internal;
-		define VISIT / order order=internal;
+		define VISIT_ / order order=internal;
 		%if &name.=EG %then %do;
 			define PAGENAME / order order=internal;
 		%end;
@@ -293,12 +293,12 @@ proc report data=VS;
 run;
 
 /* summarise vital signs - values */ 
-%macro tabval(test,position='Supine');
+%macro tabval(test,position);
 	proc tabulate data=VS;
 		where VSPOS=&position. and VSTEST_=&test.;
 		class VSTEST_ VSPOS VISIT treat / order=internal;
 		var VSORRES;
-		table 	VSORRES * (mean std median min max n),
+		table 	VISIT * VSORRES * (mean std median min max n),
 			treat;
 		title &position. ' ' &test. ' - values';
 	run;
@@ -310,7 +310,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 */ 
 
 /* calculate change */
-%macro calcdiff(test,position='Supine');
+%macro calcdiff(test,position);
 	data temp;
 		set VS;
 		where VSTEST_=&test. and VSPOS=&position. and not missing(RID);
@@ -341,11 +341,11 @@ Use this macro to obtain the change with respect to baseline.
 */
 
 /* summarise vital signs - change */
-%macro tabdiff(test,position='Supine');
+%macro tabdiff(test,position);
 proc tabulate data=temp;
 	class VISIT treat / order=internal;
 	var diff;
-	table 	diff * (mean std median min max n),
+	table 	VISIT * diff * (mean std median min max n),
 			treat;
 	title &position. '  ' &test. ' - change';
 run;
@@ -357,7 +357,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 */ 
 
 /* plot trajectories of vital signs */
-%macro plotind(test,position='Supine');
+%macro plotind(test,position);
 	data temp;
 		set VS;
 		where VSTEST_=&test. and VSPOS=&position.;
@@ -415,7 +415,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		scatter x=FORM y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
 	run;
 %mend plot_internal;
-%macro plot_mean_value(test,position='Supine');
+%macro plot_mean_value(test,position);
 	proc means data=VS mean clm alpha=0.05 noprint;
 		where VSTEST_=&test. and VSPOS=&position.;
 		var VSORRES;
@@ -424,7 +424,7 @@ Plots the measurements against the visit names, with one line for each patient.
 	run;
 	%plot_internal(title='Mean ' &position. ' ' &test.);
 %mend plot_mean_value;
-%macro plot_mean_change(test,position='Supine');
+%macro plot_mean_change(test,position);
 	%calcdiff(&test.);
 	proc means data=temp mean clm alpha=0.05 noprint;
 		where VSTEST_=&test. and VSPOS=&position.;
@@ -627,7 +627,7 @@ proc format;
 		'Week 4' = 9
 		'Week 6' = 10
 		'Week 10' = 11
-		'Unscheduled' = 12
+		'Unscheduled' = .
 		;
 	value VISIT_value
  		0 = 'Screening'
@@ -642,7 +642,7 @@ proc format;
 		9 = 'Week 4'
 		10 = 'Week 6'
 		11 = 'Week 10'
-		12 = 'Unscheduled'
+		other = .
 		;
 run;
 
@@ -659,17 +659,20 @@ proc format;
 	value	sup_dia 	low-45=&low.
 						45-90='white'
 						90-high=&high.;
-	value	sup_pul 	low-40=&low.
-						40-100='white'
-						100-high=&high.;
 	value	sta_sys 	low-85=&low.
 						85-150='white'
 						150-high=&high.;
 	value	sta_dia 	low-50=&low.
 						50-95='white'
 						95-high=&high.;
-	value	sta_pul 	low-40=&low.
+	value	PULSE 		low-40=&low.
 						40-100='white'
+						100-high=&high.;
+	value 	RESPIR		low-12=&low.
+						12-20='white'
+						20-high=&high.;
+	value	OXYSAT		low-95=&low.
+						95-100='white'
 						100-high=&high.;
 	/* ECG */ 
 	value ECG_HR		low-40=&low.
@@ -706,7 +709,7 @@ run;
 				call define(_col_,'style','style={background=temp.}');
 			endcomp;
 		%end;
-	compute Systolic_Blood_Pressure;
+	compute SYSBP;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_sys.}');
 		end;
@@ -714,7 +717,7 @@ run;
 			call define(_col_,'style','style={background=sta_sys.}');
 		end;
 	endcomp;
-	compute Diastolic_Blood_Pressure;
+	compute DIABP;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_dia.}');
 		end;
@@ -722,13 +725,14 @@ run;
 			call define(_col_,'style','style={background=sta_dia.}');
 		end;
 	endcomp;
-	compute Pulse_Rate;
-		if VSPOS = 'Supine' then do;
-			call define(_col_,'style','style={background=sup_pul.}');
-		end;
-		else if VSPOS='Standing' then do;
-			call define(_col_,'style','style={background=sta_pul.}');
-		end;
+	compute PULSE;
+			call define(_col_,'style','style={background=PULSE.}');
+	endcomp;
+	compute RESPIR;
+			call define(_col_,'style','style={background=RESPIR.}');
+	endcomp;
+	compute OXYSAT;
+			call define(_col_,'style','style={background=OXYSAT.}');
 	endcomp;
 	%end;
 	%if &name.=EG %then %do;
@@ -792,6 +796,13 @@ run;
 %prepare;
 
 
+/*
+Comments on dummy data:
+- SUBJD=1009 at VISIT="Screening": PULSE=58 (inside normal range) but VSSTRESC="NCS".
+- one abnormal vital sign does not make 
+
+*/
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -799,10 +810,11 @@ run;
 proc report data=VS;
 run;
 
-/*%ordervar(code=VS,var=VISIT); requires accessing label with VISIT_ below */
+%ordervar(code=VS,var=VISIT); /*requires accessing label with VISIT_ below*/
 %ordervar(code=VS,var=VSTEST);
 %ordervar(code=VS,var=VSSTRESC);
 %ordervar(code=VS,var=VSTEST);
+/*%ordervar(code=VS,var=FORM); does not exist */ 
 %asnumeric(code=VS,var=VSORRES);
 
 data VS;
@@ -812,7 +824,7 @@ run;
 
 proc tabulate data=VS;
 	title 'vital signs at screening by treatment';
-	where VISIT='Screening';
+	where VISIT_='Screening';
 	class treat VSPOS VSTESTCD VSSTRESC / order=internal;
 	var VSORRES;
 	table	VSPOS * VSTESTCD * VSSTRESC * (n pctn<VSSTRESC>='%')
@@ -823,43 +835,43 @@ run;
 /* vital signs - listing of abnormal at screening */
 %abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*%add_period(code=VS);*/
-/*%add_treat(code=VS);*/
-%ordervar(code=VS,var=FORM);
 
 %tabval(test='Systolic Blood Pressure',position='Sitting');
 %calcdiff(test='Systolic Blood Pressure',position='Sitting');
 %tabdiff(test='Systolic Blood Pressure');
 
 %tabval(test='Diastolic Blood Pressure',position='Sitting');
-%calcdiff(test='Diastolic Blood Pressure');
+%calcdiff(test='Diastolic Blood Pressure',position='Sitting');
 %tabdiff(test='Diastolic Blood Pressure');
 
 %tabval(test='Pulse Rate',position='Sitting');
-%calcdiff(test='Pulse Rate');
+%calcdiff(test='Pulse Rate',position='Sitting');
 %tabdiff(test='Pulse Rate');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/*
 proc summary data=VS nway;
-	where not missing(RID) and not missing(period);
-	class VSSTRESC RID FORM treat;
+	where not missing(RID);
+	class VSSTRESC RID VISIT treat;
 	output out=temp;
+run;
+
+proc report data=VS;
 run;
 
 proc tabulate data=temp;
 	title 'vital signs normal/abnormal by treatment and time';
-	class treat VSSTRESC RID FORM / order=internal;
-	table FORM * VSSTRESC * (n pctn<VSSTRESC>='%'),
+	class VISIT treat VSSTRESC RID / order=internal;
+	table VISIT * VSSTRESC * (n pctn<VSSTRESC>='%'),
 		  treat;
 run;
+*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.13: vital signs - abnormal during treatment  * * * * * * * */
@@ -867,22 +879,33 @@ run;
 
 data long;
 	set VS;
-	where VSSTRESC_='NCS' and not missing(RID) and VISIT in ('Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD');
+	where VSSTRESC_ ne 'Normal' and not missing(RID) and VISIT_ in ('Day 1', 'Day 2', 'Day 3', 'Day 6', 'Day 7', 'Day 15');
+	if VSTEST_ = 'Pulse Rate' then VSTEST_ = 'PULSE';
+  	else if VSTEST_ = 'Body Temperature' then VSTEST_ = 'TEMP';
+	else if VSTEST_ = 'Respiratory Rate' then VSTEST_= 'RESPIR';
+	else if VSTEST_ = 'Diastolic Blood Pressure' then VSTEST_ = 'DIAPB';
+	else if VSTEST_ = 'Systolic Blood Pressure' then VSTEST_ = 'SYSBP';
+	else if VSTEST_ = 'Oxygen Saturation' then VSTEST_ = 'OXYGEN';
+run;
+
+proc report data=long;
 run;
 
 proc sort data=long;
-	by RID treat period VISIT FORM VSPOS;
+	by RID treat VISIT VSPOS;
 run;
 
 proc transpose data=long out=wide;
-	by RID treat period VISIT FORM VSPOS;
-	id VSTEST;
+	by RID treat VISIT VSPOS;
+	id VSTEST_;
 	var VSORRES;
 run;
 
-%report(data=wide,title='patients with abnormal NCS - scheduled visits',name=VS,temp='FALSE');
+%report(data=wide,title='patients with abnormal vital signs - scheduled visits',name=VS,temp='FALSE');
 
+/*
 %abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
+*/
 
 /*
 compact alternative for the three blocks and two macro calls above:
