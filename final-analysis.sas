@@ -204,7 +204,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%end;
     data temp;
         set &code.;
-        where VISIT_ in (&visit.) and &var_test. in ('NCS','CS','Abnormal, NCS') and not missing(RID); /* use numerical values */ 
+        where VISIT_ in (&visit.) and &var_test. in ('NCS','CS','Abnormal, NCS','Abnormal, CS') and not missing(RID); /* use numerical values */ 
     run;
     proc sql noprint;
         select distinct RID
@@ -231,7 +231,7 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 	%end;
 	%else %if &code.=EG %then %do;
 		%let var_id=EGTEST;
-		%let state_by=RID VISIT_ PAGENAME;
+		%let state_by=RID VISIT_;
 		%let var=EGORRES;
 	%end;
 	data long;
@@ -259,9 +259,9 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled Screening').
 		%color(name=&name.,temp=&temp.);
 		define RID / order order=internal;
 		define VISIT_ / order order=internal;
-		%if &name.=EG %then %do;
+		/*%if &name.=EG %then %do;
 			define PAGENAME / order order=internal;
-		%end;
+		%end;*/
 		define _NAME_/noprint;
 		title &title.;
 	run;
@@ -609,10 +609,12 @@ proc format;
 	invalue EGSTRESC1_invalue
 		'Normal' = 0
 		'Abnormal, NCS' = 1
+		'Abnormal, CS' = 2
 		;
 	value EGSTRESC1_value
 		0 = 'Normal'
 		1 = 'Abnormal, NCS'
+		2 = 'Abnormal, CS'
 		;
 	invalue VISIT_invalue
  		'Screening' = 0
@@ -803,6 +805,7 @@ Comments on dummy data:
 
 */
 
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -918,9 +921,6 @@ compact alternative for the three blocks and two macro calls above:
 /* * Subsection 4.14: plot vital signs for abnormal  * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=VS;
-run;
-
 data VS;
 	set VS;
 	length time $40;
@@ -998,6 +998,37 @@ run;
 
 
 
+
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.9: electrocardiogram at screening* * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*%ordervar(code=EG,var=VISIT);*/
+%ordervar(code=EG,var=EGSTRESC1);
+%asnumeric(code=EG,var=EGORRES);
+
+/* The following data statement creates the variable 'measure = test (unit)'. */
+data EG;
+	set EG;
+	length measure $40;
+	VISIT_ = VISIT;
+	if missing(EGORRESU) then measure = EGTEST;
+	else measure = cat(EGTEST,' (',EGORRESU,')');
+run;
+
+proc tabulate data=EG;
+	title 'ECG at DAY 1 by treatment';
+	where VISIT='DAY 1';
+	class treat measure EGSTRESC1;
+	var EGORRES;
+	table 	measure * EGSTRESC1 * (n pctn<EGSTRESC1>='%')
+			measure * EGORRES * (mean std median min max n),
+			treat all='both';
+run;
+
+/* ECG - listing of abnormal at screening */ 
+%abnormal(code=EG,check_visit='DAY 1',show_visit='DAY 1');
 
 
 
@@ -1254,65 +1285,14 @@ run;
 
 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.9: electrocardiogram at screning * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=EG;
-run;
 
-%ordervar(code=EG,var=PAGENAME);
-%ordervar(code=EG,var=EGSTRESC1);
-%asnumeric(code=EG,var=EGORRES);
-
-/* The following data statement creates the variable 'measure = test (unit)'. */
-data EG;
-	set EG;
-	length measure $40;
-	if missing(EGORRESU) then measure = EGTEST;
-	else measure = cat(EGTEST,' (',EGORRESU,')');
-run;
-
-proc tabulate data=EG;
-	title 'ECG at DAY 1 by treatment';
-	where VISIT='DAY 1';
-	class treat measure EGSTRESC1;
-	var EGORRES;
-	table 	measure * EGSTRESC1 * (n pctn<EGSTRESC1>='%')
-			measure * EGORRES * (mean std median min max n),
-			treat all='both';
-run;
-
-/* ECG - listing of abnormal at screening */ 
-%abnormal(code=EG,check_visit='DAY 1',show_visit='DAY 1');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.10: hematology * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /* Data formatting will be different in phase II trial! */
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.17:  electrocardiogram during treatment  * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%add_period(code=EG);
-%add_treat(code=EG);
-
-proc tabulate data=EG;
-	title 'ECG during treatment by treatment and time';
-	class treat PAGENAME measure;
-	where not missing(RID) and PAGENAME_ ne 'ECG';
-	var EGORRES;
-	table measure*EGORRES * (mean std median min max N), treat*PAGENAME;
-run;
-
-/* abnormal ECG results during treatment */
-%let visits='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
-%abnormal(code=EG,check_visit=&visits.,show_visit=&visits.);
-
-/* abnormal ECG results post study */
-%abnormal(code=EG,check_visit='Post Study',show_visit='Post Study');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.18: adverse events * * * * * * * * * * * * * * * * * * * * */
