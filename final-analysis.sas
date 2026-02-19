@@ -190,9 +190,41 @@ Both variables have the specified order of the category levels,
 and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne baseline')
 */
 
+/* define variable names TEST and SCORE */ 
+%macro getvars(code);
+	%global var_test state_by var_score var_judge;
+	%if &code.=VS %then %do;
+		%let var_test=VSTEST_; /* was VSTESTCD*/
+		%let state_by=RID VISIT_ VSPOS;
+		%let var_judge=VSSTRESC_;
+		%let var_score=VSORRES;
+	%end;
+	%else %if &code.=EG %then %do;
+		%let var_test=EGTEST;
+		%let state_by=RID VISIT_;
+		%let var_judge=EGSTRESC1_;
+		%let var_score=EGORRES;
+	%end;
+	%else %if &code.=LB %then %do;
+		%let var_test=LBTEST;
+		%let state_by=RID VISIT_;
+		%let var_judge=LBLSIG;
+		%let var_score=LBORRES;
+	%end;
+	%else %do;
+		%put ERROR;
+	%end;
+	%put var_test=&var_test.;
+	%put state_by=&state_by.;
+	%put var_score=&var_score.;
+	%put var_judge=&var_judge.;
+%mend getvars;
+
+
 /* find patients with abnormal results */ 
 %macro listncs(code,visit);
 	%global ids_ncs;
+	/*
 	%if &code.=VS %then %do;
 		%let var_test=VSSTRESC_;
 	%end;
@@ -205,9 +237,11 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%else %do;
 		%put ERROR;
 	%end;
+	*/
+	%getvars(&code.);
     data temp;
         set &code.;
-        where VISIT_ in (&visit.) and &var_test. in ('NCS','CS','Abnormal, NCS','Abnormal, CS') and not missing(RID); /* use numerical values */ 
+        where VISIT_ in (&visit.) and &var_judge. in ('NCS','CS','Abnormal, NCS','Abnormal, CS') and not missing(RID); /* use numerical values */ 
     run;
     proc sql noprint;
         select distinct RID
@@ -227,21 +261,27 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 
 /* show results for some patients */ 
 %macro showncs(code,visit);
+	/*
 	%if &code.=VS %then %do;
-		%let var_id=VSTESTCD;
+		%let var_test=VSTESTCD;
 		%let state_by=RID VISIT_ VSPOS;
-		%let var=VSORRES;
+		%let var_score=VSORRES;
 	%end;
 	%else %if &code.=EG %then %do;
-		%let var_id=EGTEST;
+		%let var_test=EGTEST;
 		%let state_by=RID VISIT_;
-		%let var=EGORRES;
+		%let var_score=EGORRES;
 	%end;
-	%if &code.=LB %then %do;
-		%let var_id=LBTEST;
+	%else %if &code.=LB %then %do;
+		%let var_test=LBTEST;
 		%let state_by=RID VISIT_;
-		%let var=LBORRES;
+		%let var_score=LBORRES;
 	%end;
+	%else %do;
+		%put ERROR;
+	%end;
+	*/
+	%getvars(&code.);
 	data long;
 		set &code.;
 		if RID in (&ids_ncs.);
@@ -252,8 +292,8 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 	run;
 	proc transpose data=long out=wide;
 		by &state_by.;
-		id &var_id.;
-		var &var.;
+		id &var_test.;
+		var &var_score.;
 	run;
 %mend;
 /*
@@ -302,11 +342,25 @@ run;
 
 /* summarise vital signs - values */ 
 %macro tabval(code,test,position);
+	%getvars(&code.);
 	proc tabulate data=&code.;
-		where VSPOS=&position. and VSTEST_=&test.;
-		class VSTEST_ VSPOS VISIT treat / order=internal;
-		var VSORRES;
-		table 	VISIT * VSORRES * (mean std median min max n),
+		%if &code.=VS %then %do;
+			where VSPOS=&position. and &var_test.=&test.;
+			class &var_test. VSPOS VISIT treat / order=internal;
+		%end;
+		%else %if &code.=LB %then %do;
+			where &var_test.=&test.;
+			class &var_test. VISIT treat / order=internal;		
+		%end;
+		%else %do;
+			%put ERROR;
+		%end;
+		/*
+		where VSPOS=&position. and &var_test.=&test.;
+		class &var_test. VSPOS VISIT treat / order=internal;
+		*/
+		var &var_score.; /*was VSORRES*/
+		table 	VISIT * &var_score. * (mean std median min max n), /*was VSORRES*/
 			treat;
 		title &position. ' ' &test. ' - values';
 	run;
@@ -818,12 +872,10 @@ Comments on dummy data:
 /* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%prepare;
-
 %ordervar(code=VS,var=VISIT); /*requires accessing label with VISIT_ below*/
 %ordervar(code=VS,var=VSTEST);
 %ordervar(code=VS,var=VSSTRESC);
-%ordervar(code=VS,var=VSTEST);
+/*%ordervar(code=VS,var=VSTEST);*/
 /*%ordervar(code=VS,var=FORM); does not exist */ 
 %asnumeric(code=VS,var=VSORRES);
 
@@ -1065,8 +1117,13 @@ run;
 
 
 /* vital signs - listing of abnormal at screening */
-/*%abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');*/
 
+%abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
+
+/*here*/
+%tabval(code=LB,test='Haemoglobin',position='');
+%calcdiff(code=LB,test='Haemoglobin',position='');
+%tabdiff(test='Systolic Blood Pressure');
 
 
 
