@@ -301,8 +301,8 @@ proc report data=VS;
 run;
 
 /* summarise vital signs - values */ 
-%macro tabval(test,position);
-	proc tabulate data=VS;
+%macro tabval(code,test,position);
+	proc tabulate data=&code.;
 		where VSPOS=&position. and VSTEST_=&test.;
 		class VSTEST_ VSPOS VISIT treat / order=internal;
 		var VSORRES;
@@ -318,9 +318,9 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 */ 
 
 /* calculate change */
-%macro calcdiff(test,position);
+%macro calcdiff(code,test,position);
 	data temp;
-		set VS;
+		set &code.;
 		where VSTEST_=&test. and VSPOS=&position. and not missing(RID);
 	run;
 	data temp;
@@ -818,8 +818,7 @@ Comments on dummy data:
 /* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=VS;
-run;
+%prepare;
 
 %ordervar(code=VS,var=VISIT); /*requires accessing label with VISIT_ below*/
 %ordervar(code=VS,var=VSTEST);
@@ -850,16 +849,17 @@ run;
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%tabval(test='Systolic Blood Pressure',position='Sitting');
-%calcdiff(test='Systolic Blood Pressure',position='Sitting');
+%tabval(code=VS,test='Systolic Blood Pressure',position='Sitting');
+%calcdiff(code=VS,test='Systolic Blood Pressure',position='Sitting');
 %tabdiff(test='Systolic Blood Pressure');
+/* combine calcdiff and tabdiff in single macro!*/ 
 
-%tabval(test='Diastolic Blood Pressure',position='Sitting');
-%calcdiff(test='Diastolic Blood Pressure',position='Sitting');
+%tabval(code=VS,test='Diastolic Blood Pressure',position='Sitting');
+%calcdiff(code=VS,test='Diastolic Blood Pressure',position='Sitting');
 %tabdiff(test='Diastolic Blood Pressure');
 
-%tabval(test='Pulse Rate',position='Sitting');
-%calcdiff(test='Pulse Rate',position='Sitting');
+%tabval(code=VS,test='Pulse Rate',position='Sitting');
+%calcdiff(code=VS,test='Pulse Rate',position='Sitting');
 %tabdiff(test='Pulse Rate');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
