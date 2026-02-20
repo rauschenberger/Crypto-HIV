@@ -104,13 +104,14 @@ This adds information on the treatment sequence to dataset 'code'.
 
 /* import and process clinical data */
 %macro prepare;
-   %let code = AE ART ARTT CE CM DD DI DM DS DV EG EX GC IE LB LP MH PE PM PR QUEST RANKIN VS; /* Also add files without code! */
-   %do i = 1 %to %sysfunc(countw(&code));
-      %import(&pathClin,%scan(&code,&i));
-	  %add_rid(%scan(&code,&i));
-	  %sort_rid(%scan(&code,&i));
-	  %add_seq(%scan(&code,&i));
-   %end;
+	%local code i;
+	%let code = AE ART ARTT CE CM DD DI DM DS DV EG EX GC IE LB LP MH PE PM PR QUEST RANKIN VS; /* Also add files without code! */
+	%do i = 1 %to %sysfunc(countw(&code));
+    	%import(&pathClin,%scan(&code,&i));
+		%add_rid(%scan(&code,&i));
+		%sort_rid(%scan(&code,&i));
+		%add_seq(%scan(&code,&i));
+	%end;
 %mend prepare;
 /*
 Arguments: -
@@ -223,8 +224,8 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 /* find patients with abnormal results */ 
 %macro extract_ids_abnormal(code,visit);
-	%global ids_abnormal;
-	/*%local ids_abnormal var_test state_by var_score var_judge;*/
+	/*%global ids_abnormal;*/
+	%local var_test state_by var_score var_judge;
 	%getvars(&code.);
     data temp;
         set &code.;
@@ -252,7 +253,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 
 /* show results for some patients */ 
 %macro extract_rows_abnormal(code,visit);
-	/*%local var_test state_by var_score var_judge;*/
+	%local var_test state_by var_score var_judge;
 	%getvars(&code.);
 	data long;
 		set &code.;
@@ -298,7 +299,7 @@ Description: Adds colour for extreme values (see format section). Defines order 
 
 /* report patients with abnormal values*/ 
 %macro list_abnormal(code,check_visit,show_visit,temp='TRUE');
-	/*%local ids_abnormal;*/
+	%local ids_abnormal;
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
 	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
@@ -315,6 +316,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 
 /* summarise vital signs - values */ 
 %macro table_values(code,test,position);
+	%local var_test state_by var_score var_judge;
 	%getvars(&code.);
 	proc tabulate data=&code.;
 		%if &code.=VS %then %do;
@@ -351,6 +353,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 
 /* calculate change */
 %macro calcdiff(code,test,position);
+	%local var_test state_by var_score var_judge;
 	/*%global DATA_DIFF;*/
 	%getvars(&code.);
 	data DATA_DIFF;
@@ -406,6 +409,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 
 /* plot trajectories */
 %macro plot_traject(code,check_visit,test,position);
+	%local var_test state_by var_score var_judge ids_abnormal;
 	%getvars(&code.);
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	data temp;
@@ -473,6 +477,7 @@ Plots the measurements against the visit names, with one line for each patient.
 	run;
 %mend plot_internal;
 %macro plot_mean_value(code,test,position);
+	%local var_test state_by var_score var_judge;
 	%getvars(&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
 		%if &code.=VS %then %do;
@@ -488,6 +493,7 @@ Plots the measurements against the visit names, with one line for each patient.
 	%plot_internal(title='Mean ' &position. ' ' &test.);
 %mend plot_mean_value;
 %macro plot_mean_change(code,test,position);
+	%local var_test state_by var_score var_judge;
 	%getvars(&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
@@ -1145,8 +1151,9 @@ run;
 
 %process_plot(code=LB,tests=Haemoglobin|Leucocytes,position=);
 
-
 %plot_traject(code=LB,test='Haemoglobin',position='');
+
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
