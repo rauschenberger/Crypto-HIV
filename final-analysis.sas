@@ -224,20 +224,6 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 /* find patients with abnormal results */ 
 %macro listncs(code,visit);
 	%global ids_ncs;
-	/*
-	%if &code.=VS %then %do;
-		%let var_test=VSSTRESC_;
-	%end;
-	%else %if &code.=EG %then %do;
-		%let var_test=EGSTRESC1_;
-	%end;
-	%else %if &code.=LB %then %do;
-		%let var_test=LBLSIG;
-	%end;
-	%else %do;
-		%put ERROR;
-	%end;
-	*/
 	%getvars(&code.);
     data temp;
         set &code.;
@@ -262,26 +248,6 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 
 /* show results for some patients */ 
 %macro showncs(code,visit);
-	/*
-	%if &code.=VS %then %do;
-		%let var_test=VSTESTCD;
-		%let state_by=RID VISIT_ VSPOS;
-		%let var_score=VSORRES;
-	%end;
-	%else %if &code.=EG %then %do;
-		%let var_test=EGTEST;
-		%let state_by=RID VISIT_;
-		%let var_score=EGORRES;
-	%end;
-	%else %if &code.=LB %then %do;
-		%let var_test=LBTEST;
-		%let state_by=RID VISIT_;
-		%let var_score=LBORRES;
-	%end;
-	%else %do;
-		%put ERROR;
-	%end;
-	*/
 	%getvars(&code.);
 	data long;
 		set &code.;
@@ -353,10 +319,6 @@ and shows the results for these patients at one or more visits ('show_visit').
 		%else %do;
 			%put ERROR;
 		%end;
-		/*
-		where VSPOS=&position. and &var_test.=&test.;
-		class &var_test. VSPOS VISIT treat / order=internal;
-		*/
 		var &var_score.; /*was VSORRES*/
 		table 	VISIT * &var_score. * (mean std median min max n), /*was VSORRES*/
 			treat;
