@@ -228,7 +228,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%getvars(&code.);
     data temp;
         set &code.;
-        where VISIT_ in (&visit.) and &var_judge. not in ('Normal', '') and not missing(RID); /* use numerical values */ 
+        where VISIT_ in (&visit.) and not missing(&var_judge.) and strip(&var_judge.) not in ('Normal', '.') and not missing(RID); /* use numerical values */ 
 		/*was in ('NCS','CS','Abnormal, NCS','Abnormal, CS') */ 
     run;
     proc sql noprint;
@@ -351,7 +351,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 
 /* calculate change */
 %macro calcdiff(code,test,position);
-	%global DATA_DIFF;
+	/*%global DATA_DIFF;*/
 	%getvars(&code.);
 	data DATA_DIFF;
 		set &code.;
@@ -911,6 +911,13 @@ proc tabulate data=VS;
 			treat all='both';
 run;
 
+/*
+proc report data=VS;
+	where not missing(VSSTRESC_) and strip(VSSTRESC_) not in ('Normal','.');
+	where VSSTRESC_ in ('NCS' 'CS');
+run;
+*/
+
 /* vital signs - listing of abnormal at screening */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
@@ -953,15 +960,18 @@ run;
 /* * Subsection 4.13: vital signs - abnormal during treatment  * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/* This is wrong as it subsets the table and then tranposes (i.e., introducing missing values).*/
 data long;
 	set VS;
-	where VSSTRESC_ ne 'Normal' and not missing(RID) and VISIT_ in ('Day 1', 'Day 2', 'Day 3', 'Day 6', 'Day 7', 'Day 15');
+	where not missing(VSSTRESC_) and strip(VSSTRESC_) not in ('Normal','.') and not missing(RID) and VISIT_ in ('Day 1', 'Day 2', 'Day 3', 'Day 6', 'Day 7', 'Day 15');
+	/*
 	if VSTEST_ = 'Pulse Rate' then VSTEST_ = 'PULSE';
   	else if VSTEST_ = 'Body Temperature' then VSTEST_ = 'TEMP';
 	else if VSTEST_ = 'Respiratory Rate' then VSTEST_= 'RESPIR';
 	else if VSTEST_ = 'Diastolic Blood Pressure' then VSTEST_ = 'DIAPB';
 	else if VSTEST_ = 'Systolic Blood Pressure' then VSTEST_ = 'SYSBP';
 	else if VSTEST_ = 'Oxygen Saturation' then VSTEST_ = 'OXYGEN';
+	*/
 run;
 
 proc report data=long;
