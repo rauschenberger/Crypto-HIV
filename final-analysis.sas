@@ -799,6 +799,9 @@ proc format;
 						other = &low.;
 	value $GCS_motor	'Obeys commands' = 'white'
 						other = &low.;
+	/* PE */
+	value $ORRES		'Abnormal, CS' = &low.
+						other = 'white';
 run; 
 
 /* colour extreme values */ 
@@ -864,6 +867,11 @@ run;
 	endcomp;
 	compute BESTMOTORRESPONSE;
 		call define(_col_,'style','style={background=$GCS_motor.}');
+	endcomp;
+	%end;
+	%if &name.=PE %then %do;
+	compute PEORRES / character length=50;
+		call define(_col_,'style','style={background=$ORRES.}');
 	endcomp;
 	%end;
 %mend color;
@@ -1224,17 +1232,16 @@ run;
 
 /* physical examination */
 
-data PE;
-	set PE;
+data PE_sub;
+	retain RID VISIT PETESTCD PEORRES PEORRES_SP;
+	set PE(keep=RID VISIT PETESTCD PEORRES PEORRES_SP);
 	if PEORRES='D' then PEORRES='';
+	where PEORRES not in ('Normal', '');
 run;
 
-proc report data=PE;
-	title 'physical examination';
-	where PEORRES not in ('Normal', '');
-	column RID VISIT PETESTCD PEORRES PEORRES_SP;
-	define RID/order;
-run;
+%report(data=PE_sub,title='physical examination',name=PE,temp='FALSE');
+
+/* prior medications */ 
 
 proc report data=PM;
 	title 'prior medications';
