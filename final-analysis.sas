@@ -379,8 +379,10 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 
 /* calculate change */
 %macro calcdiff(code,test,position);
+	%global DATA_DIFF;
 	data DATA_DIFF;
 		set &code.;
+		/* make this more general (not only for VS!) */ 
 		where VSTEST_=&test. and VSPOS=&position. and not missing(RID);
 	run;
 	data DATA_DIFF;
@@ -525,6 +527,16 @@ and the different time points (pre-dose, 2/4/6/48 hours postdose),
 as well as the lower and upper confidence limits for these means.
 Plots the results.
 */
+
+%macro process_plot(code=,tests=,position=);
+	%local i test;
+	%do i = 1 %to %sysfunc(countw(&tests, |));
+  	%let test = %scan(&tests, &i, |);
+  		%plot_mean_value(code=&code.,test="&test",position=&position.);
+  		%plot_mean_change(code=&code.,test="&test",position=&position.);
+	%end;
+%mend process_plot;
+
 
 /* perform mixed modelling */ 
 %macro mixmod(outcome,data=PKpars,class=rid treat period treat,fixed=treat period treat,random=rid(treat),lsmeans=treat,alpha=0.10);
@@ -881,8 +893,8 @@ run;
 
 /*
 Comments on dummy data:
-- SUBJD=1009 at VISIT="Screening": PULSE=58 (inside normal range) but VSSTRESC="NCS".
-- one abnormal vital sign does not make all results for one patient at one visit abnormal
+- VS: SUBJD=1009 at VISIT="Screening" has PULSE=58 (inside normal range) but VSSTRESC="NCS" (which is a contradiction).
+- VS: Should one abnormal vital sign at a VISIT set VSSTRESC to "CS/NCS" only for this vital sign (as currently) or for all vital signs (as in previous study)?
 */
 
 
@@ -918,13 +930,18 @@ run;
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
 %process_table(code=VS,tests=Systolic Blood Pressure|Diastolic Blood Pressure|Pulse Rate|Respiratory Rate|Oxygen Saturation,position='Sitting');
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+I have a dataset in SAS with the columns RID (sample identifiers), treat (A or B), VISIT (day 1-10), VSTEST (SYSPD, DIABP, PULSE, RESPRATE, BODTEMP), and VSSTRESC (Normal, abnormal).
+I want to count the number of patients per treatment and per visit that have no abnormal values and that have at least one abnormal value. Please write the SAS code.
+*/
+
 
 /*
 proc summary data=VS nway;
@@ -1010,16 +1027,8 @@ run;
 /* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%plot_mean_value(code=VS,test='Systolic Blood Pressure',position='Sitting');
-%plot_mean_change(code=VS,test='Systolic Blood Pressure',position='Sitting');
 
-/*
-%plot_mean_value(test='Diastolic Blood Pressure');
-%plot_mean_change(test='Diastolic Blood Pressure');
-
-%plot_mean_value(test='Pulse Rate');
-%plot_mean_change(test='Pulse Rate');
-*/
+%process_plot(code=VS,tests=Systolic Blood Pressure|Diastolic Blood Pressure|Pulse Rate,position='Sitting')
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.16: vital signs - post study * * * * * * * * * * * * * * * */
@@ -1129,6 +1138,10 @@ run;
 %abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 %process_table(code=LB,tests=Haemoglobin|Leucocytes,position='');
+
+%process_plot(code=LB,tests=Haemoglobin|Leucocytes,position=);
+
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
