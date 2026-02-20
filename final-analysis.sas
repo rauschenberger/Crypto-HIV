@@ -241,7 +241,8 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%getvars(&code.);
     data temp;
         set &code.;
-        where VISIT_ in (&visit.) and &var_judge. in ('NCS','CS','Abnormal, NCS','Abnormal, CS') and not missing(RID); /* use numerical values */ 
+        where VISIT_ in (&visit.) and &var_judge. not in ('Normal', '') and not missing(RID); /* use numerical values */ 
+		/*was in ('NCS','CS','Abnormal, NCS','Abnormal, CS') */ 
     run;
     proc sql noprint;
         select distinct RID
@@ -322,11 +323,11 @@ Description: Adds colour for extreme values (see format section). Defines order 
 */
 
 /* report patients with abnormal values*/ 
-%macro abnormal(code,check_visit,show_visit,temp='TRUE');
+%macro list_abnormal(code,check_visit,show_visit,temp='TRUE');
 	%listncs(code=&code.,visit=&check_visit.);
 	%showncs(code=&code.,visit=&show_visit.);
 	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
-%mend abnormal;
+%mend list_abnormal;
 /*
 Arguments: Expects CDISC abbreviation (either 'code=VS' or 'code=EG'),
 the visit(s) to be checked for abnormal results (e.g., "check_visit='Screening Visit'"),
@@ -940,7 +941,7 @@ proc tabulate data=VS;
 run;
 
 /* vital signs - listing of abnormal at screening */
-%abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
+%list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
@@ -1008,14 +1009,14 @@ run;
 %report(data=wide,title='patients with abnormal vital signs - scheduled visits',name=VS,temp='FALSE');
 
 /*
-%abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
+%list_abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
 */
 
 /*
 compact alternative for the three blocks and two macro calls above:
 %let check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
 %let show_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD' 'Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2';
-%abnormal(code=VS,check_visit=&check_visit.,show_visit=&show_visit.);
+%list_abnormal(code=VS,check_visit=&check_visit.,show_visit=&show_visit.);
 */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1121,7 +1122,7 @@ proc tabulate data=EG;
 run;
 
 /* ECG - listing of abnormal at screening */ 
-%abnormal(code=EG,check_visit='DAY 1',show_visit='DAY 1');
+%list_abnormal(code=EG,check_visit='DAY 1',show_visit='DAY 1');
 
 
 
@@ -1147,7 +1148,7 @@ run;
 
 /* vital signs - listing of abnormal at screening */
 
-%abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
+%list_abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 %process_table(code=LB,tests=Haemoglobin|Leucocytes,position='');
 
