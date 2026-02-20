@@ -900,6 +900,8 @@ run;
 Comments on dummy data:
 - VS: SUBJD=1009 at VISIT="Screening" has PULSE=58 (inside normal range) but VSSTRESC="NCS" (which is a contradiction).
 - VS: Should one abnormal vital sign at a VISIT set VSSTRESC to "CS/NCS" only for this vital sign (as currently) or for all vital signs (as in previous study)?
+- normal ranges for vital signs (supine/sitting/standing), electro-cardiogram, and haematology
+- LB results are always juged NCS or CS (never normal). Do we expect this? (This is different for VS and ECG.)
 */
 
 
@@ -1123,12 +1125,10 @@ run;
 %ordervar(code=LB,var=VISIT);
 %asnumeric(code=LB,var=LBORRES);
 
-proc report data=LB;
-	title 'laboratory';
-run;
 
 proc tabulate data=LB;
-	title 'laboratory at screening by treatment';
+	title1 'laboratory at screening by treatment';
+	title2 'Number and percentage of patients with normal, clinically significant (CS) and insignificant (NCS) abnormal values. Summary statistics of values. Per treatment, at screening visit.';
 	where VISIT_='Screening';
 	class treat LBTEST LBCLSIG;
 	var LBORRES;
@@ -1145,6 +1145,7 @@ run;
 %process_table(code=LB,tests=Haemoglobin|Leucocytes,position='');
 
 %process_plot(code=LB,tests=Haemoglobin|Leucocytes,position=);
+
 
 
 
