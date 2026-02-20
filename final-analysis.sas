@@ -193,7 +193,6 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 /* define variable names TEST and SCORE */ 
 %macro getvars(code);
-	/*%global var_test state_by var_score var_judge;*/
 	%if &code.=VS %then %do;
 		%let var_test=VSTEST_; /* was VSTESTCD*/
 		%let state_by=RID VISIT_ VSPOS;
@@ -224,7 +223,6 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 /* find patients with abnormal results */ 
 %macro extract_ids_abnormal(code,visit);
-	/*%global ids_abnormal;*/
 	%local var_test state_by var_score var_judge;
 	%getvars(&code.);
     data temp;
@@ -271,7 +269,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 	proc datasets lib=work nolist;
         delete long;
     quit;
-%mend extract_row_abnormal;
+%mend extract_rows_abnormal;
 /*
 Arguments: Expects one of two possible CDISC abbreviations (either 'code=VS' or 'code=EG'),
 and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
@@ -303,6 +301,9 @@ Description: Adds colour for extreme values (see format section). Defines order 
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
 	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
+	proc datasets lib=work nolist;
+        delete wide;
+    quit;
 %mend list_abnormal;
 /*
 Arguments: Expects CDISC abbreviation (either 'code=VS' or 'code=EG'),
@@ -354,7 +355,6 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 /* calculate change */
 %macro calcdiff(code,test,position);
 	%local var_test state_by var_score var_judge;
-	/*%global DATA_DIFF;*/
 	%getvars(&code.);
 	data DATA_DIFF;
 		set &code.;
@@ -392,7 +392,7 @@ Use this macro to obtain the change with respect to baseline.
 
 /* summarise vital signs - change */
 %macro table_change(code,test,position);
-	%calcdiff(code=&code.,test=&test.,position=&position.);
+	%calcdiff(code=&code.,test=&test.,position=&position.); /* returns DATA_DIFF*/
 	proc tabulate data=DATA_DIFF;
 		class VISIT treat / order=internal;
 		var diff;
@@ -400,6 +400,9 @@ Use this macro to obtain the change with respect to baseline.
 			treat;
 		title &position. ' ' &test. ' - change';
 	run;
+	proc datasets lib=work nolist;
+        delete DATA_DIFF;
+    quit;
 %mend table_change;
 /*
 Arguments: Expects a test ('Systolic Blood Pressure', 'Diastolic Blood Pressure' or 'Pulse Rate')
@@ -449,6 +452,9 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		%end;
 		refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.5 pattern=dash);
 	run;
+	proc datasets lib=work nolist;
+        delete temp;
+    quit;
 %mend plot_traject;
 /*
 Arguments: Expects test 'Systolic Blood Pressure' or 'Diastolic Blood Pressure'
@@ -475,6 +481,9 @@ Plots the measurements against the visit names, with one line for each patient.
 		highlow x=visit low=lclm high=uclm / group=treat;
 		scatter x=visit y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
 	run;
+	proc datasets lib=work nolist;
+        delete DATA_MEAN;
+    quit;
 %mend plot_internal;
 %macro plot_mean_value(code,test,position);
 	%local var_test state_by var_score var_judge;
@@ -491,6 +500,9 @@ Plots the measurements against the visit names, with one line for each patient.
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(title='Mean ' &position. ' ' &test.);
+	proc datasets lib=work nolist;
+        delete DATA_MEAN;
+    quit;
 %mend plot_mean_value;
 %macro plot_mean_change(code,test,position);
 	%local var_test state_by var_score var_judge;
@@ -508,6 +520,9 @@ Plots the measurements against the visit names, with one line for each patient.
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(title='Mean change in ' &position. ' ' &test.);
+	proc datasets lib=work nolist;
+        delete DATA_MEAN;
+    quit;
 %mend plot_mean_change;
 /*
 Arguments: Expects test='Systolic Blood Pressure', test='Diastolic Blood Pressure' or test='Pulse Rate',
