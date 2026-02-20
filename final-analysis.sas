@@ -883,6 +883,7 @@ data random;
 run;
 
 %prepare;
+
 %let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
 %let post_weeks='Week 4' 'Week 6' 'Week 10';
  
@@ -973,7 +974,7 @@ run;
 /* This is wrong as it subsets the table and then tranposes (i.e., introducing missing values).*/
 data long;
 	set VS;
-	where not missing(VSSTRESC_) and strip(VSSTRESC_) not in ('Normal','.') and not missing(RID) and VISIT_ in &treat_days.;
+	where not missing(VSSTRESC_) and strip(VSSTRESC_) not in ('Normal','.') and not missing(RID) and VISIT_ in (&treat_days.);
 	/*
 	if VSTEST_ = 'Pulse Rate' then VSTEST_ = 'PULSE';
   	else if VSTEST_ = 'Body Temperature' then VSTEST_ = 'TEMP';
@@ -1121,10 +1122,6 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * *  laboratory * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%prepare;
-
-
 
 %order_levels(code=LB,var=VISIT);
 %as_numeric(code=LB,var=LBORRES);
