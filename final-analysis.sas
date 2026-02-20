@@ -947,6 +947,25 @@ Comments on dummy data:
 /*%order_levels(code=VS,var=FORM); does not exist */ 
 %as_numeric(code=VS,var=VSORRES);
 
+
+%macro add_unit(code=VS)
+	%getvars(code=&code.);
+	data &code.;
+		set &code.;
+		length measure $40;
+		if missing(&var_unit.) then measure = &var_test.;
+		else measure = cat(&var_test.,' (',&var_unit.,')');
+	run;
+%end add_unit;
+
+%add_unit(code=VS);
+proc report data=VS;
+run;
+
+
+
+
+
 data VS;
 	set VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
