@@ -191,6 +191,9 @@ Both variables have the specified order of the category levels,
 and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne baseline')
 */
 
+proc report data=LB;
+run;
+
 /* define variable names TEST and SCORE */ 
 %macro getvars(code);
 	%if &code.=VS %then %do;
@@ -198,18 +201,21 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let state_by=RID VISIT_ VSPOS;
 		%let var_judge=VSSTRESC_;
 		%let var_score=VSORRES;
+		%let var_unit=VSORRESU;
 	%end;
 	%else %if &code.=EG %then %do;
 		%let var_test=EGTEST;
 		%let state_by=RID VISIT_;
 		%let var_judge=EGSTRESC1_;
 		%let var_score=EGORRES;
+		%let var_unit=EGORRESU;
 	%end;
 	%else %if &code.=LB %then %do;
 		%let var_test=LBTEST;
 		%let state_by=RID VISIT_;
-		%let var_judge=LBLSIG;
+		%let var_judge=LBCLSIG;
 		%let var_score=LBORRES;
+		%let var_unit=LBORRESU;
 	%end;
 	%else %do;
 		%put ERROR;
@@ -223,7 +229,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 /* find patients with abnormal results */ 
 %macro extract_ids_abnormal(code,visit);
-	%local var_test state_by var_score var_judge;
+	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
     data temp;
         set &code.;
@@ -251,7 +257,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 
 /* show results for some patients */ 
 %macro extract_rows_abnormal(code,visit);
-	%local var_test state_by var_score var_judge;
+	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	data long;
 		set &code.;
@@ -317,7 +323,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 
 /* summarise vital signs - values */ 
 %macro table_values(code,test,position);
-	%local var_test state_by var_score var_judge;
+	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	proc tabulate data=&code.;
 		%if &code.=VS %then %do;
@@ -354,7 +360,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 
 /* calculate change */
 %macro calcdiff(code,test,position);
-	%local var_test state_by var_score var_judge;
+	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	data DATA_DIFF;
 		set &code.;
@@ -412,7 +418,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 
 /* plot trajectories */
 %macro plot_traject(code,check_visit,test,position);
-	%local var_test state_by var_score var_judge ids_abnormal;
+	%local var_test state_by var_score var_judge var_unit ids_abnormal;
 	%getvars(&code.);
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	data temp;
@@ -486,7 +492,7 @@ Plots the measurements against the visit names, with one line for each patient.
     quit;
 %mend plot_internal;
 %macro plot_mean_value(code,test,position);
-	%local var_test state_by var_score var_judge;
+	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
 		%if &code.=VS %then %do;
@@ -505,7 +511,7 @@ Plots the measurements against the visit names, with one line for each patient.
     quit;
 %mend plot_mean_value;
 %macro plot_mean_change(code,test,position);
-	%local var_test state_by var_score var_judge;
+	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
@@ -915,12 +921,25 @@ Comments on dummy data:
 - normal ranges for vital signs (supine/sitting/standing), electro-cardiogram, and haematology
 - LB results are always juged NCS or CS (never normal). Do we expect this? (This is different for VS and ECG.)
 - data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
+- LB: why are units not only in LBORRESU but in several variables (LBORRESU LBORRESU2 LBORRESU3 LBORRESU4 LBORRESU5 LBORRESU31)?
 */
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%macro tabulateVS(visit);
+	proc tabulate data=VS;
+		title "vital signs at %sysfunc(dequote(&visit.)) visit by treatment";
+		where VISIT_=&visit.;
+		class treat VISIT_ VSPOS VSTEST VSSTRESC;
+		var VSORRES;
+		table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
+				VSPOS * VSTEST * VSORRES * (mean std median min max n),
+				treat all='both';
+	run;
+%mend tabulateVS;
 
 %order_levels(code=VS,var=VISIT);
 %order_levels(code=VS,var=VSTEST);
@@ -933,15 +952,10 @@ data VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
 run;
 
-proc tabulate data=VS;
-	title 'vital signs at screening by treatment';
-	where VISIT_='Screening';
-	class treat VSPOS VSTEST_ VSSTRESC / order=internal;
-	var VSORRES;
-	table	VSPOS * VSTEST_ * VSSTRESC * (n pctn<VSSTRESC>='%')
-			VSPOS * VSTEST_ * VSORRES * (mean std median min max n),
-			treat all='both';
+proc report data=VS;
 run;
+
+%tabulateVS(visit="Screening");
 
 /*
 proc report data=VS;
@@ -966,7 +980,7 @@ run;
 
 /*
 I have a dataset in SAS with the columns RID (sample identifiers), treat (A or B), VISIT (day 1-10), VSTEST (SYSPD, DIABP, PULSE, RESPRATE, BODTEMP), and VSSTRESC (Normal, abnormal).
-I want to count the number of patients per treatment and per visit that have no abnormal values and that have at least one abnormal value. Please write the SAS code.
+I want to count the number of patients per treatment and per visit that have no abnormal values and that have at least one abnormal value. Please adapt my SAS code.
 */
 
 
@@ -1065,17 +1079,11 @@ run;
 /* * Subsection 4.16: vital signs - post study * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc tabulate data=VS;
-	title 'vital signs at post study by treatment';
-	where VISIT_='Week 10';
-	class treat VISIT_ VSPOS VSTEST VSSTRESC;
-	var VSORRES;
-	table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
-			VSPOS * VSTEST * VSORRES * (mean std median min max n),
-			treat all='both';
-run;
+%tabulateVS(visit="Week 10");
 
 /* vital signs - overall change */
+
+/* This info is already contained in diff screening - follow-up (see above).*/
 
 data long;
 	set VS;
@@ -1144,6 +1152,8 @@ run;
 /* * *  laboratory * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%prepare;
+
 %order_levels(code=LB,var=VISIT);
 %as_numeric(code=LB,var=LBORRES);
 
@@ -1166,9 +1176,9 @@ run;
 
 %process_plot(code=LB,tests=Haemoglobin|Leucocytes,position=);
 
-%plot_traject(code=LB,test='Haemoglobin',position='');
+%plot_traject(code=LB,check_visit=&treat_days.,test='Haemoglobin',position='');
 
-
+/* plot only individuals that have abnormal values in the specific variable!*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
