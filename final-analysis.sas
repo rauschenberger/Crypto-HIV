@@ -337,9 +337,6 @@ Description: Identifies patients with abnormal results at one or more visits ('c
 and shows the results for these patients at one or more visits ('show_visit').
 */ 
 
-proc report data=VS;
-run;
-
 /* summarise vital signs - values */ 
 %macro table_values(code,test,position);
 	%getvars(&code.);
@@ -370,6 +367,15 @@ Arguments: Expects a test ('Systolic Blood Pressure', 'Diastolic Blood Pressure'
 and a position (default 'Supine' or 'Standing').
 Description: Summarises measurements for each time point (rows) and treatment (columns).
 */ 
+
+%macro process_table(code=,tests=,position=);
+	%local i test;
+	%do i = 1 %to %sysfunc(countw(&tests, |));
+  	%let test = %scan(&tests, &i, |);
+  		%table_values(code=&code.,test="&test",position=&position.);
+  		%table_change(code=&code.,test="&test",position=&position.);
+	%end;
+%mend process_table;
 
 /* calculate change */
 %macro calcdiff(code,test,position);
@@ -898,10 +904,10 @@ run;
 proc tabulate data=VS;
 	title 'vital signs at screening by treatment';
 	where VISIT_='Screening';
-	class treat VSPOS VSTESTCD VSSTRESC / order=internal;
+	class treat VSPOS VSTEST_ VSSTRESC / order=internal;
 	var VSORRES;
-	table	VSPOS * VSTESTCD * VSSTRESC * (n pctn<VSSTRESC>='%')
-			VSPOS * VSTESTCD * VSORRES * (mean std median min max n),
+	table	VSPOS * VSTEST_ * VSSTRESC * (n pctn<VSSTRESC>='%')
+			VSPOS * VSTEST_ * VSORRES * (mean std median min max n),
 			treat all='both';
 run;
 
@@ -912,28 +918,9 @@ run;
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%table_values(code=VS,test='Systolic Blood Pressure',position='Sitting');
-%table_change(code=VS,test='Systolic Blood Pressure',position='Sitting');
 
-%table_values(code=VS,test='Diastolic Blood Pressure',position='Sitting');
-%table_change(code=VS,test='Diastolic Blood Pressure',position='Sitting');
+%process_table(code=VS,tests=Systolic Blood Pressure|Diastolic Blood Pressure|Pulse Rate|Respiratory Rate|Oxygen Saturation,position='Sitting');
 
-%table_values(code=VS,test='Pulse Rate',position='Sitting');
-%table_change(code=VS,test='Pulse Rate',position='Sitting');
-
-/*
-%macro process_table;
-	%let tests = 'Systolic Blood Pressure' 'Diastolic Blood Pressure' 'Pulse Rate';
-	%local i test;
-	%do i = 1 %to %sysfunc(countw(&tests));
-  	%let test = %scan(&tests, &i);
-  		%table_values(code=VS,test=&test,position='Sitting');
-  		%table_change(code=VS,test=&test,position='Sitting');
-	%end;
-%mend process_table;
-
-%process_table;
-*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
@@ -1141,15 +1128,7 @@ run;
 
 %abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
-%table_values(code=LB,test='Haemoglobin',position='');
-%table_change(code=LB,test='Haemoglobin',position='');
-
-%plot_mean_value(code=LB,test='Haemoglobin',position='');
-%plot_mean_change(code=LB,test='Haemoglobin',position='');
-
-
-
-
+%process_table(code=LB,tests=Haemoglobin|Leucocytes,position='');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
