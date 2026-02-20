@@ -223,8 +223,8 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 /* find patients with abnormal results */ 
 %macro extract_ids_abnormal(code,visit);
-	%global ids_ncs;
-	/*%local ids_ncs var_test state_by var_score var_judge;*/
+	%global ids_abnormal;
+	/*%local ids_abnormal var_test state_by var_score var_judge;*/
 	%getvars(&code.);
     data temp;
         set &code.;
@@ -233,21 +233,21 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
     run;
     proc sql noprint;
         select distinct RID
-        into :ids_ncs separated by ','
+        into :ids_abnormal separated by ','
         from temp;
     quit;
 	proc datasets lib=work nolist;
         delete temp;
     quit;
-	%let ids_ncs=&ids_ncs.;
-	%put ids_ncs=&ids_ncs.;
+	%let ids_abnormal=&ids_abnormal.;
+	%put ids_abnormal=&ids_abnormal.;
 %mend extract_ids_abnormal;
 /*
 Arguments: Expects one of two possible CDISC abbreviations
 (either 'code=VS' for vital signs or 'code=EG' for electroencephalography),
 and one or more visits (e.g., "visit='Screening Visit' 'Post-Study Visit'").
 Description: Identifies patients with abnormal results at these visits
-and saves their randomisation identifers in the macro variable 'ids_ncs'.
+and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 */
 
 /* show results for some patients */ 
@@ -256,7 +256,7 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 	%getvars(&code.);
 	data long;
 		set &code.;
-		if RID in (&ids_ncs.);
+		if RID in (&ids_abnormal.);
 		if VISIT_ in (&visit.);
 	run; 
 	proc sort data=long;
@@ -298,7 +298,7 @@ Description: Adds colour for extreme values (see format section). Defines order 
 
 /* report patients with abnormal values*/ 
 %macro list_abnormal(code,check_visit,show_visit,temp='TRUE');
-	/*%local ids_ncs;*/
+	/*%local ids_abnormal;*/
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
 	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
@@ -404,12 +404,19 @@ and a position ('Supine' or 'Standing').
 Description: Summarises change with respect to pre-dose for each time point (rows) and treatment (columns).
 */ 
 
-/* plot trajectories of vital signs */
-%macro plotind(test,position);
+/* plot trajectories */
+%macro plot_traject(code,check_visit,test,position);
+	%getvars(&code.);
+	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	data temp;
-		set VS;
-		where VSTEST_=&test. and VSPOS=&position.;
-		if RID in (&ids_ncs.);
+		set &code.;
+		%if &code.=VS %then %do;
+			where &var_test.=&test. and VSPOS=&position.;
+		%end;
+		%else %do;
+			where &var_test.=&test.;
+		%end;
+		if RID in (&ids_abnormal.);
 	run;
 	proc sort data=temp;
 		by RID; /*included VSDTC*/ 
@@ -423,24 +430,26 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		drop time_lag;
 	run;
 	proc sgplot data=temp;
-		series x=visit y=VSORRES / group=RID markers;
+		series x=visit y=&var_score. / group=RID markers;
     	title &position. ' ' &test.;
     	xaxis label='time'; 
     	yaxis label='value';
    		keylegend / title='RID';
-		%if &position.='Supine' and &test.='Systolic Blood Pressure' %then %do;
-			refline 90 140 / axis=y lineattrs=(thickness=2);
-		%end;
-		%if &position.='Supine' and &test.='Diastolic Blood Pressure' %then %do;
-			refline 45 90 / axis=y lineattrs=(thickness=2);
+		%if &code.=VS %then %do;
+			%if &position.='Sitting' and &test.='Systolic Blood Pressure' %then %do;
+				refline 90 140 / axis=y lineattrs=(thickness=2); /* verify range */
+			%end;
+			%if &position.='Sitting' and &test.='Diastolic Blood Pressure' %then %do;
+				refline 45 90 / axis=y lineattrs=(thickness=2); /* verify range */ 
+			%end;
 		%end;
 		refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.5 pattern=dash);
 	run;
-%mend plotind;
+%mend plot_traject;
 /*
 Arguments: Expects test 'Systolic Blood Pressure' or 'Diastolic Blood Pressure'
 and position 'Supine' (default) or 'Standing'.
-Description: Extracts data from the dataset 'VS'  for the individuals in 'ids_ncs',
+Description: Extracts data from the dataset 'VS'  for the individuals in 'ids_abnormal',
 the position 'Supine' and the chosen test.
 Sorts the extracted data by the sample identifier and the time point.
 Replaces missing visit names by the visit name of the lagged time point.
@@ -874,8 +883,9 @@ data random;
 run;
 
 %prepare;
-
-
+%let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
+%let post_weeks='Week 4' 'Week 6' 'Week 10';
+ 
 /*
 Comments on dummy data:
 - VS: SUBJD=1009 at VISIT="Screening" has PULSE=58 (inside normal range) but VSSTRESC="NCS" (which is a contradiction).
@@ -963,7 +973,7 @@ run;
 /* This is wrong as it subsets the table and then tranposes (i.e., introducing missing values).*/
 data long;
 	set VS;
-	where not missing(VSSTRESC_) and strip(VSSTRESC_) not in ('Normal','.') and not missing(RID) and VISIT_ in ('Day 1', 'Day 2', 'Day 3', 'Day 6', 'Day 7', 'Day 15');
+	where not missing(VSSTRESC_) and strip(VSSTRESC_) not in ('Normal','.') and not missing(RID) and VISIT_ in &treat_days.;
 	/*
 	if VSTEST_ = 'Pulse Rate' then VSTEST_ = 'PULSE';
   	else if VSTEST_ = 'Body Temperature' then VSTEST_ = 'TEMP';
@@ -1018,8 +1028,9 @@ data VS;
 run;
 %order_levels(code=VS,var=time);
 
-%plotind(test='Systolic Blood Pressure',position='Sitting');
-%plotind(test='Diastolic Blood Pressure',position='Sitting');
+
+%plot_traject(code=VS,check_visit=&treat_days.,test='Systolic Blood Pressure',position='Sitting');
+%plot_traject(code=VS,check_visit=&treat_days.,test='Diastolic Blood Pressure',position='Sitting');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
@@ -1113,6 +1124,8 @@ run;
 
 %prepare;
 
+
+
 %order_levels(code=LB,var=VISIT);
 %as_numeric(code=LB,var=LBORRES);
 
@@ -1136,7 +1149,7 @@ run;
 %process_plot(code=LB,tests=Haemoglobin|Leucocytes,position=);
 
 
-
+%plot_traject(code=LB,test='Haemoglobin',position='');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
@@ -1658,7 +1671,7 @@ run;
 	data temp;
 		set VS;
 		where VSTEST=&test. and VSPOS='Supine';
-		if RID in (&ids_ncs.);
+		if RID in (&ids_abnormal.);
 	run;
 	proc sort data=temp;
 		by VSDTC RID;
