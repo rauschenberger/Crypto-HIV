@@ -120,14 +120,14 @@ sorting the datasets by random identifiers and adding information on the treatme
 */
 
 /* convert character to numeric */
-%macro asnumeric(code,var);
+%macro as_numeric(code,var);
 data &code;
 	set &code;
 	temp = input(&var,best.);
 	drop &var;
 	rename temp=&var;
 run;
-%mend asnumeric;
+%mend as_numeric;
 /*
 Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs)
 and a variable name (e.g., 'var=vsorres_weight').
@@ -167,7 +167,7 @@ to create the variable for the treatment (A or B).
 */
 
 /* re-order category levels */
-%macro ordervar(code,var);
+%macro order_levels(code,var);
 data &code.;
 	set &code.;
 	temp = input(&var.,&var._invalue.);
@@ -176,7 +176,7 @@ data &code.;
 	drop &var.;
 	rename temp=&var.;
 run;
-%mend ordervar;
+%mend order_levels;
 /*
 Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs)
 and the name of a character variable (e.g., 'var=VSTEST').
@@ -890,11 +890,11 @@ Comments on dummy data:
 /* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%ordervar(code=VS,var=VISIT);
-%ordervar(code=VS,var=VSTEST);
-%ordervar(code=VS,var=VSSTRESC);
-/*%ordervar(code=VS,var=FORM); does not exist */ 
-%asnumeric(code=VS,var=VSORRES);
+%order_levels(code=VS,var=VISIT);
+%order_levels(code=VS,var=VSTEST);
+%order_levels(code=VS,var=VSSTRESC);
+/*%order_levels(code=VS,var=FORM); does not exist */ 
+%as_numeric(code=VS,var=VSORRES);
 
 data VS;
 	set VS;
@@ -1006,7 +1006,7 @@ data VS;
 	else if VISIT='Post Study' then time='post-study';
 	else if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Unscheduled Screening') then time='unscheduled';
 run;
-%ordervar(code=VS,var=time);
+%order_levels(code=VS,var=time);
 
 %plotind(test='Systolic Blood Pressure',position='Sitting');
 %plotind(test='Diastolic Blood Pressure',position='Sitting');
@@ -1069,9 +1069,9 @@ run;
 /* * Subsection 4.9: electrocardiogram at screening* * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/*%ordervar(code=EG,var=VISIT);*/
-%ordervar(code=EG,var=EGSTRESC1);
-%asnumeric(code=EG,var=EGORRES);
+/*%order_levels(code=EG,var=VISIT);*/
+%order_levels(code=EG,var=EGSTRESC1);
+%as_numeric(code=EG,var=EGORRES);
 
 /* The following data statement creates the variable 'measure = test (unit)'. */
 data EG;
@@ -1103,8 +1103,8 @@ run;
 
 %prepare;
 
-%ordervar(code=LB,var=VISIT);
-%asnumeric(code=LB,var=LBORRES);
+%order_levels(code=LB,var=VISIT);
+%as_numeric(code=LB,var=LBORRES);
 
 proc tabulate data=LB;
 	title1 'Laboratory values at screening by treatment';
@@ -1181,7 +1181,7 @@ run;
 
 /* Glasgow coma score */
 
-%asnumeric(code=GC,var=GCS_TOTAL);
+%as_numeric(code=GC,var=GCS_TOTAL);
 
 data GC_sub;
   	retain RID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
@@ -1294,10 +1294,10 @@ run;
 /* * Subsection 4.5: demographics  * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%asnumeric(code=DM,var=vsorres_weight);
-%asnumeric(code=DM,var=vsorres_height);
-%asnumeric(code=DM,var=vsorres_bmi);
-%asnumeric(code=DM,var=age);
+%as_numeric(code=DM,var=vsorres_weight);
+%as_numeric(code=DM,var=vsorres_height);
+%as_numeric(code=DM,var=vsorres_bmi);
+%as_numeric(code=DM,var=age);
 
 data DM;
 	set DM;
@@ -1320,9 +1320,9 @@ run;
 /* * Subsection 4.6: alcohol and smoking * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%ordervar(code=SU,var=SUOCCUR);
-%ordervar(code=SU,var=SUTRT);
-%asnumeric(code=SU,var=SUDOSE);
+%order_levels(code=SU,var=SUOCCUR);
+%order_levels(code=SU,var=SUTRT);
+%as_numeric(code=SU,var=SUDOSE);
 
 proc tabulate data=SU;
     title 'alcohol and smoking by sequence';
@@ -1395,8 +1395,8 @@ run;
 %add_seq(code=PK);
 %add_treat(code=PK);
 
-%asnumeric(code=PK,var=SAMPLETIME);
-%asnumeric(code=PK,var=CONCENTRATION);
+%as_numeric(code=PK,var=SAMPLETIME);
+%as_numeric(code=PK,var=CONCENTRATION);
 
 /* one separate scatterplot for each sample */
 
@@ -1432,7 +1432,7 @@ run;
 
 /* prepare data for WinNonLin */ 
 
-%asnumeric(code=PC,var=PC_DELAY);
+%as_numeric(code=PC,var=PC_DELAY);
 
 data PC;
 	set PC;
