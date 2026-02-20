@@ -857,13 +857,13 @@ run;
 		call define(_col_,'style','style={background=GCS_total.}');
 	endcomp;
 	compute BESTEYERESPONSE;
-		call define(_col_,'style','style={background=GCS_eye.}');
+		call define(_col_,'style','style={background=$GCS_eye.}');
 	endcomp;
 	compute BESTVERBALRESPONSE;
-		call define(_col_,'style','style={background=GCS_verbal.}');
+		call define(_col_,'style','style={background=$GCS_verbal.}');
 	endcomp;
 	compute BESTMOTORRESPONSE;
-		call define(_col_,'style','style={background=GCS_motor.}');
+		call define(_col_,'style','style={background=$GCS_motor.}');
 	endcomp;
 	%end;
 %mend color;
@@ -902,6 +902,7 @@ Comments on dummy data:
 - VS: Should one abnormal vital sign at a VISIT set VSSTRESC to "CS/NCS" only for this vital sign (as currently) or for all vital signs (as in previous study)?
 - normal ranges for vital signs (supine/sitting/standing), electro-cardiogram, and haematology
 - LB results are always juged NCS or CS (never normal). Do we expect this? (This is different for VS and ECG.)
+- data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
 */
 
 
@@ -1197,33 +1198,22 @@ proc report data=EX;
 	define RID/order;
 run;
 
-/* only show patients with GCS<15 ? */
-/* then add eye verbal and motor*/
+
+/* Glasgow coma score */
 
 %asnumeric(code=GC,var=GCS_TOTAL);
 
 data GC_sub;
-	set GC(keep=RID VISIT GCSPERF GCS_TOTAL BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE);
+  	retain RID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
+	set GC(keep=RID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL);
 	where GCSPERF="Yes" and GCS_TOTAL < 15;
-	eye = BESTEYERESPONSE;
-	verbal = BESTVERBALRESPONSE;
-	motor = BESTMOTORRESPONSE;
-	drop GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE;
+	drop GCSPERF;
 run;
 
 %report(data=GC_sub,title='Glasgow coma scale',name=GC,temp='FALSE');
 
-proc report data=GC;
-	title 'Glasgow coma score';
-	title2 'details: asdfdf';
-	where GCSPERF="Yes" and GCS_TOTAL < 15;
-	columns RID VISIT eye verbal motor GCS_TOTAL;
-	define RID/order;
-	define VISIT/order=internal;
-run;
 
-
-
+/* lumbar punctures */ 
 
 proc report data=LP;
 	title 'lumbar punctures';
@@ -1232,9 +1222,16 @@ proc report data=LP;
 run;
 
 
+/* physical examination */
+
+data PE;
+	set PE;
+	if PEORRES='D' then PEORRES='';
+run;
+
 proc report data=PE;
 	title 'physical examination';
-	where PEORRES='Abnormal, CS';
+	where PEORRES not in ('Normal', '');
 	column RID VISIT PETESTCD PEORRES PEORRES_SP;
 	define RID/order;
 run;
