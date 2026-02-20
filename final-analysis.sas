@@ -192,7 +192,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 /* define variable names TEST and SCORE */ 
 %macro getvars(code);
-	%global var_test state_by var_score var_judge;
+	/*%global var_test state_by var_score var_judge;*/
 	%if &code.=VS %then %do;
 		%let var_test=VSTEST_; /* was VSTESTCD*/
 		%let state_by=RID VISIT_ VSPOS;
@@ -222,8 +222,9 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 
 /* find patients with abnormal results */ 
-%macro listncs(code,visit);
+%macro extract_ids_abnormal(code,visit);
 	%global ids_ncs;
+	/*%local ids_ncs var_test state_by var_score var_judge;*/
 	%getvars(&code.);
     data temp;
         set &code.;
@@ -235,9 +236,12 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
         into :ids_ncs separated by ','
         from temp;
     quit;
+	proc datasets lib=work nolist;
+        delete temp;
+    quit;
 	%let ids_ncs=&ids_ncs.;
 	%put ids_ncs=&ids_ncs.;
-%mend listncs;
+%mend extract_ids_abnormal;
 /*
 Arguments: Expects one of two possible CDISC abbreviations
 (either 'code=VS' for vital signs or 'code=EG' for electroencephalography),
@@ -247,7 +251,8 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 */
 
 /* show results for some patients */ 
-%macro showncs(code,visit);
+%macro extract_rows_abnormal(code,visit);
+	/*%local var_test state_by var_score var_judge;*/
 	%getvars(&code.);
 	data long;
 		set &code.;
@@ -262,7 +267,10 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 		id &var_test.;
 		var &var_score.;
 	run;
-%mend;
+	proc datasets lib=work nolist;
+        delete long;
+    quit;
+%mend extract_row_abnormal;
 /*
 Arguments: Expects one of two possible CDISC abbreviations (either 'code=VS' or 'code=EG'),
 and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
@@ -290,8 +298,9 @@ Description: Adds colour for extreme values (see format section). Defines order 
 
 /* report patients with abnormal values*/ 
 %macro list_abnormal(code,check_visit,show_visit,temp='TRUE');
-	%listncs(code=&code.,visit=&check_visit.);
-	%showncs(code=&code.,visit=&show_visit.);
+	/*%local ids_ncs;*/
+	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
+	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
 	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
 %mend list_abnormal;
 /*
