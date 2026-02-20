@@ -1125,10 +1125,9 @@ run;
 %ordervar(code=LB,var=VISIT);
 %asnumeric(code=LB,var=LBORRES);
 
-
 proc tabulate data=LB;
-	title1 'laboratory at screening by treatment';
-	title2 'Number and percentage of patients with normal, clinically significant (CS) and insignificant (NCS) abnormal values. Summary statistics of values. Per treatment, at screening visit.';
+	title1 'Laboratory values at screening by treatment';
+	title2 'Number and percentage of patients with normal, NCS abnormal, and CS abnormal values, and summary statistics of values, at the screening visit, for each treatment separately and for both treatments together.';
 	where VISIT_='Screening';
 	class treat LBTEST LBCLSIG;
 	var LBORRES;
@@ -1136,7 +1135,6 @@ proc tabulate data=LB;
 			LBTEST * LBORRES * (mean std median min max n),
 			treat all='both';
 run;
-
 
 /* vital signs - listing of abnormal at screening */
 
