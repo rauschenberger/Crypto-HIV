@@ -380,23 +380,28 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 /* calculate change */
 %macro calcdiff(code,test,position);
 	%global DATA_DIFF;
+	%getvars(&code.);
 	data DATA_DIFF;
 		set &code.;
-		/* make this more general (not only for VS!) */ 
-		where VSTEST_=&test. and VSPOS=&position. and not missing(RID);
+		%if &code.=VS %then %do;
+			where &var_test.=&test. and VSPOS=&position. and not missing(RID);
+		%end;
+		%else %do;
+			where &var_test.=&test. and not missing(RID);
+		%end;
 	run;
 	data DATA_DIFF;
   		do until(last.RID);
      		set DATA_DIFF;
      		by RID;
      		if treat = 'immediate-release (IR)' then do;
-        		if baseA = . then baseA = VSORRES;
-        		diff = VSORRES - baseA;
+        		if baseA = . then baseA = &var_score.;
+        		diff = &var_score. - baseA;
      		end;
 			drop baseA;
      		else if treat = 'sustained-release (SR)' then do;
-        		if baseB = . then baseB = VSORRES;
-				diff = VSORRES - baseB;
+        		if baseB = . then baseB = &var_score.;
+				diff = &var_score. - baseB;
     		end;
 			drop baseB;
  		output;
