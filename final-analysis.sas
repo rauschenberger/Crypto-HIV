@@ -298,7 +298,7 @@ and saves their randomisation identifers in the macro variable 'ids_ncs'.
 %mend;
 /*
 Arguments: Expects one of two possible CDISC abbreviations (either 'code=VS' or 'code=EG'),
-and one or more visits (e.g., visit='Screening Visit' 'Unscheduled Screening').
+and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 */
 
 /* report with colour for extreme values */ 
@@ -727,7 +727,7 @@ proc format;
 	%let low='LIGR'; /*pale blue: '#4ED3D4'*/
 	%let high='LIGR'; /*pale red: '#D9544D'*/
 	/* vital signs*/
-	value 	temp 		low-35.5=&low. 
+	value 	BODTEM 		low-35.5=&low. 
 						35.5-37.5='white' 
 						37.5-high=&high.;
 	value	sup_sys 	low-90=&low.
@@ -782,11 +782,11 @@ run;
 %macro color(name,temp='TRUE');
 	%if &name.=VS %then %do;
 		%if &temp.='TRUE' %then %do;
-			compute Temperature;
-				call define(_col_,'style','style={background=temp.}');
+			compute Body_Temperature;
+				call define(_col_,'style','style={background=BODTEM.}');
 			endcomp;
 		%end;
-	compute SYSBP;
+	compute Systolic_Blood_Pressure;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_sys.}');
 		end;
@@ -794,7 +794,7 @@ run;
 			call define(_col_,'style','style={background=sta_sys.}');
 		end;
 	endcomp;
-	compute DIABP;
+	compute Diastolic_Blood_Pressure;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_dia.}');
 		end;
@@ -802,13 +802,13 @@ run;
 			call define(_col_,'style','style={background=sta_dia.}');
 		end;
 	endcomp;
-	compute PULSE;
+	compute Pulse_Rate;
 			call define(_col_,'style','style={background=PULSE.}');
 	endcomp;
-	compute RESPIR;
+	compute Respiratory_Rate;
 			call define(_col_,'style','style={background=RESPIR.}');
 	endcomp;
-	compute OXYSAT;
+	compute Oxygen_Saturation;
 			call define(_col_,'style','style={background=OXYSAT.}');
 	endcomp;
 	%end;
@@ -906,7 +906,7 @@ proc tabulate data=VS;
 run;
 
 /* vital signs - listing of abnormal at screening */
-%abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
+%abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
@@ -1139,7 +1139,7 @@ run;
 
 /* vital signs - listing of abnormal at screening */
 
-%abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled Screening');
+%abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 %table_values(code=LB,test='Haemoglobin',position='');
 %table_change(code=LB,test='Haemoglobin',position='');
