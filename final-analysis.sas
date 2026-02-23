@@ -107,10 +107,10 @@ This adds information on the treatment sequence to dataset 'code'.
 	%local code i;
 	%let code = AE ART ARTT CE CM DD DI DM DS DV EG EX GC IE LB LP MH PE PM PR QUEST RANKIN VS; /* Also add files without code! */
 	%do i = 1 %to %sysfunc(countw(&code));
-    	%import(&pathClin,%scan(&code,&i));
-		%add_rid(%scan(&code,&i));
-		%sort_rid(%scan(&code,&i));
-		%add_seq(%scan(&code,&i));
+    	%import(path=&pathClin,code=%scan(&code,&i));
+		%add_rid(code=%scan(&code,&i));
+		%sort_rid(code=%scan(&code,&i));
+		%add_seq(code=%scan(&code,&i));
 	%end;
 %mend prepare;
 /*
@@ -196,8 +196,9 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(code=&code.);
 	data &code.;
+		length &var_test. $40;
 		set &code.;
-		length measure $60;
+		length measure $40;
 		if missing(&var_unit.) then measure = &var_test.;
 		else measure = cat(strip(&var_test.),' (',strip(&var_unit.),')');
 		&var_test. = measure;
@@ -242,7 +243,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 /* find patients with abnormal results */ 
 %macro extract_ids_abnormal(code=,visit=);
 	%local var_test state_by var_score var_judge var_unit;
-	%getvars(&code.);
+	%getvars(code=&code.);
     data temp;
         set &code.;
         where VISIT_ in (&visit.) and not missing(&var_judge.) and strip(&var_judge.) not in ('Normal', '.') and not missing(RID); /* use numerical values */ 
@@ -270,7 +271,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 /* show results for some patients */ 
 %macro extract_rows_abnormal(code=,visit=);
 	%local var_test state_by var_score var_judge var_unit;
-	%getvars(&code.);
+	%getvars(code=&code.);
 	data long;
 		set &code.;
 		if RID in (&ids_abnormal.);
@@ -336,7 +337,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 /* summarise vital signs - values */ 
 %macro table_values(code=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
-	%getvars(&code.);
+	%getvars(code=&code.);
 	proc tabulate data=&code.;
 		%if &code.=VS %then %do;
 			where VSPOS=&position. and &var_test.=&test.;
@@ -373,7 +374,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 /* calculate change */
 %macro calcdiff(code=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
-	%getvars(&code.);
+	%getvars(code=&code.);
 	data DATA_DIFF;
 		set &code.;
 		%if &code.=VS %then %do;
@@ -431,7 +432,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 /* plot trajectories */
 %macro plot_traject(code=,check_visit=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit ids_abnormal;
-	%getvars(&code.);
+	%getvars(code=&code.);
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	data temp;
 		set &code.;
@@ -505,7 +506,7 @@ Plots the measurements against the visit names, with one line for each patient.
 %mend plot_internal;
 %macro plot_mean_value(code=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
-	%getvars(&code.);
+	%getvars(code=&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
 		%if &code.=VS %then %do;
 			where &var_test.=&test. and VSPOS=&position.;
@@ -524,7 +525,7 @@ Plots the measurements against the visit names, with one line for each patient.
 %mend plot_mean_value;
 %macro plot_mean_change(code=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
-	%getvars(&code.);
+	%getvars(code=&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
 		%if &code.=VS %then %do;
@@ -934,8 +935,8 @@ Comments on dummy data:
 - LB results are always juged NCS or CS (never normal). Do we expect this? (This is different for VS and ECG.)
 - data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
 - LB: why are units not only in LBORRESU but in several variables (LBORRESU LBORRESU2 LBORRESU3 LBORRESU4 LBORRESU5 LBORRESU31)?
-- data dictionary?
 - LB: different units, missing units
+- data dictionary?
 */
 
 
