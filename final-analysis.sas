@@ -1197,7 +1197,7 @@ run;
 
 %process_table(code=LB,tests=Haemoglobin|Leucocytes,position='');
 
-%process_plot(code=LB,tests=Haemoglobin|Leucocytes,position=);
+%process_plot(code=LB,tests=Haemoglobin|Leucocytes,position='');
 
 %plot_traject(code=LB,check_visit=&treat_days.,test='Haemoglobin',position='');
 
