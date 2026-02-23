@@ -191,13 +191,23 @@ Both variables have the specified order of the category levels,
 and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne baseline')
 */
 
-proc report data=LB;
-run;
+
+%macro add_unit(code=);
+	%local var_test state_by var_score var_judge var_unit;
+	%getvars(code=&code.);
+	data &code.;
+		set &code.;
+		length measure $50;
+		if missing(&var_unit.) then &var_test. = &var_test.;
+		else &var_test. = cat(strip(&var_test.),' (',strip(&var_unit.),')');
+	run;
+%mend add_unit;
+
 
 /* define variable names TEST and SCORE */ 
 %macro getvars(code);
 	%if &code.=VS %then %do;
-		%let var_test=VSTEST_; /* was VSTESTCD*/
+		%let var_test=VSTEST_; /* was VSTEST_ was VSTESTCD*/
 		%let state_by=RID VISIT_ VSPOS;
 		%let var_judge=VSSTRESC_;
 		%let var_score=VSORRES;
@@ -224,6 +234,7 @@ run;
 	%put state_by=&state_by.;
 	%put var_score=&var_score.;
 	%put var_judge=&var_judge.;
+	%put var_unit=&var_unit.;
 %mend getvars;
 
 
@@ -933,10 +944,10 @@ Comments on dummy data:
 	proc tabulate data=VS;
 		title "vital signs at %sysfunc(dequote(&visit.)) visit by treatment";
 		where VISIT_=&visit.;
-		class treat VISIT_ VSPOS VSTEST VSSTRESC;
+		class treat VISIT_ VSPOS VSTEST_ VSSTRESC;
 		var VSORRES;
-		table	VSPOS * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%')
-				VSPOS * VSTEST * VSORRES * (mean std median min max n),
+		table	VSPOS * VSTEST_ * VSSTRESC * (n pctn<VSSTRESC>='%')
+				VSPOS * VSTEST_ * VSORRES * (mean std median min max n),
 				treat all='both';
 	run;
 %mend tabulateVS;
@@ -947,31 +958,12 @@ Comments on dummy data:
 /*%order_levels(code=VS,var=FORM); does not exist */ 
 %as_numeric(code=VS,var=VSORRES);
 
-
-%macro add_unit(code=VS)
-	%getvars(code=&code.);
-	data &code.;
-		set &code.;
-		length measure $40;
-		if missing(&var_unit.) then measure = &var_test.;
-		else measure = cat(&var_test.,' (',&var_unit.,')');
-	run;
-%end add_unit;
-
 %add_unit(code=VS);
-proc report data=VS;
-run;
-
-
-
 
 
 data VS;
 	set VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
-run;
-
-proc report data=VS;
 run;
 
 %tabulateVS(visit="Screening");
