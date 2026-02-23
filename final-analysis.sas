@@ -197,9 +197,10 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%getvars(code=&code.);
 	data &code.;
 		set &code.;
-		length measure $50;
-		if missing(&var_unit.) then &var_test. = &var_test.;
-		else &var_test. = cat(strip(&var_test.),' (',strip(&var_unit.),')');
+		length measure $60;
+		if missing(&var_unit.) then measure = &var_test.;
+		else measure = cat(strip(&var_test.),' (',strip(&var_unit.),')');
+		&var_test. = measure;
 	run;
 %mend add_unit;
 
@@ -1131,33 +1132,37 @@ run;
 /* * Subsection 4.9: electrocardiogram at screening* * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/*%prepare;*/
+
 /*%order_levels(code=EG,var=VISIT);*/
 %order_levels(code=EG,var=EGSTRESC1);
 %as_numeric(code=EG,var=EGORRES);
 
+%add_unit(code=EG);
+
+
 /* The following data statement creates the variable 'measure = test (unit)'. */
-data EG;
+/*data EG;
 	set EG;
 	length measure $40;
 	VISIT_ = VISIT;
 	if missing(EGORRESU) then measure = EGTEST;
 	else measure = cat(EGTEST,' (',EGORRESU,')');
 run;
+*/
 
 proc tabulate data=EG;
 	title 'ECG at DAY 1 by treatment';
 	where VISIT='DAY 1';
-	class treat measure EGSTRESC1;
+	class treat EGTEST EGSTRESC1;
 	var EGORRES;
-	table 	measure * EGSTRESC1 * (n pctn<EGSTRESC1>='%')
-			measure * EGORRES * (mean std median min max n),
+	table 	EGTEST * EGSTRESC1 * (n pctn<EGSTRESC1>='%')
+			EGTEST * EGORRES * (mean std median min max n),
 			treat all='both';
 run;
 
 /* ECG - listing of abnormal at screening */ 
 %list_abnormal(code=EG,check_visit='DAY 1',show_visit='DAY 1');
-
-
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * *  laboratory * * */
