@@ -49,7 +49,7 @@ and specifying the path to the output directory for the tables and figures (path
 /******************************************************************************/
 
 /* import clinical data */
-%macro import(path,code);
+%macro import(path=,code=);
 proc import datafile="&path.\&code._*"
     out=&code
     dbms=xlsx
@@ -64,7 +64,7 @@ and stores it in the data set 'code'.
 */ 
 
 /* extract random ID */
-%macro add_rid(code); 
+%macro add_rid(code=); 
 data &code;
  	set &code;
  	RID = input(substr(USUBJID,index(USUBJID,'/')+1),best.);
@@ -78,7 +78,7 @@ and adds this part to the dataset 'code' in the column 'RID'.
 */
 
 /* sort by random ID */
-%macro sort_rid(code);
+%macro sort_rid(code=);
 	proc sort data=&code;
 		by RID;
 	run;
@@ -89,7 +89,7 @@ Description: Sorts the dataset 'code' by the random identifier (RID).
 */
 
 /* add random info */
-%macro add_seq(code);
+%macro add_seq(code=);
 	data &code;
 		merge &code(in=a) random(in=b);
 		by RID;
@@ -121,7 +121,7 @@ sorting the datasets by random identifiers and adding information on the treatme
 */
 
 /* convert character to numeric */
-%macro as_numeric(code,var);
+%macro as_numeric(code=,var=);
 data &code;
 	set &code;
 	temp = input(&var,best.);
@@ -136,7 +136,7 @@ Description: Converts character variable to numeric.
 */
 
 /* derive treatment period */ 
-%macro add_period(code);
+%macro add_period(code=);
 	data &code.;
 		set &code.;
 		if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
@@ -150,7 +150,7 @@ Description: Uses the variable 'VISIT' to create the variable 'period'.
 */
 
 /* derive treatment */ 
-%macro add_treat(code);
+%macro add_treat(code=);
 	data &code.;
 		set &code.;
     	if period='1' and seq='1 (AB)' then treat='A';
@@ -168,7 +168,7 @@ to create the variable for the treatment (A or B).
 */
 
 /* re-order category levels */
-%macro order_levels(code,var);
+%macro order_levels(code=,var=);
 data &code.;
 	set &code.;
 	temp = input(&var.,&var._invalue.);
@@ -206,7 +206,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 
 /* define variable names TEST and SCORE */ 
-%macro getvars(code);
+%macro getvars(code=);
 	%if &code.=VS %then %do;
 		%let var_test=VSTEST_; /* was VSTEST_ was VSTESTCD*/
 		%let state_by=RID VISIT_ VSPOS;
@@ -240,7 +240,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 
 /* find patients with abnormal results */ 
-%macro extract_ids_abnormal(code,visit);
+%macro extract_ids_abnormal(code=,visit=);
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
     data temp;
@@ -268,7 +268,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 */
 
 /* show results for some patients */ 
-%macro extract_rows_abnormal(code,visit);
+%macro extract_rows_abnormal(code=,visit=);
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	data long;
@@ -294,7 +294,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 */
 
 /* report with colour for extreme values */ 
-%macro report(data,title,name=none,temp='TRUE');
+%macro report(data=,title=,name=none,temp='TRUE');
 	proc report data=&data. spanrows;
 		%color(name=&name.,temp=&temp.);
 		define RID / order order=internal;
@@ -314,7 +314,7 @@ Description: Adds colour for extreme values (see format section). Defines order 
 */
 
 /* report patients with abnormal values*/ 
-%macro list_abnormal(code,check_visit,show_visit,temp='TRUE');
+%macro list_abnormal(code=,check_visit=,show_visit=,temp='TRUE');
 	%local ids_abnormal;
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
@@ -334,7 +334,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 */ 
 
 /* summarise vital signs - values */ 
-%macro table_values(code,test,position);
+%macro table_values(code=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	proc tabulate data=&code.;
@@ -371,7 +371,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 %mend process_table;
 
 /* calculate change */
-%macro calcdiff(code,test,position);
+%macro calcdiff(code=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	data DATA_DIFF;
@@ -409,7 +409,7 @@ Use this macro to obtain the change with respect to baseline.
 */
 
 /* summarise vital signs - change */
-%macro table_change(code,test,position);
+%macro table_change(code=,test=,position=);
 	%calcdiff(code=&code.,test=&test.,position=&position.); /* returns DATA_DIFF*/
 	proc tabulate data=DATA_DIFF;
 		class VISIT treat / order=internal;
@@ -429,7 +429,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 */ 
 
 /* plot trajectories */
-%macro plot_traject(code,check_visit,test,position);
+%macro plot_traject(code=,check_visit=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit ids_abnormal;
 	%getvars(&code.);
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
@@ -485,7 +485,7 @@ Plots the measurements against the visit names, with one line for each patient.
 */
 
 /* plot mean value or mean change */
-%macro plot_internal(title);
+%macro plot_internal(title=);
 	data DATA_MEAN;
 		set DATA_MEAN;
 		where not missing(RID);
@@ -503,7 +503,7 @@ Plots the measurements against the visit names, with one line for each patient.
         delete DATA_MEAN;
     quit;
 %mend plot_internal;
-%macro plot_mean_value(code,test,position);
+%macro plot_mean_value(code=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
@@ -522,7 +522,7 @@ Plots the measurements against the visit names, with one line for each patient.
         delete DATA_MEAN;
     quit;
 %mend plot_mean_value;
-%macro plot_mean_change(code,test,position);
+%macro plot_mean_change(code=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
@@ -564,7 +564,7 @@ Plots the results.
 
 
 /* perform mixed modelling */ 
-%macro mixmod(outcome,data=PKpars,class=rid treat period treat,fixed=treat period treat,random=rid(treat),lsmeans=treat,alpha=0.10);
+%macro mixmod(outcome=,data=PKpars,class=rid treat period treat,fixed=treat period treat,random=rid(treat),lsmeans=treat,alpha=0.10);
 	proc mixed data=&data.;
 		Class &class.;
 		Model &outcome.= &fixed. / ddfm=kr; /* was seq period treat  */ 
@@ -934,6 +934,8 @@ Comments on dummy data:
 - LB results are always juged NCS or CS (never normal). Do we expect this? (This is different for VS and ECG.)
 - data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
 - LB: why are units not only in LBORRESU but in several variables (LBORRESU LBORRESU2 LBORRESU3 LBORRESU4 LBORRESU5 LBORRESU31)?
+- data dictionary?
+- LB: different units, missing units
 */
 
 
@@ -941,7 +943,7 @@ Comments on dummy data:
 /* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%macro tabulateVS(visit);
+%macro tabulateVS(visit=);
 	proc tabulate data=VS;
 		title "vital signs at %sysfunc(dequote(&visit.)) visit by treatment";
 		where VISIT_=&visit.;
@@ -1137,19 +1139,7 @@ run;
 /*%order_levels(code=EG,var=VISIT);*/
 %order_levels(code=EG,var=EGSTRESC1);
 %as_numeric(code=EG,var=EGORRES);
-
 %add_unit(code=EG);
-
-
-/* The following data statement creates the variable 'measure = test (unit)'. */
-/*data EG;
-	set EG;
-	length measure $40;
-	VISIT_ = VISIT;
-	if missing(EGORRESU) then measure = EGTEST;
-	else measure = cat(EGTEST,' (',EGORRESU,')');
-run;
-*/
 
 proc tabulate data=EG;
 	title 'ECG at DAY 1 by treatment';
@@ -1172,17 +1162,33 @@ run;
 
 %order_levels(code=LB,var=VISIT);
 %as_numeric(code=LB,var=LBORRES);
+data LB;
+	set LB;
+	length unit $40;
+	unit = coalescec(LBORRESU, LBORRESU2, LBORRESU3, LBORRESU4, LBORRESU5, LBORRESU31);
+	LBORRESU = unit;
+	drop unit;
+run;
+%add_unit(code=LB); /* problem: unit is contained in multiple columns */ 
 
-proc tabulate data=LB;
-	title1 'Laboratory values at screening by treatment';
-	title2 'Number and percentage of patients with normal, NCS abnormal, and CS abnormal values, and summary statistics of values, at the screening visit, for each treatment separately and for both treatments together.';
-	where VISIT_='Screening';
-	class treat LBTEST LBCLSIG;
-	var LBORRES;
-	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
+
+proc report data=LB;
+run;
+
+%macro tabulateLB(visit=);
+	proc tabulate data=LB;
+		title "laboratory values at %sysfunc(dequote(&visit.)) visit by treatment";
+		title2 'Number and percentage of patients with normal, NCS abnormal, and CS abnormal values, and summary statistics of values, at the screening visit, for each treatment separately and for both treatments together.';
+		where VISIT_=&visit.;
+		class treat LBTEST LBCLSIG;
+		var LBORRES;
+		table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
 			LBTEST * LBORRES * (mean std median min max n),
 			treat all='both';
-run;
+	run;
+%mend tabulateLB;
+
+%tabulateLB(visit="Screening");
 
 /* vital signs - listing of abnormal at screening */
 
@@ -1193,6 +1199,8 @@ run;
 %process_plot(code=LB,tests=Haemoglobin|Leucocytes,position=);
 
 %plot_traject(code=LB,check_visit=&treat_days.,test='Haemoglobin',position='');
+
+%tabulateLB(visit="Day 15");
 
 /* plot only individuals that have abnormal values in the specific variable!*/
 
