@@ -1,4 +1,6 @@
 
+/* The entry "D" means "not done" and the entry "A" means "not applicable". Replace both by NA! /*
+
 /******************************************************************************/
 /*** Crypto-HIV phase II study  ***********************************************/
 /*** Armin Rauschenberger *****************************************************/
