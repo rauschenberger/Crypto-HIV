@@ -368,6 +368,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 	%local i test;
 	%do i = 1 %to %sysfunc(countw(&tests, |));
   	%let test = %scan(&tests, &i, |);
+    	%let test = %qscan(%superq(tests), &i, %str(|), q);
   		%table_values(code=&code.,test="&test",position=&position.);
   		%table_change(code=&code.,test="&test",position=&position.);
 	%end;
@@ -965,20 +966,12 @@ Comments on dummy data:
 
 %add_unit(code=VS);
 
-
 data VS;
 	set VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
 run;
 
 %tabulateVS(visit="Screening");
-
-/*
-proc report data=VS;
-	where not missing(VSSTRESC_) and strip(VSSTRESC_) not in ('Normal','.');
-	where VSSTRESC_ in ('NCS' 'CS');
-run;
-*/
 
 /* vital signs - listing of abnormal at screening */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
@@ -987,8 +980,7 @@ run;
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%process_table(code=VS,tests=Systolic Blood Pressure|Diastolic Blood Pressure|Pulse Rate|Respiratory Rate|Oxygen Saturation,position='Sitting');
-
+%process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%),position='Sitting');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
@@ -999,24 +991,21 @@ I have a dataset in SAS with the columns RID (sample identifiers), treat (A or B
 I want to count the number of patients per treatment and per visit that have no abnormal values and that have at least one abnormal value. Please adapt my SAS code.
 */
 
-
-/*
 proc summary data=VS nway;
 	where not missing(RID);
-	class VSSTRESC RID VISIT treat;
+	class VSSTRESC VSTEST RID VISIT treat;
 	output out=temp;
-run;
-
-proc report data=VS;
 run;
 
 proc tabulate data=temp;
 	title 'vital signs normal/abnormal by treatment and time';
-	class VISIT treat VSSTRESC RID / order=internal;
-	table VISIT * VSSTRESC * (n pctn<VSSTRESC>='%'),
+	where not missing(RID);
+	class VISIT treat VSTEST VSSTRESC RID / order=internal;
+	table VISIT * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%'),
 		  treat;
 run;
-*/
+
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.13: vital signs - abnormal during treatment  * * * * * * * */
