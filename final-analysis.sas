@@ -1160,11 +1160,55 @@ data LB;
 	LBORRESU = unit;
 	drop unit;
 run;
-%add_unit(code=LB); /* problem: unit is contained in multiple columns */ 
 
-
-proc report data=LB;
+data LB;
+	set LB;
+	if LBTEST = 'Albumin' then do;
+		if LBORRESU = 'g/dL' then do;
+			LBORRES = 10*LBORRES;
+			LBORRESU = 'g/L';
+		end;
+	end;
+	else if LBTEST = 'Creatinine' then do;
+		if LBORRESU = 'mg/dL' then do;
+			LBORRES = 88.42*LBORRES;
+			LBORRESU = 'umol/L';
+		end;
+	end;
+	else if LBTEST = 'Glucose' then do;
+		if LBORRESU = 'mg/dL' then do;
+			LBORRES = LBORRES/18;
+			LBORRESU = 'mmol/L';
+		end;
+	end;
+	else if LBTEST = 'Magnesium' then do;
+		if LBORRESU = 'mg/dL' then do;
+			LBORRES = 0.4114*LBORRES;
+			LBORRESU = 'mmol/L';
+		end;
+	end;
+	else if LBTEST = 'Urea' then do;
+		if LBORRESU = 'mg/dL' then do;
+			LBORRES = LBORRES/6;
+			LBORRESU = 'mmol/L';
+		end;
+	end;
+	else if LBTEST = 'Total Protein' then do;
+		if LBORRESU = 'g/dL' then do;
+			LBORRES = 10*LBORRES;
+			LBORRESU = 'g/L';
+		end;
+	end;
+	/* CONTINUE HERE WITH CONVERSION, ALSO EXAMINE VALUES WITHOUT UNITS (ARE THEY IN OTHER COLUMNS?) */ 
+	else if LBTEST = '' then do;
+		if LBORRESU = '' then do;
+			LBORRES = LBORRES;
+			LBORRESU = '';
+		end;
+	end;
 run;
+
+%add_unit(code=LB); /* problem: unit is contained in multiple columns */ 
 
 %macro tabulateLB(visit=);
 	proc tabulate data=LB;
