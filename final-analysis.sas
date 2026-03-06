@@ -336,7 +336,7 @@ Description: Adds colour for extreme values (see format section). Defines order 
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
 	/*%let show_visit_clean = %sysfunc(lowcase(%sysfunc(tranwrd(%sysfunc(compress(&show_visit.,%str('))),%str( ),%str( and )))));*/
 	/*%let check_visit_clean = %sysfunc(lowcase(%sysfunc(dequote(&check_visit.))));*/
-	%report(data=wide,title="&code. data at visits &show_visit. (if applicable), for those abnormal at visit &check_visit_clean.",name=&code.,temp=&temp.);
+	%report(data=wide,title="&code. data at visits &show_visit. (if applicable), for those abnormal at visit &check_visit.",name=&code.,temp=&temp.);
 	proc datasets lib=work nolist;
         delete wide;
     quit;
@@ -356,10 +356,15 @@ and shows the results for these patients at one or more visits ('show_visit').
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(code=&code.);
 	proc tabulate data=&code.;
-		%if &code.=VS %then %do;
+		%if &code.=VS and %length(&position.)>0 %then %do;
 			where VSPOS=&position. and &var_test.=&test.;
 			class &var_test. VSPOS VISIT treat / order=internal;
 		%end;
+		%else %do;
+			where &var_test.=&test.;
+			class &var_test. VISIT treat / order=internal;		
+		%end;
+		/*
 		%else %if &code.=LB %then %do;
 			where &var_test.=&test.;
 			class &var_test. VISIT treat / order=internal;		
@@ -367,11 +372,12 @@ and shows the results for these patients at one or more visits ('show_visit').
 		%else %do;
 			%put ERROR;
 		%end;
+		*/
 		var &var_score.; /*was VSORRES*/
 		table 	VISIT * &var_score. * (mean std median min max n), /*was VSORRES*/
 			treat;
 		title &position. ' ' &test. ' - values';
-		title2 '(by visit and treatment)';
+		title2 '(summary statistics by visit and treatment)';
 	run;
 %mend table_values;
 /*
@@ -396,7 +402,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 	%getvars(code=&code.);
 	data DATA_DIFF;
 		set &code.;
-		%if &code.=VS %then %do;
+		%if &code.=VS and %length(&position.)>0 %then %do;
 			where &var_test.=&test. and VSPOS=&position. and not missing(RID);
 		%end;
 		%else %do;
@@ -437,7 +443,8 @@ Use this macro to obtain the change with respect to baseline.
 		table 	VISIT * diff * (mean std median min max n),
 			treat;
 		title &position. ' ' &test. ' - change';
-		title2 '(with respect to screening visit, by visit and treatment)';
+		title2 '(with respect to screening visit,';
+		title3 'summary statistics by visit and treatment)';
 	run;
 	proc datasets lib=work nolist;
         delete DATA_DIFF;
@@ -453,7 +460,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 %macro plot_traject(code=,check_visit=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit ids_abnormal;
 	%getvars(code=&code.);
-	%extract_ids_abnormal(code=&code.,visit=&check_visit.,test=&test.,position=&position.); /* also provide position */ 
+	%extract_ids_abnormal(code=&code.,visit=&check_visit.,test=&test.,position=&position.);
 	data temp;
 		set &code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
@@ -482,14 +489,22 @@ Description: Summarises change with respect to pre-dose for each time point (row
     	xaxis label='time'; 
     	yaxis label='value';
    		keylegend / title='RID';
+		%if %bquote(&test.)=%bquote("Systolic Blood Pressure (mmHg)") %then %do;
+			refline 90 140 / axis=y lineattrs=(thickness=2);
+		%end;
+		%else %if &test.=%bquote("Diastolic Blood Pressure (mmHg)") %then %do;
+			refline 45 90 / axis=y lineattrs=(thickness=2);
+		%end;
+		/*
 		%if &code.=VS %then %do;
 			%if %bquote(&position.)=%bquote('Sitting') and %bquote(&test.)=%bquote("Systolic Blood Pressure (mmHg)") %then %do;
-				refline 90 140 / axis=y lineattrs=(thickness=2); /* verify range */
+				refline 90 140 / axis=y lineattrs=(thickness=2);
 			%end;
 			%if %bquote(&position.)=%bquote('Sitting') and &test.=%bquote("Diastolic Blood Pressure (mmHg)") %then %do;
-				refline 45 90 / axis=y lineattrs=(thickness=2); /* verify range */ 
+				refline 45 90 / axis=y lineattrs=(thickness=2);
 			%end;
 		%end;
+		*/
 		refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.5 pattern=dash);
 	run;
 	proc datasets lib=work nolist;
@@ -508,10 +523,12 @@ Plots the measurements against the visit names, with one line for each patient.
 
 /* plot mean value or mean change */
 %macro plot_internal(title=);
+	/*
 	data DATA_MEAN;
 		set DATA_MEAN;
 		where not missing(RID);
 	run;
+	*/
 	proc sgplot data=DATA_MEAN;
 		series x=visit y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
@@ -530,10 +547,10 @@ Plots the measurements against the visit names, with one line for each patient.
 	%getvars(code=&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
 		%if &code.=VS %then %do;
-			where &var_test.=&test. and VSPOS=&position.;
+			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
-			where &var_test.=&test.;
+			where not missing(RID) and &var_test.=&test.;
 		%end;
 		var &var_score.;
 		class treat visit;
@@ -549,11 +566,11 @@ Plots the measurements against the visit names, with one line for each patient.
 	%getvars(code=&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
-		%if &code.=VS %then %do;
-			where &var_test.=&test. and VSPOS=&position.;
+		%if &code.=VS and %length(&position.)>0 %then %do;
+			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
-			where &var_test.=&test.;
+			where not missing (RID) and &var_test.=&test.;
 		%end;
 		var diff;
 		class treat visit;
@@ -985,11 +1002,13 @@ run;
 %macro tabulateVS(visit=);
 	proc tabulate data=VS;
 		title "Vital signs at %sysfunc(lowcase(%sysfunc(dequote(&visit.)))) visit by treatment";
+		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
+		title3 "bottom: summary statistics of numerical values)";
 		where VISIT_=&visit.;
-		class treat VISIT_ VSPOS VSTEST_ VSSTRESC;
+		class treat VISIT_ VSTEST_ VSSTRESC; /*VSPOS*/ 
 		var VSORRES;
-		table	VSPOS * VSTEST_ * VSSTRESC * (n pctn<VSSTRESC>='%')
-				VSPOS * VSTEST_ * VSORRES * (mean std median min max n),
+		table	VSTEST_ * VSSTRESC * (n pctn<VSSTRESC>='%') /*VSPOS * */
+				VSTEST_ * VSORRES * (mean std median min max n), /*VSPOS * */
 				treat all='both';
 	run;
 %mend tabulateVS;
@@ -997,6 +1016,7 @@ run;
 %order_levels(code=VS,var=VISIT);
 %order_levels(code=VS,var=VSTEST);
 %order_levels(code=VS,var=VSSTRESC);
+%order_levels(code=VS,var=time);
 %as_numeric(code=VS,var=VSORRES);
 %add_unit(code=VS);
 
@@ -1015,7 +1035,7 @@ run;
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%),position='Sitting');
+%process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%));
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
@@ -1034,7 +1054,7 @@ proc summary data=VS nway;
 run;
 
 proc tabulate data=temp;
-	title 'Number of patients with normal, CS abnormal, and NCS abnormal vital signs';
+	title 'Number of patients with normal, NCS abnormal, and CS abnormal vital signs';
 	title2 '(by visit, vital sign, and treatment)';
 	where not missing(RID);
 	class VISIT treat VSTEST VSSTRESC RID / order=internal;
@@ -1043,39 +1063,9 @@ proc tabulate data=temp;
 run;
 
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.13: vital signs - abnormal during treatment  * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/* This is wrong as it subsets the table and then tranposes (i.e., introducing missing values).*/
-data long;
-	set VS;
-	where not missing(VSSTRESC_) and strip(VSSTRESC_) not in ('Normal','.') and not missing(RID) and VISIT_ in (&treat_days.);
-	/*
-	if VSTEST_ = 'Pulse Rate' then VSTEST_ = 'PULSE';
-  	else if VSTEST_ = 'Body Temperature' then VSTEST_ = 'TEMP';
-	else if VSTEST_ = 'Respiratory Rate' then VSTEST_= 'RESPIR';
-	else if VSTEST_ = 'Diastolic Blood Pressure' then VSTEST_ = 'DIAPB';
-	else if VSTEST_ = 'Systolic Blood Pressure' then VSTEST_ = 'SYSBP';
-	else if VSTEST_ = 'Oxygen Saturation' then VSTEST_ = 'OXYGEN';
-	*/
-run;
-
-proc report data=long;
-run;
-
-proc sort data=long;
-	by RID treat VISIT VSPOS;
-run;
-
-proc transpose data=long out=wide;
-	by RID treat VISIT VSPOS;
-	id VSTEST_;
-	var VSORRES;
-run;
-
-%report(data=wide,title='patients with abnormal vital signs - scheduled visits',name=VS,temp='FALSE');
 
 %list_abnormal(code=VS,check_visit=&treat_days.,show_visit=&treat_days. &post_weeks.,temp='FALSE');
 
@@ -1084,29 +1074,14 @@ run;
 /* * Subsection 4.14: plot vital signs for abnormal  * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-data VS;
-	set VS;
-	length time $40;
-	if VISIT='Screening' then time='screen';
-	else if FORM_='Pre-dose' then time=cat('P',period,': pre-dose');
-	else if FORM_='2 hours post-dose' then time=cat('P',period,': 2h');
-	else if FORM_='4 hours post-dose' then time=cat('P',period,': 4h');
-	else if FORM_='6 hours post-dose' then time=cat('P',period,': 6h');
-	else if FORM_='48 hours post-dose' then time=cat('P',period,': 48h');
-	else if VISIT='Post Study' then time='post-study';
-	else if VISIT in ('Unscheduled Treatment Period 1','Unscheduled Treatment Period 2','Unscheduled Screening') then time='unscheduled';
-run;
-%order_levels(code=VS,var=time);
 
 %process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg))
-
-/* add lines for normal/abnormal */ 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%process_plot(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min),position='Sitting')
+%process_plot(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min))
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.16: vital signs - post study * * * * * * * * * * * * * * * */
@@ -1114,36 +1089,7 @@ run;
 
 %tabulateVS(visit="Week 10");
 
-/* vital signs - overall change */
 
-/* This info is already contained in diff screening - follow-up (see above).*/
-
-data long;
-	set VS;
-	where VISIT_ in ('Screening','Week 10') and VSPOS='Sitting' and not missing(RID);
-run;
-
-proc sort data=long;
-	by RID VSTEST;
-run;
-
-proc transpose data=long out=wide;
-	by RID VSTEST treat;
-	id VISIT;
-	var VSORRES;
-run;
-
-data wide;
-	set wide;
-	diff = Week_10 - Screening;
-run;
-
-proc tabulate data=wide;
-	title 'change in vital signs from screening to post study by sequence';
-	class treat RID VSTEST / order=internal;
-	var diff;
-	table VSTEST * diff * (mean std median min max n), treat;
-run;
 
 
 
