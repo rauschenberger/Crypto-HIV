@@ -932,13 +932,9 @@ run;
 %let post_weeks='Week 4' 'Week 6' 'Week 10';
  
 /*
-Comments on dummy data:
-- VS: SUBJD=1009 at VISIT="Screening" has PULSE=58 (inside normal range) but VSSTRESC="NCS" (which is a contradiction).
-- VS: Should one abnormal vital sign at a VISIT set VSSTRESC to "CS/NCS" only for this vital sign (as currently) or for all vital signs (as in previous study)?
 - normal ranges for vital signs (supine/sitting/standing), electro-cardiogram, and haematology
 - LB results are always juged NCS or CS (never normal). Do we expect this? (This is different for VS and ECG.)
 - data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
-- LB: why are units not only in LBORRESU but in several variables (LBORRESU LBORRESU2 LBORRESU3 LBORRESU4 LBORRESU5 LBORRESU31)?
 - LB: different units, missing units
 - data dictionary?
 */
@@ -962,7 +958,6 @@ Comments on dummy data:
 %order_levels(code=VS,var=VISIT);
 %order_levels(code=VS,var=VSTEST);
 %order_levels(code=VS,var=VSSTRESC);
-/*%order_levels(code=VS,var=FORM); does not exist */ 
 %as_numeric(code=VS,var=VSORRES);
 
 %add_unit(code=VS);
