@@ -1496,7 +1496,7 @@ proc report data=AE spanrows;
 run;
 
 
-
+%macro ignore;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.19: pharmacokinetics * * * * * * * * * * * * * * * * * * * */
@@ -1507,6 +1507,7 @@ proc import datafile=temp
 		out=PK
 		dbms=csv;
 run;
+
 
 data PK;
 	set PK;
@@ -1655,6 +1656,7 @@ run;
 %mixmod(outcome=logAUClast);
 %mixmod(outcome=logAUCinf);
 
+%mend ignore;
 
 
 /* ---------------------- */
@@ -1790,3 +1792,4 @@ run;
 %plotvs('Systolic Blood Pressure');
 %plotvs('Diastolic Blood Pressure');
 */
+
