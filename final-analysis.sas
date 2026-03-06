@@ -211,6 +211,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 /* define variable names TEST and SCORE */ 
 %macro getvars(code=);
 	%if &code.=VS %then %do;
+		%let label='Vital Signs';
 		%let var_test=VSTEST_; /* was VSTEST_ was VSTESTCD*/
 		%let state_by=RID VISIT_ VSPOS;
 		%let var_judge=VSSTRESC_;
@@ -218,6 +219,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let var_unit=VSORRESU;
 	%end;
 	%else %if &code.=EG %then %do;
+		%let label='Electrocardiogram';
 		%let var_test=EGTEST;
 		%let state_by=RID VISIT_;
 		%let var_judge=EGSTRESC1_;
@@ -225,6 +227,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let var_unit=EGORRESU;
 	%end;
 	%else %if &code.=LB %then %do;
+		%let label='Laboratory';
 		%let var_test=LBTEST;
 		%let state_by=RID VISIT_;
 		%let var_judge=LBCLSIG;
@@ -234,6 +237,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%else %do;
 		%put ERROR;
 	%end;
+	%put label=&label.;
 	%put var_test=&var_test.;
 	%put state_by=&state_by.;
 	%put var_score=&var_score.;
@@ -785,6 +789,7 @@ proc format;
 	invalue VISIT_invalue
  		'Screening' = 0
 		'Day 1' = 1
+		'DAY 1' = 1
  		'Day 2' = 2
 		'Day 3' = 3
 		'Day 4' = 4
@@ -1000,6 +1005,23 @@ run;
 /* * Subsection 4.2: vital signs * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%macro tabulate(code=,visit=);
+	%local label var_test state_by var_score var_judge var_unit;
+	%getvars(code=&code.);
+	proc tabulate data=&code.;
+		title "%sysfunc(dequote(&label.)) at %sysfunc(dequote(&visit.)) Visit by Treatment";
+		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
+		title3 "bottom: summary statistics of numerical values)";
+		where VISIT_=&visit.;
+		class treat VISIT_ &var_test. &var_judge.;
+		var &var_score.;
+		table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
+				&var_test. * &var_score. * (mean std median min max n),
+				treat all='both';
+	run;
+%mend tabulate;
+
+
 %macro tabulateVS(visit=);
 	proc tabulate data=VS;
 		title "Vital Signs at %sysfunc(dequote(&visit.)) Visit by Treatment";
@@ -1028,6 +1050,8 @@ run;
 
 /* table: vital signs at screening visit by treatment */ 
 %tabulateVS(visit="Screening");
+%tabulate(code=VS,visit="Screening"); /* This macro should also be used for visit="Week 10", for ECG and for LB!*/ 
+
 
 /* listing: abnormal at screening */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
@@ -1064,22 +1088,19 @@ run;
 /* vital signs post study, by treatment */
 %tabulateVS(visit="Week 10");
 
-
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.9: electrocardiogram at screening* * * * * * * * * * * * * */
+/* * Subsection 4.2: electrocardiogram * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/*%prepare;*/
-
-/*%order_levels(code=EG,var=VISIT);*/
 %order_levels(code=EG,var=EGSTRESC1);
+%order_levels(code=EG,var=VISIT);
 %as_numeric(code=EG,var=EGORRES);
 %add_unit(code=EG);
 
+/* table: EG at day 1*/ 
 proc tabulate data=EG;
-	title 'ECG at DAY 1 by treatment';
-	where VISIT='DAY 1';
+	title 'Electrocariogram at day 1 by treatment';
+	where VISIT_ ='Day 1';
 	class treat EGTEST EGSTRESC1;
 	var EGORRES;
 	table 	EGTEST * EGSTRESC1 * (n pctn<EGSTRESC1>='%')
@@ -1087,14 +1108,23 @@ proc tabulate data=EG;
 			treat all='both';
 run;
 
-/* ECG - listing of abnormal at screening */ 
-%list_abnormal(code=EG,check_visit='DAY 1',show_visit='DAY 1');
+/* listing: abnormal EG at day 1*/ 
+%list_abnormal(code=EG,check_visit='Day 1',show_visit='Day 1');
+
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * *  laboratory * * */
+/* * * Subsection 4.3: laboratory* * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %prepare;
+
+/*
+To discuss with Aljosa: Rows with value but without unit. Consider LBCO? But some rows have no free-text comment. And at least one comment is 10E3/L but should be 10E3/UL.
+proc report data=LB;
+	where not missing(LBORRES) and missing(LBORRESU) and LBTEST in ('Leucocytes','Magnesium','Neutrophils');
+run;
+ */
 
 %order_levels(code=LB,var=VISIT);
 %as_numeric(code=LB,var=LBORRES);
@@ -1106,14 +1136,6 @@ data LB;
 	LBORRESU = unit;
 	drop unit;
 run;
-
-
-/*
-To discuss with Aljosa: Rows with value but without unit. Consider LBCO? But some rows have no free-text comment. And at least one comment is 10E3/L but should be 10E3/UL.
-proc report data=LB;
-	where not missing(LBORRES) and missing(LBORRESU) and LBTEST in ('Leucocytes','Magnesium','Neutrophils');
-run;
- */
 
 data LB;
 	set LB;
@@ -1169,6 +1191,7 @@ run;
 
 %add_unit(code=LB);
 
+
 %macro tabulateLB(visit=);
 	proc tabulate data=LB;
 		title "laboratory values at %sysfunc(dequote(&visit.)) visit by treatment";
@@ -1188,15 +1211,17 @@ run;
 
 %list_abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
-%process_table(code=LB,tests=Haemoglobin|Leucocytes,position='');
+%process_table(code=LB,tests=Haemoglobin|Leucocytes);
 
-%process_trend(code=LB,tests=Haemoglobin|Leucocytes,position='');
+%process_trend(code=LB,tests=Haemoglobin|Leucocytes);
 
-%plot_traject(code=LB,check_visit=&treat_days.,test='Haemoglobin',position='');
+%plot_traject(code=LB,check_visit=&treat_days.,test='Haemoglobin');
 
 %tabulateLB(visit="Day 15");
 
 /* plot only individuals that have abnormal values in the specific variable!*/
+
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
@@ -1433,6 +1458,7 @@ proc report data=AE spanrows;
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	define RID/order;
 run;
+
 
 
 
