@@ -1120,9 +1120,6 @@ proc tabulate data=wide;
 run;
 
 
-
-
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.9: electrocardiogram at screening* * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1224,7 +1221,7 @@ data LB;
 	end;
 run;
 
-%add_unit(code=LB); /* problem: unit is contained in multiple columns */ 
+%add_unit(code=LB);
 
 %macro tabulateLB(visit=);
 	proc tabulate data=LB;
@@ -1360,7 +1357,6 @@ proc report data=RANKIN;
 	title 'disability';
 run;
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: withdrawals * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1475,11 +1471,6 @@ run;
 proc report data=MH;
 run;
 
-
-
-
-
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.18: adverse events * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1496,6 +1487,8 @@ proc report data=AE spanrows;
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	define RID/order;
 run;
+
+
 
 
 %macro ignore;
