@@ -376,7 +376,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 		var &var_score.; /*was VSORRES*/
 		table 	VISIT * &var_score. * (mean std median min max n), /*was VSORRES*/
 			treat;
-		title &position. ' ' &test. ' - values';
+		title &position. ' ' &test. ' - Values';
 		title2 '(summary statistics by visit and treatment)';
 	run;
 %mend table_values;
@@ -442,7 +442,7 @@ Use this macro to obtain the change with respect to baseline.
 		var diff;
 		table 	VISIT * diff * (mean std median min max n),
 			treat;
-		title &position. ' ' &test. ' - change';
+		title &position. ' ' &test. ' - Change';
 		title2 '(with respect to screening visit,';
 		title3 'summary statistics by visit and treatment)';
 	run;
@@ -522,7 +522,7 @@ Plots the measurements against the visit names, with one line for each patient.
 */
 
 /* plot mean value or mean change */
-%macro plot_internal(title=);
+%macro plot_internal(title=,title2=);
 	/*
 	data DATA_MEAN;
 		set DATA_MEAN;
@@ -532,6 +532,7 @@ Plots the measurements against the visit names, with one line for each patient.
 	proc sgplot data=DATA_MEAN;
 		series x=visit y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	title &title.;
+		title2 &title2.;
     	xaxis label='time';
     	yaxis label='value';
     	keylegend / title='treatment';
@@ -546,7 +547,7 @@ Plots the measurements against the visit names, with one line for each patient.
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(code=&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
-		%if &code.=VS %then %do;
+		%if &code.=VS and %length(&position.)>0 %then %do;
 			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
@@ -556,7 +557,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		class treat visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(title='Mean ' &position. ' ' &test.);
+	%plot_internal(title='Mean ' &position. ' ' &test.,title2='(by treatment)');
 	proc datasets lib=work nolist;
         delete DATA_MEAN;
     quit;
@@ -576,7 +577,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		class treat visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(title='Mean change in ' &position. ' ' &test.);
+	%plot_internal(title='Mean Change in ' &position. ' ' &test.,title2='(with respect to the screening visit, by treatment)');
 	proc datasets lib=work nolist;
         delete DATA_MEAN;
     quit;
@@ -592,14 +593,14 @@ as well as the lower and upper confidence limits for these means.
 Plots the results.
 */
 
-%macro process_plot(code=,tests=,position=);
+%macro process_trend(code=,tests=,position=);
 	%local i test;
 	%do i = 1 %to %sysfunc(countw(&tests, |));
   	%let test = %scan(&tests, &i, |);
   		%plot_mean_value(code=&code.,test="&test",position=&position.);
   		%plot_mean_change(code=&code.,test="&test",position=&position.);
 	%end;
-%mend process_plot;
+%mend process_trend;
 
 %macro process_traject(code=,check_visit=,tests=,position=);
 	%local i test;
@@ -996,12 +997,12 @@ run;
 */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.2: vital signs at screening  * * * * * * * * * * * * * * * */
+/* * Subsection 4.2: vital signs * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %macro tabulateVS(visit=);
 	proc tabulate data=VS;
-		title "Vital signs at %sysfunc(lowcase(%sysfunc(dequote(&visit.)))) visit by treatment";
+		title "Vital Signs at %sysfunc(dequote(&visit.)) Visit by Treatment";
 		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
 		title3 "bottom: summary statistics of numerical values)";
 		where VISIT_=&visit.;
@@ -1025,27 +1026,16 @@ data VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
 run;
 
+/* table: vital signs at screening visit by treatment */ 
 %tabulateVS(visit="Screening");
 
-/* vital signs - listing of abnormal at screening */
+/* listing: abnormal at screening */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
+/* tables: values of and change in vital signs*/ 
 %process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%));
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.12: vital signs - normal/abnormal by time and treatment  * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
-We have a dataset in SAS with the columns RID (sample identifiers), treat (A or B), VISIT (day 1-10), VSTEST (SYSPD, DIABP, PULSE, RESPRATE, BODTEMP), and VSSTRESC (Normal, abnormal).
-Do we want to count the number of patients per treatment and per visit that have no abnormal values and those that have at least one abnormal value?
-Or do we want to count the number of normal and abnormal signs?
-*/
+/*table: count of abnormal values */
 
 proc summary data=VS nway;
 	where not missing(RID);
@@ -1054,7 +1044,7 @@ proc summary data=VS nway;
 run;
 
 proc tabulate data=temp;
-	title 'Number of patients with normal, NCS abnormal, and CS abnormal vital signs';
+	title 'Count and Percentage of Normal, NCS or CS Abnormal VItal Signs';
 	title2 '(by visit, vital sign, and treatment)';
 	where not missing(RID);
 	class VISIT treat VSTEST VSSTRESC RID / order=internal;
@@ -1062,34 +1052,17 @@ proc tabulate data=temp;
 		  treat;
 run;
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.13: vital signs - abnormal during treatment  * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
+/* listing: abnormal during treatment */ 
 %list_abnormal(code=VS,check_visit=&treat_days.,show_visit=&treat_days. &post_weeks.,temp='FALSE');
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.14: plot vital signs for abnormal  * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-
+/* figures: trajectories of patients with abnormal values */ 
 %process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg))
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* figures: mean values and mean change */ 
+%process_trend(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min))
 
-%process_plot(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min))
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.16: vital signs - post study * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
+/* vital signs post study, by treatment */
 %tabulateVS(visit="Week 10");
-
-
 
 
 
@@ -1217,7 +1190,7 @@ run;
 
 %process_table(code=LB,tests=Haemoglobin|Leucocytes,position='');
 
-%process_plot(code=LB,tests=Haemoglobin|Leucocytes,position='');
+%process_trend(code=LB,tests=Haemoglobin|Leucocytes,position='');
 
 %plot_traject(code=LB,check_visit=&treat_days.,test='Haemoglobin',position='');
 
