@@ -243,7 +243,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 
 /* find patients with abnormal results */ 
-%macro extract_ids_abnormal(code=,visit=);
+%macro extract_ids_abnormal(code=,visit=,test=);
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(code=&code.);
     data temp;
@@ -251,6 +251,12 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
         where VISIT_ in (&visit.) and not missing(&var_judge.) and strip(&var_judge.) not in ('Normal', '.') and not missing(RID); /* use numerical values */ 
 		/*was in ('NCS','CS','Abnormal, NCS','Abnormal, CS') */ 
     run;
+	%if %length(&test.)>0 %then %do;
+		data temp;
+			set temp;
+			where &var_test.=&test.;
+		run;
+	%end;
     proc sql noprint;
         select distinct RID
         into :ids_abnormal separated by ','
@@ -441,7 +447,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 %macro plot_traject(code=,check_visit=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit ids_abnormal;
 	%getvars(code=&code.);
-	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
+	%extract_ids_abnormal(code=&code.,visit=&check_visit.,test=&test.);
 	data temp;
 		set &code.;
 		%if &code.=VS %then %do;
@@ -466,14 +472,15 @@ Description: Summarises change with respect to pre-dose for each time point (row
 	proc sgplot data=temp;
 		series x=visit y=&var_score. / group=RID markers;
     	title &position. ' ' &test.;
+		title2 '(for those abnormal at' &check_visit. ')';
     	xaxis label='time'; 
     	yaxis label='value';
    		keylegend / title='RID';
 		%if &code.=VS %then %do;
-			%if &position.='Sitting' and &test.='Systolic Blood Pressure' %then %do;
+			%if &position.='Sitting' and &test.='Systolic Blood Pressure (mmHg)' %then %do;
 				refline 90 140 / axis=y lineattrs=(thickness=2); /* verify range */
 			%end;
-			%if &position.='Sitting' and &test.='Diastolic Blood Pressure' %then %do;
+			%if &position.='Sitting' and &test.='Diastolic Blood Pressure (mmHg)' %then %do;
 				refline 45 90 / axis=y lineattrs=(thickness=2); /* verify range */ 
 			%end;
 		%end;
@@ -570,6 +577,14 @@ Plots the results.
   		%plot_mean_change(code=&code.,test="&test",position=&position.);
 	%end;
 %mend process_plot;
+
+%macro process_traject(code=,check_visit=,tests=,position=);
+	%local i test;
+	%do i=1 %to %sysfunc(countw(&tests, |));
+	%let test = %scan(&tests, &i, |);
+		%plot_traject(code=&code.,check_visit=&check_visit.,test="&test",position=&position.);
+	%end;
+%mend process_traject;
 
 
 /* perform mixed modelling */ 
@@ -1063,10 +1078,8 @@ data VS;
 run;
 %order_levels(code=VS,var=time);
 
-%plot_traject(code=VS,check_visit=&treat_days.,test='Systolic Blood Pressure (mmHg)',position='Sitting');
-%plot_traject(code=VS,check_visit=&treat_days.,test='Diastolic Blood Pressure (mmHg)',position='Sitting');
+%process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg),position='Sitting')
 
-/* use macro process_traject (as process_plot) */ 
 /* add lines for normal/abnormal */ 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
