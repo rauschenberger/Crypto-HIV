@@ -322,7 +322,9 @@ Description: Adds colour for extreme values (see format section). Defines order 
 	%local ids_abnormal;
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
-	%report(data=wide,title="&code. data at &show_visit. (for those abnormal at &check_visit.)",name=&code.,temp=&temp.);
+	/*%let show_visit_clean = %sysfunc(lowcase(%sysfunc(tranwrd(%sysfunc(compress(&show_visit.,%str('))),%str( ),%str( and )))));*/
+	/*%let check_visit_clean = %sysfunc(lowcase(%sysfunc(dequote(&check_visit.))));*/
+	%report(data=wide,title="&code. data at visits &show_visit. (if applicable), for those abnormal at visit &check_visit_clean.",name=&code.,temp=&temp.);
 	proc datasets lib=work nolist;
         delete wide;
     quit;
@@ -357,6 +359,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 		table 	VISIT * &var_score. * (mean std median min max n), /*was VSORRES*/
 			treat;
 		title &position. ' ' &test. ' - values';
+		title2 '(by visit and treatment)';
 	run;
 %mend table_values;
 /*
@@ -422,6 +425,7 @@ Use this macro to obtain the change with respect to baseline.
 		table 	VISIT * diff * (mean std median min max n),
 			treat;
 		title &position. ' ' &test. ' - change';
+		title2 '(with respect to screening visit, by visit and treatment)';
 	run;
 	proc datasets lib=work nolist;
         delete DATA_DIFF;
@@ -833,11 +837,11 @@ run;
 %macro color(name,temp='TRUE');
 	%if &name.=VS %then %do;
 		%if &temp.='TRUE' %then %do;
-			compute Body_Temperature;
+			compute 'Body Temperature (°C)'n;
 				call define(_col_,'style','style={background=BODTEM.}');
 			endcomp;
 		%end;
-	compute Systolic_Blood_Pressure;
+	compute 'Systolic Blood Pressure (mmHg)'n;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_sys.}');
 		end;
@@ -845,7 +849,7 @@ run;
 			call define(_col_,'style','style={background=sta_sys.}');
 		end;
 	endcomp;
-	compute Diastolic_Blood_Pressure;
+	compute 'Diastolic Blood Pressure (mmHg)'n;
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_dia.}');
 		end;
@@ -853,13 +857,13 @@ run;
 			call define(_col_,'style','style={background=sta_dia.}');
 		end;
 	endcomp;
-	compute Pulse_Rate;
+	compute 'Pulse Rate (beats/min)'n;
 			call define(_col_,'style','style={background=PULSE.}');
 	endcomp;
-	compute Respiratory_Rate;
+	compute 'Respiratory Rate (beats/min)'n;
 			call define(_col_,'style','style={background=RESPIR.}');
 	endcomp;
-	compute Oxygen_Saturation;
+	compute 'Oxygen Saturation (%)'n;
 			call define(_col_,'style','style={background=OXYSAT.}');
 	endcomp;
 	%end;
@@ -945,7 +949,7 @@ run;
 
 %macro tabulateVS(visit=);
 	proc tabulate data=VS;
-		title "vital signs at %sysfunc(dequote(&visit.)) visit by treatment";
+		title "Vital signs at %sysfunc(lowcase(%sysfunc(dequote(&visit.)))) visit by treatment";
 		where VISIT_=&visit.;
 		class treat VISIT_ VSPOS VSTEST_ VSSTRESC;
 		var VSORRES;
@@ -959,7 +963,6 @@ run;
 %order_levels(code=VS,var=VSTEST);
 %order_levels(code=VS,var=VSSTRESC);
 %as_numeric(code=VS,var=VSORRES);
-
 %add_unit(code=VS);
 
 data VS;
@@ -972,6 +975,7 @@ run;
 /* vital signs - listing of abnormal at screening */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.11: vital signs by time and treatment  * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -983,7 +987,7 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
-WE have a dataset in SAS with the columns RID (sample identifiers), treat (A or B), VISIT (day 1-10), VSTEST (SYSPD, DIABP, PULSE, RESPRATE, BODTEMP), and VSSTRESC (Normal, abnormal).
+We have a dataset in SAS with the columns RID (sample identifiers), treat (A or B), VISIT (day 1-10), VSTEST (SYSPD, DIABP, PULSE, RESPRATE, BODTEMP), and VSSTRESC (Normal, abnormal).
 Do we want to count the number of patients per treatment and per visit that have no abnormal values and those that have at least one abnormal value?
 Or do we want to count the number of normal and abnormal signs?
 */
@@ -995,7 +999,8 @@ proc summary data=VS nway;
 run;
 
 proc tabulate data=temp;
-	title 'vital signs normal/abnormal by treatment and time';
+	title 'Number of patients with normal, CS abnormal, and NCS abnormal vital signs';
+	title2 '(by visit, vital sign, and treatment)';
 	where not missing(RID);
 	class VISIT treat VSTEST VSSTRESC RID / order=internal;
 	table VISIT * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%'),
@@ -1037,16 +1042,8 @@ run;
 
 %report(data=wide,title='patients with abnormal vital signs - scheduled visits',name=VS,temp='FALSE');
 
-/*
-%list_abnormal(code=VS,check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD',show_visit='Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2',temp='FALSE');
-*/
+%list_abnormal(code=VS,check_visit=&treat_days.,show_visit=&treat_days. &post_weeks.,temp='FALSE');
 
-/*
-compact alternative for the three blocks and two macro calls above:
-%let check_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD';
-%let show_visit='Treatment Period 1: 30 hrs PD' 'Treatment Period 2: 30 hrs PD' 'Unscheduled Treatment Period 1' 'Unscheduled Treatment Period 2';
-%list_abnormal(code=VS,check_visit=&check_visit.,show_visit=&show_visit.);
-*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.14: plot vital signs for abnormal  * * * * * * * * * * * * */
@@ -1066,16 +1063,17 @@ data VS;
 run;
 %order_levels(code=VS,var=time);
 
+%plot_traject(code=VS,check_visit=&treat_days.,test='Systolic Blood Pressure (mmHg)',position='Sitting');
+%plot_traject(code=VS,check_visit=&treat_days.,test='Diastolic Blood Pressure (mmHg)',position='Sitting');
 
-%plot_traject(code=VS,check_visit=&treat_days.,test='Systolic Blood Pressure',position='Sitting');
-%plot_traject(code=VS,check_visit=&treat_days.,test='Diastolic Blood Pressure',position='Sitting');
+/* use macro process_traject (as process_plot) */ 
+/* add lines for normal/abnormal */ 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.15: vital signs - mean values and mean change  * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
-%process_plot(code=VS,tests=Systolic Blood Pressure|Diastolic Blood Pressure|Pulse Rate,position='Sitting')
+%process_plot(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min),position='Sitting')
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.16: vital signs - post study * * * * * * * * * * * * * * * */
@@ -1113,6 +1111,7 @@ proc tabulate data=wide;
 	var diff;
 	table VSTEST * diff * (mean std median min max n), treat;
 run;
+
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
