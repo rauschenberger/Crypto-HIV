@@ -282,6 +282,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 	proc sort data=long;
 		by &state_by.;
 	run;
+	/*options validvarname=any;*/
 	proc transpose data=long out=wide;
 		by &state_by.;
 		id &var_test.;
@@ -987,8 +988,9 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
-I have a dataset in SAS with the columns RID (sample identifiers), treat (A or B), VISIT (day 1-10), VSTEST (SYSPD, DIABP, PULSE, RESPRATE, BODTEMP), and VSSTRESC (Normal, abnormal).
-I want to count the number of patients per treatment and per visit that have no abnormal values and that have at least one abnormal value. Please adapt my SAS code.
+WE have a dataset in SAS with the columns RID (sample identifiers), treat (A or B), VISIT (day 1-10), VSTEST (SYSPD, DIABP, PULSE, RESPRATE, BODTEMP), and VSSTRESC (Normal, abnormal).
+Do we want to count the number of patients per treatment and per visit that have no abnormal values and those that have at least one abnormal value?
+Or do we want to count the number of normal and abnormal signs?
 */
 
 proc summary data=VS nway;
