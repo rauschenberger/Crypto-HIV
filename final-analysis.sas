@@ -1153,6 +1153,7 @@ run;
 
 %order_levels(code=LB,var=VISIT);
 %as_numeric(code=LB,var=LBORRES);
+
 data LB;
 	set LB;
 	length unit $40;
@@ -1160,6 +1161,14 @@ data LB;
 	LBORRESU = unit;
 	drop unit;
 run;
+
+
+/*
+To discuss with Aljosa: Rows with value but without unit. Consider LBCO? But some rows have no free-text comment. And at least one comment is 10E3/L but should be 10E3/UL.
+proc report data=LB;
+	where not missing(LBORRES) and missing(LBORRESU) and LBTEST in ('Leucocytes','Magnesium','Neutrophils');
+run;
+ */
 
 data LB;
 	set LB;
@@ -1193,17 +1202,22 @@ data LB;
 			LBORRESU = 'mmol/L';
 		end;
 	end;
+	else if LBTEST = 'Platelets' then do;
+		if LBORRESU = '103/uL' then do;
+			/* NB: 10^3/uL = 10^9/L */
+			LBORRESU = '109/L';
+		end;
+	end;
+	else if LBTEST = 'Total Bilirubin' then do;
+		if LBORRESU = 'mg/dL' then do;
+			LBORRES = 17.104*LBORRES;
+			LBORRESU = 'umol/L';
+		end;
+	end;
 	else if LBTEST = 'Total Protein' then do;
 		if LBORRESU = 'g/dL' then do;
 			LBORRES = 10*LBORRES;
 			LBORRESU = 'g/L';
-		end;
-	end;
-	/* CONTINUE HERE WITH CONVERSION, ALSO EXAMINE VALUES WITHOUT UNITS (ARE THEY IN OTHER COLUMNS?) */ 
-	else if LBTEST = '' then do;
-		if LBORRESU = '' then do;
-			LBORRES = LBORRES;
-			LBORRESU = '';
 		end;
 	end;
 run;
