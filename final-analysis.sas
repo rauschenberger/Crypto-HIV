@@ -243,7 +243,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 
 /* find patients with abnormal results */ 
-%macro extract_ids_abnormal(code=,visit=,test=);
+%macro extract_ids_abnormal(code=,visit=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit;
 	%getvars(code=&code.);
     data temp;
@@ -255,6 +255,12 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		data temp;
 			set temp;
 			where &var_test.=&test.;
+		run;
+	%end;
+	%if %length(&position.)>0 %then %do;
+		data temp;
+			set temp;
+			where VSPOS=&position.;
 		run;
 	%end;
     proc sql noprint;
@@ -447,10 +453,10 @@ Description: Summarises change with respect to pre-dose for each time point (row
 %macro plot_traject(code=,check_visit=,test=,position=);
 	%local var_test state_by var_score var_judge var_unit ids_abnormal;
 	%getvars(code=&code.);
-	%extract_ids_abnormal(code=&code.,visit=&check_visit.,test=&test.);
+	%extract_ids_abnormal(code=&code.,visit=&check_visit.,test=&test.,position=&position.); /* also provide position */ 
 	data temp;
 		set &code.;
-		%if &code.=VS %then %do;
+		%if &code.=VS and %length(&position.)>0 %then %do;
 			where &var_test.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
@@ -477,10 +483,10 @@ Description: Summarises change with respect to pre-dose for each time point (row
     	yaxis label='value';
    		keylegend / title='RID';
 		%if &code.=VS %then %do;
-			%if &position.='Sitting' and &test.='Systolic Blood Pressure (mmHg)' %then %do;
+			%if %bquote(&position.)=%bquote('Sitting') and %bquote(&test.)=%bquote("Systolic Blood Pressure (mmHg)") %then %do;
 				refline 90 140 / axis=y lineattrs=(thickness=2); /* verify range */
 			%end;
-			%if &position.='Sitting' and &test.='Diastolic Blood Pressure (mmHg)' %then %do;
+			%if %bquote(&position.)=%bquote('Sitting') and &test.=%bquote("Diastolic Blood Pressure (mmHg)") %then %do;
 				refline 45 90 / axis=y lineattrs=(thickness=2); /* verify range */ 
 			%end;
 		%end;
@@ -797,6 +803,13 @@ proc format;
 	value 	BODTEM 		low-35.5=&low. 
 						35.5-37.5='white' 
 						37.5-high=&high.;
+	value SBP			low-90=&low.
+						90-140='white'
+						140-high=&high.;
+	value DBP			low-60=&low.
+						60-90='white'
+						90-high=&high;
+	/*
 	value	sup_sys 	low-90=&low.
 						90-140='white'
 						140-high=&high.;
@@ -809,6 +822,7 @@ proc format;
 	value	sta_dia 	low-50=&low.
 						50-95='white'
 						95-high=&high.;
+	*/
 	value	PULSE 		low-40=&low.
 						40-100='white'
 						100-high=&high.;
@@ -857,20 +871,26 @@ run;
 			endcomp;
 		%end;
 	compute 'Systolic Blood Pressure (mmHg)'n;
+		call define(_col_,'style','style={background=SBP.}');
+		/*
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_sys.}');
 		end;
 		else if VSPOS='Standing' then do;
 			call define(_col_,'style','style={background=sta_sys.}');
 		end;
+		*/
 	endcomp;
 	compute 'Diastolic Blood Pressure (mmHg)'n;
+		call define(_col_,'style','style={background=DBP.}');
+		/*
 		if VSPOS = 'Supine' then do;
 			call define(_col_,'style','style={background=sup_dia.}');
 		end;
 		else if VSPOS='Standing' then do;
 			call define(_col_,'style','style={background=sta_dia.}');
 		end;
+		*/
 	endcomp;
 	compute 'Pulse Rate (beats/min)'n;
 			call define(_col_,'style','style={background=PULSE.}');
@@ -1078,7 +1098,7 @@ data VS;
 run;
 %order_levels(code=VS,var=time);
 
-%process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg),position='Sitting')
+%process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg))
 
 /* add lines for normal/abnormal */ 
 
