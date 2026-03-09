@@ -212,8 +212,8 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data &code.;
-		length &var_test. $60;
 		length measure $60;
+		length &var_test. $60;
 		set &code.;
 		if missing(&var_unit.) then measure = &var_test.;
 		else measure = cat(strip(&var_test.),' (',strip(&var_unit.),')');
@@ -280,7 +280,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%if %length(&test.)>0 %then %do;
 		data temp;
 			set temp;
-			where &var_test_.=&test.;
+			where &var_test.=&test.;
 		run;
 	%end;
 	%if %length(&position.)>0 %then %do;
@@ -297,10 +297,8 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	proc datasets lib=work nolist;
         delete temp;
     quit;
-	/*
 	%let ids_abnormal=&ids_abnormal.;
 	%put ids_abnormal=&ids_abnormal.;
-	*/
 %mend extract_ids_abnormal;
 /*
 Arguments: Expects one of two possible CDISC abbreviations
@@ -325,7 +323,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 	/*options validvarname=any;*/
 	proc transpose data=long out=wide;
 		by &state_by.;
-		id &var_test_.;
+		id &var_test.;
 		var &var_score.;
 	run;
 	proc datasets lib=work nolist;
@@ -385,12 +383,12 @@ and shows the results for these patients at one or more visits ('show_visit').
 	%getvars(code=&code.);
 	proc tabulate data=&code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where VSPOS=&position. and &var_test_.=&test.;
-			class &var_test_. VSPOS VISIT treat / order=internal;
+			where VSPOS=&position. and &var_test.=&test.;
+			class &var_test. VSPOS VISIT treat / order=internal;
 		%end;
 		%else %do;
-			where &var_test_.=&test.;
-			class &var_test_. VISIT treat / order=internal;		
+			where &var_test.=&test.;
+			class &var_test. VISIT treat / order=internal;		
 		%end;
 		/*
 		%else %if &code.=LB %then %do;
@@ -431,10 +429,10 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 	data DATA_DIFF;
 		set &code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where &var_test_.=&test. and VSPOS=&position. and not missing(RID);
+			where &var_test.=&test. and VSPOS=&position. and not missing(RID);
 		%end;
 		%else %do;
-			where &var_test_.=&test. and not missing(RID);
+			where &var_test.=&test. and not missing(RID);
 		%end;
 	run;
 	data DATA_DIFF;
@@ -492,10 +490,10 @@ Description: Summarises change with respect to pre-dose for each time point (row
 	data temp;
 		set &code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where &var_test_.=&test. and VSPOS=&position.;
+			where &var_test.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
-			where &var_test_.=&test.;
+			where &var_test.=&test.;
 		%end;
 		if RID in (&ids_abnormal.);
 	run;
@@ -511,7 +509,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		drop time_lag;
 	run;
 	proc sgplot data=temp;
-		series x=visit y=&var_score. / group=RID markers;
+		series x=VISIT_ y=&var_score. / group=RID markers;
     	title &position. ' ' &test.;
 		title2 '(for those abnormal at' &check_visit. ')';
     	xaxis label='time'; 
@@ -576,10 +574,10 @@ Plots the measurements against the visit names, with one line for each patient.
 	%getvars(code=&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where not missing(RID) and &var_test_.=&test. and VSPOS=&position.;
+			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
-			where not missing(RID) and &var_test_.=&test.;
+			where not missing(RID) and &var_test.=&test.;
 		%end;
 		var &var_score.;
 		class treat visit;
@@ -596,10 +594,10 @@ Plots the measurements against the visit names, with one line for each patient.
 	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where not missing(RID) and &var_test_.=&test. and VSPOS=&position.;
+			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
-			where not missing (RID) and &var_test_.=&test.;
+			where not missing (RID) and &var_test.=&test.;
 		%end;
 		var diff;
 		class treat visit;
@@ -750,6 +748,7 @@ proc format;
 		4 = '6 hours post-dose'
 		5 = '48 hours post-dose'
 		; 
+	/*
 	invalue VSTEST_invalue
 		'Weight' = 1
  		'Height' = 2
@@ -792,6 +791,7 @@ proc format;
 		7 = 'QTc, Fredericia'
 		8 = 'RR Interval, Aggregate '
 	;
+	*/
 	invalue VSSTRESC_invalue
 		'N/A' = 0
 		'Normal' = 1
@@ -1067,22 +1067,6 @@ run;
 	run;
 %mend tabulate;
 
-
-%macro tabulateVS(visit=);
-	proc tabulate data=VS;
-		title "Vital Signs at %sysfunc(dequote(&visit.)) Visit by Treatment";
-		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
-		title3 "bottom: summary statistics of numerical values)";
-		where VISIT_=&visit.;
-		class treat VISIT_ VSTEST_ VSSTRESC / order=internal; /*VSPOS*/ 
-		var VSORRES;
-		table	VSTEST_ * VSSTRESC * (n pctn<VSSTRESC_>='%') /*VSPOS * */
-				VSTEST_ * VSORRES * (mean std median min max n), /*VSPOS * */
-				treat all='both';
-	run;
-%mend tabulateVS;
-
-
 data VS;
 	set VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
@@ -1144,7 +1128,7 @@ run;
 
 %order_levels(code=EG,var=EGSTRESC1);
 %order_levels(code=EG,var=VISIT);
-%order_levels(code=EG,var=EGTEST);
+/*%order_levels(code=EG,var=EGTEST);*/
 %as_numeric(code=EG,var=EGORRES);
 %add_unit(code=EG);
 
@@ -1233,22 +1217,6 @@ run;
 
 %add_unit(code=LB);
 
-
-%macro tabulateLB(visit=);
-	proc tabulate data=LB;
-		title "laboratory values at %sysfunc(dequote(&visit.)) visit by treatment";
-		title2 'Number and percentage of patients with normal, NCS abnormal, and CS abnormal values, and summary statistics of values, at the screening visit, for each treatment separately and for both treatments together.';
-		where VISIT_=&visit.;
-		class treat LBTEST LBCLSIG;
-		var LBORRES;
-		table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
-			LBTEST * LBORRES * (mean std median min max n),
-			treat all='both';
-	run;
-%mend tabulateLB;
-
-%tabulateLB(visit="Screening");
-
 %tabulate(code=LB,visit="Screening");
 
 /* vital signs - listing of abnormal at screening */
@@ -1261,10 +1229,7 @@ run;
 
 %plot_traject(code=LB,check_visit=&treat_days.,test='Haemoglobin');
 
-%tabulateLB(visit="Day 15");
-
-/* plot only individuals that have abnormal values in the specific variable!*/
-
+%tabulate(code=LB,visit="Day 15");
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
