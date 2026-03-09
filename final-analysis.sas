@@ -1201,11 +1201,19 @@ run;
 
  */
 
+%prepare;
+
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
 %as_numeric(code=LB,var=LBORRES);
 
+/* Change code so that errors and warnings disappear. Is this about missing values?*/ 
+
+proc report data=LB;
+run;
+
+/* LBSTNRC=Positive set LBORRES=1 and and Negative -> 0 ?*/ 
 
 data LB;
 	length temp $60;
@@ -1276,6 +1284,8 @@ run;
 
 /* listing: patients with abnormal laboratory data at screening */
 %list_abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
+
+/* Switch to showing those with CS only?*/ 
 
 /* tables: */ 
 %process_table(code=LB,tests=Haemoglobin (g/dL)|Leucocytes);
