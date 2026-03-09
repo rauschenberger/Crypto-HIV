@@ -952,9 +952,18 @@ proc format;
 	value ECG_HR		low-40=&low.
 						40-100='white'
 						100-high=&high.;
+	value ECG_RR		low-600=&low.
+						600-1000='white'
+						1000-high=&high.;
 	value ECG_QRS		low-0=&low.
 						0-119='white'
 						119-high=&high.;
+	value ECG_QTint		low-350=&low.
+						350-440='white'
+						440-high=&high.;
+	value ECG_QTc		low-0=&low.
+						0-460='white'
+						460-high=&high.;
 	value ECG_PR		low-120=&low.
 						120-220='white'
 						220-high=&high.;
@@ -1017,20 +1026,29 @@ run;
 	endcomp;
 	%end;
 	%if &name.=EG %then %do;
-	compute Heart_Rate;
+	compute 'Heart Rate (bpm)'n;
 		call define(_col_,'style','style={background=ECG_HR.}');
 	endcomp;
-	compute QRS_Duration__Aggregate;
+	compute 'RR Interval, Aggregate'n;
+		call define(_col_,'style','style={background=ECG_RR.}');
+	endcomp;
+	compute 'QRS Duration, Aggregate (msec)'n;
 		call define(_col_,'style','style={background=ECG_QRS.}');
 	endcomp;
-	compute PR_Interval__Aggregate;
+	compute 'QT Interval, Aggregate (msec)'n;
+		call define(_col_,'style','style={background=ECG_QTint.}');
+	endcomp;
+	compute 'QTc, Fredericia (msec)'n;
+		call define(_col_,'style','style={background=ECG_QTc.}');
+	endcomp;
+	compute 'PR Interval, Aggregate (msec)'n;
 		call define(_col_,'style','style={background=ECG_PR.}');
 	endcomp;
-	compute P_Wave_Axis;
-		call define(_col_,'style','style={background=ECG_axis.}');
-	endcomp;
-	compute P_Wave_Duration__Aggregate;
+	compute 'P Wave Duration, Aggregate (msec'n;
 		call define(_col_,'style','style={background=ECG_wave.}');
+	endcomp;
+	compute 'P Wave Axis (degrees)'n;
+		call define(_col_,'style','style={background=ECG_axis.}');
 	endcomp;
 	%end;
 	%if &name.=GC %then %do;
