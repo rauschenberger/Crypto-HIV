@@ -1211,8 +1211,9 @@ run;
 /* Change code so that errors and warnings disappear. Is this about missing values?*/ 
 
 /*
-semi-quantitative urin analysis (negative, trace, 1/2/3/4+ 
-split into two parts? first for blood analysis, second for urine analysis
+semi-quantitative urine analysis (negative, trace, 1/2/3/4+ 
+split into multiple parts?
+haematology, clinical chemistry, HIV test, urinanalysis
 change w.r.t. screening should only be done for numerical (not semi-quantitative values)
 */ 
 
