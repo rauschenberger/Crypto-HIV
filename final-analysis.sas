@@ -209,7 +209,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 */
 
 %macro sub_per(code=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data &code.;
 		length &var_unit. $60;
@@ -223,7 +223,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 /* Replace "/" by " per ". */ 
 
 %macro add_unit(code=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data &code.;
 		length temp $60;
@@ -284,11 +284,11 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 /* find patients with abnormal results */ 
 %macro extract_ids_abnormal(code=,visit=,test=,position=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
     data temp;
         set &code.;
-        where VISIT_ in (&visit.) and not missing(&var_judge_.) and strip(&var_judge_.) not in ('Normal', '.') and not missing(RID); /* use numerical values */ 
+        where VISIT_ in (&visit.) and not missing(&var_judge_.) and strip(&var_judge_.) not in ('Normal', '.', 'N/A') and not missing(RID); /* use numerical values */ 
 		/*was in ('NCS','CS','Abnormal, NCS','Abnormal, CS') */ 
     run;
 	%if %length(&test.)>0 %then %do;
@@ -324,7 +324,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 
 /* show results for some patients */ 
 %macro extract_rows_abnormal(code=,visit=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data long;
 		set &code.;
@@ -375,12 +375,13 @@ Description: Adds colour for extreme values (see format section). Defines order 
 
 /* report patients with abnormal values*/ 
 %macro list_abnormal(code=,check_visit=,show_visit=);
-	%local ids_abnormal;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit ids_abnormal;
+	%getvars(code=&code.);
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
 	/*%let show_visit_clean = %sysfunc(lowcase(%sysfunc(tranwrd(%sysfunc(compress(&show_visit.,%str('))),%str( ),%str( and )))));*/
 	/*%let check_visit_clean = %sysfunc(lowcase(%sysfunc(dequote(&check_visit.))));*/
-	%report(data=wide,title="&code. data at visits &show_visit. (if applicable), for those abnormal at visit &check_visit.",name=&code.);
+	%report(data=wide,title="%sysfunc(dequote(&label.)) Data at Visit &show_visit., if any Abnormal at Visit &check_visit.",name=&code.);
 	proc datasets lib=work nolist;
         delete wide;
     quit;
@@ -397,7 +398,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 
 /* summarise vital signs - values */ 
 %macro table_values(code=,test=,position=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	proc tabulate data=&code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
@@ -433,7 +434,7 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 %macro process_table(code=,tests=,position=);
 	%local i test;
 	%do i = 1 %to %sysfunc(countw(&tests, |));
-  	%let test = %scan(&tests, &i, |);
+  		/*%let test = %scan(&tests, &i, |);*/
     	%let test = %qscan(%superq(tests), &i, %str(|), q);
   		%table_values(code=&code.,test="&test",position=&position.);
   		%table_change(code=&code.,test="&test",position=&position.);
@@ -502,7 +503,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 
 /* plot trajectories */
 %macro plot_traject(code=,check_visit=,test=,position=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit ids_abnormal;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit ids_abnormal;
 	%getvars(code=&code.);
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.,test=&test.,position=&position.);
 	data temp;
@@ -588,7 +589,7 @@ Plots the measurements against the visit names, with one line for each patient.
     quit;
 %mend plot_internal;
 %macro plot_mean_value(code=,test=,position=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
 		%if &code.=VS and %length(&position.)>0 %then %do;
@@ -607,7 +608,7 @@ Plots the measurements against the visit names, with one line for each patient.
     quit;
 %mend plot_mean_value;
 %macro plot_mean_change(code=,test=,position=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
@@ -1005,10 +1006,10 @@ run;
 		end;
 		*/
 	endcomp;
-	compute 'Pulse Rate (beats/min)'n;
+	compute 'Pulse Rate (beats per min)'n;
 			call define(_col_,'style','style={background=PULSE.}');
 	endcomp;
-	compute 'Respiratory Rate (beats/min)'n;
+	compute 'Respiratory Rate (beats per min)'n;
 			call define(_col_,'style','style={background=RESPIR.}');
 	endcomp;
 	compute 'Oxygen Saturation (%)'n;
@@ -1120,7 +1121,7 @@ run;
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 /* tables: values of and change in vital signs*/ 
-%process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%));
+%process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats per min)|Respiratory Rate (beats per min)|Oxygen Saturation (%));
 
 /*table: count of abnormal values */
 
@@ -1146,7 +1147,7 @@ run;
 %process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg))
 
 /* figures: mean values and mean change */ 
-%process_trend(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min))
+%process_trend(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats per min))
 
 /* vital signs post study, by treatment */
 %tabulate(code=VS,visit="Week 10");
