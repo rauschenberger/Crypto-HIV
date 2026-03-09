@@ -195,15 +195,15 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 
 %macro add_unit(code=);
-	%local var_test state_by var_score var_judge var_unit;
+	%local var_test_ state_by var_score var_judge var_unit;
 	%getvars(code=&code.);
 	data &code.;
-		length &var_test. $40;
+		length &var_test_. $40;
 		set &code.;
 		length measure $40;
-		if missing(&var_unit.) then measure = &var_test.;
-		else measure = cat(strip(&var_test.),' (',strip(&var_unit.),')');
-		&var_test. = measure;
+		if missing(&var_unit.) then measure = &var_test_.;
+		else measure = cat(strip(&var_test_.),' (',strip(&var_unit.),')');
+		&var_test_. = measure;
 	run;
 %mend add_unit;
 
@@ -212,25 +212,31 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 %macro getvars(code=);
 	%if &code.=VS %then %do;
 		%let label='Vital Signs';
-		%let var_test=VSTEST_; /* was VSTEST_ was VSTESTCD*/
+		%let var_test=VSTEST;
+		%let var_test_=VSTEST_;
 		%let state_by=RID VISIT_ VSPOS;
-		%let var_judge=VSSTRESC_;
+		%let var_judge=VSSTRESC;
+		%let var_judge_=VSSTRESC_;
 		%let var_score=VSORRES;
 		%let var_unit=VSORRESU;
 	%end;
 	%else %if &code.=EG %then %do;
 		%let label='Electrocardiogram';
 		%let var_test=EGTEST;
+		%let var_test_=EGTEST_;
 		%let state_by=RID VISIT_;
-		%let var_judge=EGSTRESC1_;
+		%let var_judge=EGSTRESC1;
+		%let var_judge_=EGSTRESC1_;
 		%let var_score=EGORRES;
 		%let var_unit=EGORRESU;
 	%end;
 	%else %if &code.=LB %then %do;
 		%let label='Laboratory';
 		%let var_test=LBTEST;
+		%let var_test_=LBTEST_;
 		%let state_by=RID VISIT_;
 		%let var_judge=LBCLSIG;
+		%let var_judge_=LBCLSIG_;
 		%let var_score=LBORRES;
 		%let var_unit=LBORRESU;
 	%end;
@@ -239,6 +245,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%end;
 	%put label=&label.;
 	%put var_test=&var_test.;
+	%put var_test_=&var_test_.;
 	%put state_by=&state_by.;
 	%put var_score=&var_score.;
 	%put var_judge=&var_judge.;
@@ -288,7 +295,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 
 /* show results for some patients */ 
 %macro extract_rows_abnormal(code=,visit=);
-	%local var_test state_by var_score var_judge var_unit;
+	%local var_test var_test_ state_by var_score var_judge var_unit;
 	%getvars(code=&code.);
 	data long;
 		set &code.;
@@ -301,7 +308,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 	/*options validvarname=any;*/
 	proc transpose data=long out=wide;
 		by &state_by.;
-		id &var_test.;
+		id &var_test_.;
 		var &var_score.;
 	run;
 	proc datasets lib=work nolist;
@@ -738,25 +745,27 @@ proc format;
 		'Respiratory Rate' = 9
 		;
 	value VSTEST_value
-		1 = 'Weight'
- 		2 = 'Height'
- 		3 = 'Body Mass Index'
- 		4 = 'Body Temperature'
-		5 = 'Systolic Blood Pressure'
-		6 = 'Diastolic Blood Pressure'
-		7 = 'Pulse Rate'
-		8 = 'Oxygen Saturation'
-		9 = 'Respiratory Rate'
+		1 = 'Weight (kg)'
+ 		2 = 'Height (cm)'
+ 		3 = 'Body Mass Index (kg/m2)'
+ 		4 = 'Body Temperature (°C)'
+		5 = 'Systolic Blood Pressure (mmHg)'
+		6 = 'Diastolic Blood Pressure (mmHg)'
+		7 = 'Pulse Rate (beats/min)'
+		8 = 'Oxygen Saturation (%)'
+		9 = 'Respiratory Rate (beats/min)'
 		;
 	invalue VSSTRESC_invalue
-		'Normal' = 0
-		'NCS' = 1
-		'CS' = 2
+		'N/A' = 0
+		'Normal' = 1
+		'NCS' = 2
+		'CS' = 3
 		;
 	value VSSTRESC_value
-	 	0 = 'Normal'
-		1 = 'NCS'
-		2 = 'CS'
+		0 = 'N/A'
+	 	1 = 'Normal'
+		2 = 'NCS'
+		3 = 'CS'
 		;
 	invalue SUOCCUR_invalue
 		'No' = 0
@@ -1028,13 +1037,21 @@ run;
 		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
 		title3 "bottom: summary statistics of numerical values)";
 		where VISIT_=&visit.;
-		class treat VISIT_ VSTEST_ VSSTRESC; /*VSPOS*/ 
+		class treat VISIT_ VSTEST_ VSSTRESC / order=internal; /*VSPOS*/ 
 		var VSORRES;
-		table	VSTEST_ * VSSTRESC * (n pctn<VSSTRESC>='%') /*VSPOS * */
+		table	VSTEST_ * VSSTRESC * (n pctn<VSSTRESC_>='%') /*VSPOS * */
 				VSTEST_ * VSORRES * (mean std median min max n), /*VSPOS * */
 				treat all='both';
 	run;
 %mend tabulateVS;
+
+
+data VS;
+	set VS;
+	if VSPOS in (' ','.') then VSPOS='N/A';
+	if VSSTRESC in (' ','.') then VSSTRESC='N/A';
+run;
+
 
 %order_levels(code=VS,var=VISIT);
 %order_levels(code=VS,var=VSTEST);
@@ -1042,11 +1059,6 @@ run;
 %order_levels(code=VS,var=time);
 %as_numeric(code=VS,var=VSORRES);
 %add_unit(code=VS);
-
-data VS;
-	set VS;
-	if VSPOS in (' ','.') then VSPOS='N/A';
-run;
 
 /* table: vital signs at screening visit by treatment */ 
 %tabulateVS(visit="Screening");
@@ -1058,6 +1070,10 @@ run;
 
 /* tables: values of and change in vital signs*/ 
 %process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%));
+
+
+%process_table(code=VS,tests=Systolic_Blood_Pressure);
+
 
 /*table: count of abnormal values */
 
