@@ -212,6 +212,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data &code.;
+		length &var_unit. $60;
 		length temp $60;
 		set &code.;
 		temp = tranwrd(strip(&var_unit.), '/', ' per ');
@@ -225,7 +226,8 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data &code.;
-		length temp $80;
+		length temp $60;
+		length &var_test. $60;
 		set &code.;
 		if missing(&var_unit.) then temp = &var_test.;
 		else temp = cat(strip(&var_test.),' (',strip(&var_unit.),')');
@@ -336,6 +338,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 	proc transpose data=long out=wide;
 		by &state_by.;
 		id &var_test.;
+		/*idlabel &var_test_.;*/
 		var &var_score.;
 	run;
 	options validvarname=v7;
@@ -975,7 +978,7 @@ proc format;
 run; 
 
 /* colour extreme values */ 
-%macro color(name);
+%macro color(name=);
 	%if &name.=VS %then %do;
 	compute 'Body Temperature (°C)'n;
 		call define(_col_,'style','style={background=BODTEM.}');
@@ -1136,9 +1139,6 @@ proc tabulate data=temp;
 		  treat;
 run;
 
-proc report data=VS;
-run;
-
 /* listing: abnormal during treatment */ 
 %list_abnormal(code=VS,check_visit=&treat_days.,show_visit=&treat_days. &post_weeks.);
 
@@ -1189,11 +1189,12 @@ run;
 
 
 data LB;
+	length temp $60;
 	set LB;
-	length unit $40;
-	unit = coalescec(LBORRESU, LBORRESU2, LBORRESU3, LBORRESU4, LBORRESU5, LBORRESU31);
-	LBORRESU = unit;
-	drop unit;
+	temp = coalescec(LBORRESU, LBORRESU2, LBORRESU3, LBORRESU4, LBORRESU5, LBORRESU31);
+	/*LBORRESU = temp;*/
+	drop LBORRESU;
+	rename temp=LBORRESU;
 run;
 
 data LB;
