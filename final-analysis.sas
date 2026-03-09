@@ -208,19 +208,31 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 %mend add_unit;
 */
 
+%macro sub_per(code=);
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%getvars(code=&code.);
+	data &code.;
+		length temp $60;
+		set &code.;
+		temp = tranwrd(strip(&var_unit.), '/', ' per ');
+		drop &var_unit.;
+		rename temp = &var_unit.;
+	run;
+%mend sub_per;
+/* Replace "/" by " per ". */ 
+
 %macro add_unit(code=);
 	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data &code.;
-		length measure $60;
-		length &var_test. $60;
+		length temp $80;
 		set &code.;
-		if missing(&var_unit.) then measure = &var_test.;
-		else measure = cat(strip(&var_test.),' (',strip(&var_unit.),')');
-		&var_test. = measure;
+		if missing(&var_unit.) then temp = &var_test.;
+		else temp = cat(strip(&var_test.),' (',strip(&var_unit.),')');
+		drop &var_test.;
+		rename temp = &var_test.;
 	run;
 %mend add_unit;
-
 
 /* define variable names TEST and SCORE */ 
 %macro getvars(code=);
@@ -320,12 +332,13 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 	proc sort data=long;
 		by &state_by.;
 	run;
-	/*options validvarname=any;*/
+	options validvarname=any;
 	proc transpose data=long out=wide;
 		by &state_by.;
 		id &var_test.;
 		var &var_score.;
 	run;
+	options validvarname=v7;
 	proc datasets lib=work nolist;
         delete long;
     quit;
@@ -337,8 +350,9 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 
 /* report with colour for extreme values */ 
 %macro report(data=,title=,name=none);
+	options validvarname=any;
 	proc report data=&data. spanrows;
-		%color(name=&name.,temp=&temp.);
+		%color(name=&name.);
 		define RID / order order=internal;
 		define VISIT_ / order order=internal;
 		/*%if &name.=EG %then %do;
@@ -347,6 +361,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 		define _NAME_/noprint;
 		title &title.;
 	run;
+	options validvarname=v7;
 %mend;
 /*
 Arguments: Expects  a dataset (e.g., 'data=mydata') and a title for the output (e.g., "title='a title'").
@@ -362,7 +377,7 @@ Description: Adds colour for extreme values (see format section). Defines order 
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
 	/*%let show_visit_clean = %sysfunc(lowcase(%sysfunc(tranwrd(%sysfunc(compress(&show_visit.,%str('))),%str( ),%str( and )))));*/
 	/*%let check_visit_clean = %sysfunc(lowcase(%sysfunc(dequote(&check_visit.))));*/
-	%report(data=wide,title="&code. data at visits &show_visit. (if applicable), for those abnormal at visit &check_visit.",name=&code.,temp=&temp.);
+	%report(data=wide,title="&code. data at visits &show_visit. (if applicable), for those abnormal at visit &check_visit.",name=&code.);
 	proc datasets lib=work nolist;
         delete wide;
     quit;
@@ -498,7 +513,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		if RID in (&ids_abnormal.);
 	run;
 	proc sort data=temp;
-		by RID; /*included VSDTC*/ 
+		by RID; /*included VSDTC*/  /* ALSO SORT BY VISIT? by RID VISIT */ 
 	run;
 	data temp;
 		set temp;
@@ -637,6 +652,22 @@ Plots the results.
 %mend process_traject;
 
 
+%macro tabulate(code=,visit=);
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%getvars(code=&code.);
+	proc tabulate data=&code.;
+		title "%sysfunc(dequote(&label.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment";
+		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
+		title3 "bottom: summary statistics of numerical values)";
+		where VISIT_=&visit.;
+		class treat VISIT_ &var_test. &var_judge.;
+		var &var_score.;
+		table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
+				&var_test. * &var_score. * (mean std median min max n),
+				treat all='both';
+	run;
+%mend tabulate;
+
 /* perform mixed modelling */ 
 %macro mixmod(outcome=,data=PKpars,class=rid treat period treat,fixed=treat period treat,random=rid(treat),lsmeans=treat,alpha=0.10);
 	proc mixed data=&data.;
@@ -684,6 +715,8 @@ Arguments: Specify the outcome (e.g. 'logCmax', 'logAUClast' or 'logAUCinf').
 Description: Performs mixed modelling, returns estimated variance of random effects,
 estimated fixed effects, geometric mean ratio (misnomer!) for binary effect of interest
 */
+
+
 
 /******************************************************************************/
 /*** Section 3: Formats *******************************************************/
@@ -1059,21 +1092,8 @@ run;
 /* * Subsection 4.2: vital signs * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%macro tabulate(code=,visit=);
-	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
-	%getvars(code=&code.);
-	proc tabulate data=&code.;
-		title "%sysfunc(dequote(&label.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment";
-		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
-		title3 "bottom: summary statistics of numerical values)";
-		where VISIT_=&visit.;
-		class treat VISIT_ &var_test. &var_judge.;
-		var &var_score.;
-		table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
-				&var_test. * &var_score. * (mean std median min max n),
-				treat all='both';
-	run;
-%mend tabulate;
+
+
 
 data VS;
 	set VS;
@@ -1087,6 +1107,7 @@ run;
 %order_levels(code=VS,var=VSSTRESC);
 /*%order_levels(code=VS,var=time);*/
 %as_numeric(code=VS,var=VSORRES);
+%sub_per(code=VS);
 %add_unit(code=VS);
 
 /* table: vital signs at screening visit by treatment */ 
@@ -1115,6 +1136,9 @@ proc tabulate data=temp;
 		  treat;
 run;
 
+proc report data=VS;
+run;
+
 /* listing: abnormal during treatment */ 
 %list_abnormal(code=VS,check_visit=&treat_days.,show_visit=&treat_days. &post_weeks.);
 
@@ -1135,6 +1159,7 @@ run;
 %order_levels(code=EG,var=EGSTRESC1);
 /*%order_levels(code=EG,var=EGTEST);*/
 %as_numeric(code=EG,var=EGORRES);
+%sub_per(code=EG);
 %add_unit(code=EG);
 
 /* table: electrocardiogram, at day 1*/ 
@@ -1223,6 +1248,7 @@ data LB;
 	end;
 run;
 
+%sub_per(code=LB);
 %add_unit(code=LB);
 
 /* table: laboratory data at screening*/ 
