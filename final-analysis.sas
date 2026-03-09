@@ -225,7 +225,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 /* define variable names TEST and SCORE */ 
 %macro getvars(code=);
 	%if &code.=VS %then %do;
-		%let label='Vital Signs';
+		%let label='Vital Sign';
 		%let var_test=VSTEST;
 		%let var_test_=VSTEST_;
 		%let state_by=RID VISIT_ VSPOS;
@@ -509,7 +509,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		drop time_lag;
 	run;
 	proc sgplot data=temp;
-		series x=VISIT_ y=&var_score. / group=RID markers;
+		series x=VISIT y=&var_score. / group=RID markers;
     	title &position. ' ' &test.;
 		title2 '(for those abnormal at' &check_visit. ')';
     	xaxis label='time'; 
@@ -801,8 +801,8 @@ proc format;
 	value VSSTRESC_value
 		0 = 'N/A'
 	 	1 = 'Normal'
-		2 = 'NCS'
-		3 = 'CS'
+		2 = 'Abnormal, NCS'
+		3 = 'Abnormal, CS'
 		;
 	invalue SUOCCUR_invalue
 		'No' = 0
@@ -828,6 +828,16 @@ proc format;
 		'Abnormal, CS' = 2
 		;
 	value EGSTRESC1_value
+		0 = 'Normal'
+		1 = 'Abnormal, NCS'
+		2 = 'Abnormal, CS'
+		;
+	invalue LBCLSIG_invalue
+		'Normal' = 0
+		'NCS' = 1
+		'CS' = 2
+		;
+	value LBCLSIG_value
 		0 = 'Normal'
 		1 = 'Abnormal, NCS'
 		2 = 'Abnormal, CS'
@@ -1055,7 +1065,7 @@ run;
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	proc tabulate data=&code.;
-		title "%sysfunc(dequote(&label.)) at %sysfunc(dequote(&visit.)) Visit by Treatment";
+		title "%sysfunc(dequote(&label.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment";
 		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
 		title3 "bottom: summary statistics of numerical values)";
 		where VISIT_=&visit.;
@@ -1077,12 +1087,9 @@ run;
 %order_levels(code=VS,var=VISIT);
 /*%order_levels(code=VS,var=VSTEST);*/
 %order_levels(code=VS,var=VSSTRESC);
-%order_levels(code=VS,var=time);
+/*%order_levels(code=VS,var=time);*/
 %as_numeric(code=VS,var=VSORRES);
 %add_unit(code=VS);
-
-proc report data=VS;
-run;
 
 /* table: vital signs at screening visit by treatment */ 
 %tabulate(code=VS,visit="Screening");
@@ -1126,34 +1133,37 @@ run;
 /* * Subsection 4.2: electrocardiogram * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%order_levels(code=EG,var=EGSTRESC1);
 %order_levels(code=EG,var=VISIT);
+%order_levels(code=EG,var=EGSTRESC1);
 /*%order_levels(code=EG,var=EGTEST);*/
 %as_numeric(code=EG,var=EGORRES);
 %add_unit(code=EG);
 
-/* table: electrocardopgra, at day 1*/ 
+/* table: electrocardiogram, at day 1*/ 
 %tabulate(code=EG,visit="Day 1");
 
 /* listing: abnormal EG at day 1*/ 
 %list_abnormal(code=EG,check_visit='Day 1',show_visit='Day 1');
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * * Subsection 4.3: laboratory* * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%prepare;
-
 /*
+
 To discuss with Aljosa: Rows with value but without unit. Consider LBCO? But some rows have no free-text comment. And at least one comment is 10E3/L but should be 10E3/UL.
+
 proc report data=LB;
 	where not missing(LBORRES) and missing(LBORRESU) and LBTEST in ('Leucocytes','Magnesium','Neutrophils');
 run;
+
  */
 
 %order_levels(code=LB,var=VISIT);
+%order_levels(code=LB,var=LBCLSIG);
+/*%order_levels(code=LB,var=time);*/
 %as_numeric(code=LB,var=LBORRES);
+
 
 data LB;
 	set LB;
@@ -1217,18 +1227,22 @@ run;
 
 %add_unit(code=LB);
 
+/* table: laboratory data at screening*/ 
 %tabulate(code=LB,visit="Screening");
 
-/* vital signs - listing of abnormal at screening */
-
+/* listing: patients with abnormal laboratory data at screening */
 %list_abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
-%process_table(code=LB,tests=Haemoglobin|Leucocytes);
+/* tables: */ 
+%process_table(code=LB,tests=Haemoglobin (g/dL)|Leucocytes);
 
-%process_trend(code=LB,tests=Haemoglobin|Leucocytes);
+/* */ 
+%process_trend(code=LB,tests=Haemoglobin (g/dL)|Leucocytes);
 
-%plot_traject(code=LB,check_visit=&treat_days.,test='Haemoglobin');
+/* */ 
+%process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g/dL)|Leucocytes);
 
+/* table: laboratory data at day 15*/ 
 %tabulate(code=LB,visit="Day 15");
 
 
