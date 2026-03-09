@@ -193,17 +193,31 @@ Both variables have the specified order of the category levels,
 and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne baseline')
 */
 
-
+/*
 %macro add_unit(code=);
-	%local var_test_ state_by var_score var_judge var_unit;
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data &code.;
-		length &var_test_. $40;
+		length &var_test_. $60;
+		length measure $60;
 		set &code.;
-		length measure $40;
 		if missing(&var_unit.) then measure = &var_test_.;
 		else measure = cat(strip(&var_test_.),' (',strip(&var_unit.),')');
 		&var_test_. = measure;
+	run;
+%mend add_unit;
+*/
+
+%macro add_unit(code=);
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
+	%getvars(code=&code.);
+	data &code.;
+		length &var_test. $60;
+		length measure $60;
+		set &code.;
+		if missing(&var_unit.) then measure = &var_test.;
+		else measure = cat(strip(&var_test.),' (',strip(&var_unit.),')');
+		&var_test. = measure;
 	run;
 %mend add_unit;
 
@@ -249,23 +263,24 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%put state_by=&state_by.;
 	%put var_score=&var_score.;
 	%put var_judge=&var_judge.;
+	%put var_judge_=&var_judge_.;
 	%put var_unit=&var_unit.;
 %mend getvars;
 
 
 /* find patients with abnormal results */ 
 %macro extract_ids_abnormal(code=,visit=,test=,position=);
-	%local var_test state_by var_score var_judge var_unit;
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
     data temp;
         set &code.;
-        where VISIT_ in (&visit.) and not missing(&var_judge.) and strip(&var_judge.) not in ('Normal', '.') and not missing(RID); /* use numerical values */ 
+        where VISIT_ in (&visit.) and not missing(&var_judge_.) and strip(&var_judge_.) not in ('Normal', '.') and not missing(RID); /* use numerical values */ 
 		/*was in ('NCS','CS','Abnormal, NCS','Abnormal, CS') */ 
     run;
 	%if %length(&test.)>0 %then %do;
 		data temp;
 			set temp;
-			where &var_test.=&test.;
+			where &var_test_.=&test.;
 		run;
 	%end;
 	%if %length(&position.)>0 %then %do;
@@ -282,8 +297,10 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	proc datasets lib=work nolist;
         delete temp;
     quit;
+	/*
 	%let ids_abnormal=&ids_abnormal.;
 	%put ids_abnormal=&ids_abnormal.;
+	*/
 %mend extract_ids_abnormal;
 /*
 Arguments: Expects one of two possible CDISC abbreviations
@@ -295,7 +312,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 
 /* show results for some patients */ 
 %macro extract_rows_abnormal(code=,visit=);
-	%local var_test var_test_ state_by var_score var_judge var_unit;
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data long;
 		set &code.;
@@ -364,16 +381,16 @@ and shows the results for these patients at one or more visits ('show_visit').
 
 /* summarise vital signs - values */ 
 %macro table_values(code=,test=,position=);
-	%local var_test state_by var_score var_judge var_unit;
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	proc tabulate data=&code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where VSPOS=&position. and &var_test.=&test.;
-			class &var_test. VSPOS VISIT treat / order=internal;
+			where VSPOS=&position. and &var_test_.=&test.;
+			class &var_test_. VSPOS VISIT treat / order=internal;
 		%end;
 		%else %do;
-			where &var_test.=&test.;
-			class &var_test. VISIT treat / order=internal;		
+			where &var_test_.=&test.;
+			class &var_test_. VISIT treat / order=internal;		
 		%end;
 		/*
 		%else %if &code.=LB %then %do;
@@ -409,15 +426,15 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 
 /* calculate change */
 %macro calcdiff(code=,test=,position=);
-	%local var_test state_by var_score var_judge var_unit;
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data DATA_DIFF;
 		set &code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where &var_test.=&test. and VSPOS=&position. and not missing(RID);
+			where &var_test_.=&test. and VSPOS=&position. and not missing(RID);
 		%end;
 		%else %do;
-			where &var_test.=&test. and not missing(RID);
+			where &var_test_.=&test. and not missing(RID);
 		%end;
 	run;
 	data DATA_DIFF;
@@ -469,16 +486,16 @@ Description: Summarises change with respect to pre-dose for each time point (row
 
 /* plot trajectories */
 %macro plot_traject(code=,check_visit=,test=,position=);
-	%local var_test state_by var_score var_judge var_unit ids_abnormal;
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit ids_abnormal;
 	%getvars(code=&code.);
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.,test=&test.,position=&position.);
 	data temp;
 		set &code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where &var_test.=&test. and VSPOS=&position.;
+			where &var_test_.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
-			where &var_test.=&test.;
+			where &var_test_.=&test.;
 		%end;
 		if RID in (&ids_abnormal.);
 	run;
@@ -555,14 +572,14 @@ Plots the measurements against the visit names, with one line for each patient.
     quit;
 %mend plot_internal;
 %macro plot_mean_value(code=,test=,position=);
-	%local var_test state_by var_score var_judge var_unit;
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	proc means data=&code. mean clm alpha=0.05 noprint;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
+			where not missing(RID) and &var_test_.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
-			where not missing(RID) and &var_test.=&test.;
+			where not missing(RID) and &var_test_.=&test.;
 		%end;
 		var &var_score.;
 		class treat visit;
@@ -574,15 +591,15 @@ Plots the measurements against the visit names, with one line for each patient.
     quit;
 %mend plot_mean_value;
 %macro plot_mean_change(code=,test=,position=);
-	%local var_test state_by var_score var_judge var_unit;
+	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
 	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
 		%if &code.=VS and %length(&position.)>0 %then %do;
-			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
+			where not missing(RID) and &var_test_.=&test. and VSPOS=&position.;
 		%end;
 		%else %do;
-			where not missing (RID) and &var_test.=&test.;
+			where not missing (RID) and &var_test_.=&test.;
 		%end;
 		var diff;
 		class treat visit;
@@ -745,16 +762,36 @@ proc format;
 		'Respiratory Rate' = 9
 		;
 	value VSTEST_value
-		1 = 'Weight (kg)'
- 		2 = 'Height (cm)'
- 		3 = 'Body Mass Index (kg/m2)'
- 		4 = 'Body Temperature (°C)'
-		5 = 'Systolic Blood Pressure (mmHg)'
-		6 = 'Diastolic Blood Pressure (mmHg)'
-		7 = 'Pulse Rate (beats/min)'
-		8 = 'Oxygen Saturation (%)'
-		9 = 'Respiratory Rate (beats/min)'
+		1 = 'Weight'
+ 		2 = 'Height'
+ 		3 = 'Body Mass Index'
+ 		4 = 'Body Temperature'
+		5 = 'Systolic Blood Pressure'
+		6 = 'Diastolic Blood Pressure'
+		7 = 'Pulse Rate'
+		8 = 'Oxygen Saturation'
+		9 = 'Respiratory Rate'
 		;
+	invalue EGTEST_invalue
+		'Heart Rate' = 1
+		'P Wave Axis' = 2
+		'P Wave Duration, Aggregate' = 3
+		'PR Interval, Aggregate' = 4
+		'QRS Duration, Aggregate' = 5
+		'QT Interval, Aggregate' = 6
+		'QTc, Fredericia' = 7
+		'RR Interval, Aggregate ' = 8
+	;
+	value EGTEST_value
+		1 = 'Heart Rate'
+		2 = 'P Wave Axis' 
+		3 = 'P Wave Duration, Aggregate' 
+		4 = 'PR Interval, Aggregate' 
+		5 = 'QRS Duration, Aggregate' 
+		6 = 'QT Interval, Aggregate'
+		7 = 'QTc, Fredericia'
+		8 = 'RR Interval, Aggregate '
+	;
 	invalue VSSTRESC_invalue
 		'N/A' = 0
 		'Normal' = 1
@@ -1015,7 +1052,7 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %macro tabulate(code=,visit=);
-	%local label var_test state_by var_score var_judge var_unit;
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	proc tabulate data=&code.;
 		title "%sysfunc(dequote(&label.)) at %sysfunc(dequote(&visit.)) Visit by Treatment";
@@ -1054,26 +1091,23 @@ run;
 
 
 %order_levels(code=VS,var=VISIT);
-%order_levels(code=VS,var=VSTEST);
+/*%order_levels(code=VS,var=VSTEST);*/
 %order_levels(code=VS,var=VSSTRESC);
 %order_levels(code=VS,var=time);
 %as_numeric(code=VS,var=VSORRES);
 %add_unit(code=VS);
 
-/* table: vital signs at screening visit by treatment */ 
-%tabulateVS(visit="Screening");
-%tabulate(code=VS,visit="Screening"); /* This macro should also be used for visit="Week 10", for ECG and for LB!*/ 
+proc report data=VS;
+run;
 
+/* table: vital signs at screening visit by treatment */ 
+%tabulate(code=VS,visit="Screening");
 
 /* listing: abnormal at screening */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 /* tables: values of and change in vital signs*/ 
 %process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%));
-
-
-%process_table(code=VS,tests=Systolic_Blood_Pressure);
-
 
 /*table: count of abnormal values */
 
@@ -1102,7 +1136,7 @@ run;
 %process_trend(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min))
 
 /* vital signs post study, by treatment */
-%tabulateVS(visit="Week 10");
+%tabulate(code=VS,visit="Week 10");
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: electrocardiogram * * * * * * * * * * * * * * * * * * * */
@@ -1110,23 +1144,15 @@ run;
 
 %order_levels(code=EG,var=EGSTRESC1);
 %order_levels(code=EG,var=VISIT);
+%order_levels(code=EG,var=EGTEST);
 %as_numeric(code=EG,var=EGORRES);
 %add_unit(code=EG);
 
-/* table: EG at day 1*/ 
-proc tabulate data=EG;
-	title 'Electrocariogram at day 1 by treatment';
-	where VISIT_ ='Day 1';
-	class treat EGTEST EGSTRESC1;
-	var EGORRES;
-	table 	EGTEST * EGSTRESC1 * (n pctn<EGSTRESC1>='%')
-			EGTEST * EGORRES * (mean std median min max n),
-			treat all='both';
-run;
+/* table: electrocardopgra, at day 1*/ 
+%tabulate(code=EG,visit="Day 1");
 
 /* listing: abnormal EG at day 1*/ 
 %list_abnormal(code=EG,check_visit='Day 1',show_visit='Day 1');
-
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1222,6 +1248,8 @@ run;
 %mend tabulateLB;
 
 %tabulateLB(visit="Screening");
+
+%tabulate(code=LB,visit="Screening");
 
 /* vital signs - listing of abnormal at screening */
 
