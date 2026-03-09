@@ -336,7 +336,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 */
 
 /* report with colour for extreme values */ 
-%macro report(data=,title=,name=none,temp='TRUE');
+%macro report(data=,title=,name=none);
 	proc report data=&data. spanrows;
 		%color(name=&name.,temp=&temp.);
 		define RID / order order=internal;
@@ -356,7 +356,7 @@ Description: Adds colour for extreme values (see format section). Defines order 
 */
 
 /* report patients with abnormal values*/ 
-%macro list_abnormal(code=,check_visit=,show_visit=,temp='TRUE');
+%macro list_abnormal(code=,check_visit=,show_visit=);
 	%local ids_abnormal;
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
 	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
@@ -942,13 +942,11 @@ proc format;
 run; 
 
 /* colour extreme values */ 
-%macro color(name,temp='TRUE');
+%macro color(name);
 	%if &name.=VS %then %do;
-		%if &temp.='TRUE' %then %do;
-			compute 'Body Temperature (°C)'n;
-				call define(_col_,'style','style={background=BODTEM.}');
-			endcomp;
-		%end;
+	compute 'Body Temperature (°C)'n;
+		call define(_col_,'style','style={background=BODTEM.}');
+	endcomp;
 	compute 'Systolic Blood Pressure (mmHg)'n;
 		call define(_col_,'style','style={background=SBP.}');
 		/*
@@ -1118,7 +1116,7 @@ proc tabulate data=temp;
 run;
 
 /* listing: abnormal during treatment */ 
-%list_abnormal(code=VS,check_visit=&treat_days.,show_visit=&treat_days. &post_weeks.,temp='FALSE');
+%list_abnormal(code=VS,check_visit=&treat_days.,show_visit=&treat_days. &post_weeks.);
 
 /* figures: trajectories of patients with abnormal values */ 
 %process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg))
@@ -1308,7 +1306,7 @@ data GC_sub;
 	drop GCSPERF;
 run;
 
-%report(data=GC_sub,title='Glasgow coma scale',name=GC,temp='FALSE');
+%report(data=GC_sub,title='Glasgow coma scale',name=GC);
 
 
 /* lumbar punctures */ 
@@ -1329,7 +1327,7 @@ data PE_sub;
 	where PEORRES not in ('Normal', '');
 run;
 
-%report(data=PE_sub,title='physical examination',name=PE,temp='FALSE');
+%report(data=PE_sub,title='physical examination',name=PE);
 
 /* prior medications */ 
 
