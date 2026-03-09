@@ -1213,7 +1213,7 @@ run;
 /*
 semi-quantitative urine analysis (negative, trace, 1/2/3/4+ 
 split into multiple parts?
-haematology, clinical chemistry, HIV test, urinanalysis
+i.e., haematology, clinical chemistry, HIV test, urinanalysis
 change w.r.t. screening should only be done for numerical (not semi-quantitative values)
 */ 
 
