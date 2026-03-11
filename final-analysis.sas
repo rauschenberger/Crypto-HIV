@@ -1132,7 +1132,7 @@ run;
 /* table: vital signs at screening visit by treatment */ 
 %tabulate(code=VS,visit="Screening");
 
-/* try report with colour */
+/* try report with colour
 
 proc report data=VS;
 	where RID=102 and VISIT_='Screening';
@@ -1147,6 +1147,28 @@ proc report data=VS;
     endcomp;
 run;
 
+
+%getvars(code=VS);
+%extract_ids_abnormal(code=VS,visit='Screening');
+data long;
+	set VS;
+	if RID=102;
+	if VISIT_='Screening';
+run; 
+proc sort data=long;
+	by RID VISIT_;
+run;
+options validvarname=any;
+proc transpose data=long out=wide;
+	by RID VISIT_;
+	id VSTEST;
+	var VSORRES VSSTRESC_;
+run;
+proc report data=wide;
+run;
+options validvarname=v7;
+
+end trial */ 
 
 /* listing: abnormal at screening */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
@@ -1230,8 +1252,21 @@ i.e., haematology, clinical chemistry, HIV test, urinanalysis
 change w.r.t. screening should only be done for numerical (not semi-quantitative values)
 */ 
 
+data LB;
+    set LB;
+    length LBCAT $60;
+    if index(FORM,'Clinical Chemistry')>0 then LBCAT='Clinical Chemistry';
+    else if index(FORM,'Hematology')>0 then LBCAT='Hematology';
+    else if index(FORM,'Urianalysis')>0 then LBCAT='Urianalysis';
+    else if index(FORM,'HIV')>0 then LBCAT='HIV Test';
+    else LBCAT='Other';
+	if LBORRES='.' and LBSTNRC='Positive' then LBORRES=1;
+	else if LBORRES='.' and LBSTNRC='Negative' then LBORRES=0;
+run;
+
 proc report data=LB;
 run;
+
 
 /* LBSTNRC=Positive set LBORRES=1 and and Negative -> 0 ?*/ 
 
