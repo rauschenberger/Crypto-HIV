@@ -1114,9 +1114,6 @@ run;
 /* * Subsection 4.2: vital signs * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
-
-
 data VS;
 	set VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
@@ -1134,6 +1131,22 @@ run;
 
 /* table: vital signs at screening visit by treatment */ 
 %tabulate(code=VS,visit="Screening");
+
+/* try report with colour */
+
+proc report data=VS;
+	where RID=102 and VISIT_='Screening';
+    columns RID VISIT VSTEST VSSTRESC_ VSORRES;
+    define VSORRES  / display;
+    define VSSTRESC_ / display;
+    compute VSORRES;
+        if VSSTRESC_ = 'Abnormal, NCS' then
+            call define(_col_, 'style', 'style=[backgroundcolor=grey color=white]');
+		if VSSTRESC_ = 'Abnormal, CS' then
+            call define(_col_, 'style', 'style=[backgroundcolor=black color=white]');
+    endcomp;
+run;
+
 
 /* listing: abnormal at screening */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
