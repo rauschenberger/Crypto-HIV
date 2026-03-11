@@ -674,17 +674,11 @@ Plots the results.
 		%else %do;
 			where VISIT_=&visit.;
 		%end;
-		class treat VISIT_ &var_test. &var_judge.;
 		var &var_score.;
-		%if %length(&type.)>0 and %sysfunc(dequote(&type.))='HIV Test' %then %do;
-			table	&var_test. * &var_score. * (mean std median min max n),
-					treat all='both';
-		%end;
-		%else %do;
-			table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
-					&var_test. * &var_score. * (mean std median min max n),
-					treat all='both';
-		%end;
+		class treat VISIT_ &var_test. &var_judge.;
+		table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
+				&var_test. * &var_score. * (mean std median min max n),
+				treat all='both';
 	run;
 %mend tabulate;
 
@@ -1344,42 +1338,49 @@ run;
 %sub_per(code=LB);
 %add_unit(code=LB);
 
-/* table: laboratory data at screening*/ 
-%tabulate(code=LB,type="Hematology",visit="Screening");
-
-%macro process_LB(types=,visit=);
-	%local i type;
-	%do i = 1 %to %sysfunc(countw(&types, |));
-  	%let type = %scan(&types, &i, |);
-  		%tabulate(code=LB,type="&type",visit=&visit.);
+%macro process_LB(types=,visits=);
+	%local i type j visit;
+	%do j = 1 %to %sysfunc(countw(&visits, |));
+        %let visit = %scan(&visits, &j, |);
+		%do i = 1 %to %sysfunc(countw(&types, |));
+  			%let type = %scan(&types, &i, |);
+  			%tabulate(code=LB,type="&type",visit="&visit");
+		%end;
 	%end;
 %mend process_LB;
 
-%process_LB(types=Clinical Chemistry|Hematology|Urianalysis|HIV Test,visit='Screening')
+%process_LB(types=Clinical Chemistry|Hematology|Urianalysis,visits=Screening|Day 15)
 
 proc tabulate data=LB;
+	title 'Infection Tests at Screening Visit';
 	where type='HIV Test' and VISIT_='Screening';
 	var LBORRES;
 	class VISIT_ treat LBTEST;
-	table LBTEST * LBORRES * (mean std median min max n)
-		treat all='both';
+	table 	LBTEST * LBORRES * (mean std median min max n),
+			treat all='both';
 run;
 
 
-proc freq data=LB;
-    where type='HIV test' and VISIT_='Screening';
-    tables VISIT_ * treat * LBTEST / missing;
+/*
+proc tabulate data=LB;
+    where type='HIV Test' and VISIT_='Screening' and LBORRES is not missing;
+    var LBORRES;
+    class VISIT_ treat LBTEST;
+    table LBTEST * LBORRES * (mean std median min max n),
+          treat all='both';
 run;
 
-proc report data=LB;
+proc tabulate data=LB;
+    where type='HIV Test' and VISIT_='Screening' and LBSTNRC is not missing;
+    class VISIT_ treat LBTEST LBSTNRC;
+    table LBTEST * LBSTNRC * (n pctn<LBSTNRC>='%'),
+          treat all='both';
 run;
-
+*/
 
 
 /* listing: patients with abnormal laboratory data at screening */
 %list_abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
-
-
 
 /* Switch to showing those with CS only?*/ 
 
@@ -1391,9 +1392,6 @@ run;
 
 /* */ 
 %process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g/dL)|Leucocytes);
-
-/* table: laboratory data at day 15*/ 
-%tabulate(code=LB,visit="Day 15");
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
