@@ -1266,16 +1266,9 @@ run;
 
 %prepare;
 
-proc report data=LB;
-	where type="Urianalysis";
-run;
-
-
-
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
-%as_numeric(code=LB,var=LBORRES); /* contains values like N, +++, NEG, 1+, TRACE*/ 
 
 /* Change code so that errors and warnings disappear. Is this about missing values?*/ 
 
@@ -1283,9 +1276,6 @@ run;
 semi-quantitative urine analysis (negative, trace, 1/2/3/4+ 
 change w.r.t. screening should only be done for numerical (not semi-quantitative values)
 */ 
-
-proc report data=LB;
-run;
 
 data LB;
     set LB;
@@ -1295,9 +1285,26 @@ data LB;
     else if index(FORM,'Urianalysis')>0 then type='Urianalysis';
     else if index(FORM,'HIV')>0 then type='HIV Test';
     else LBCAT='Other';
-	if LBORRES='.' and LBSTNRC='Positive' then LBORRES=1;
-	else if LBORRES='.' and LBSTNRC='Negative' then LBORRES=0;
+	if LBORRES='.' and LBSTNRC='Positive' then LBORRES='Positive';
+	else if LBORRES='.' and LBSTNRC='Negative' then LBORRES='Negative';
 run;
+
+
+data LB;
+	set LB;
+	if LBORRES in ('Negative','Positive','N','NEG','TRACE','+','<1.8','<2.0','>10','1+','2+','3+','4+','+++') or indexc(LBORRES, '<', '>') > 0 then do;
+		LBORRES_num = '';
+		LBORRES_semi = LBORRES;
+	end;
+	else do;
+		LBORRES_num = LBORRES;
+		LBORRES_semi = '';
+	end;
+	drop LBORRES;
+	rename LBORRES_num = LBORRES;	
+run;
+
+%as_numeric(code=LB,var=LBORRES); /* contains values like N, +++, NEG, 1+, TRACE*/ 
 
 data LB;
 	length temp $60;
