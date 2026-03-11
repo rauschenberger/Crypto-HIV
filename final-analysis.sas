@@ -656,19 +656,35 @@ Plots the results.
 %mend process_traject;
 
 
-%macro tabulate(code=,visit=);
+%macro tabulate(code=,type=,visit=);
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	proc tabulate data=&code.;
-		title "%sysfunc(dequote(&label.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment";
+		%if %length(&type.)>0 %then %do;
+			title "%sysfunc(dequote(&type.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment";
+		%end;
+		%else %do;
+			title "%sysfunc(dequote(&label.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment";
+		%end;
 		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
 		title3 "bottom: summary statistics of numerical values)";
-		where VISIT_=&visit.;
+		%if %length(&type.)>0 %then %do;
+			where type=&type. and VISIT_=&visit.;
+		%end;
+		%else %do;
+			where VISIT_=&visit.;
+		%end;
 		class treat VISIT_ &var_test. &var_judge.;
 		var &var_score.;
-		table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
-				&var_test. * &var_score. * (mean std median min max n),
-				treat all='both';
+		%if %length(&type.)>0 and &type.='HIV Test' %then %do;
+			table	&var_test. * &var_score. * (mean std median min max n),
+					treat all='both';
+		%end;
+		%else %do;
+			table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
+					&var_test. * &var_score. * (mean std median min max n),
+					treat all='both';
+		%end;
 	run;
 %mend tabulate;
 
@@ -1254,21 +1270,15 @@ change w.r.t. screening should only be done for numerical (not semi-quantitative
 
 data LB;
     set LB;
-    length LBCAT $60;
-    if index(FORM,'Clinical Chemistry')>0 then LBCAT='Clinical Chemistry';
-    else if index(FORM,'Hematology')>0 then LBCAT='Hematology';
-    else if index(FORM,'Urianalysis')>0 then LBCAT='Urianalysis';
-    else if index(FORM,'HIV')>0 then LBCAT='HIV Test';
+    length type $60;
+    if index(FORM,'Clinical Chemistry')>0 then type='Clinical Chemistry';
+    else if index(FORM,'Hematology')>0 then type='Hematology';
+    else if index(FORM,'Urianalysis')>0 then type='Urianalysis';
+    else if index(FORM,'HIV')>0 then type='HIV Test';
     else LBCAT='Other';
 	if LBORRES='.' and LBSTNRC='Positive' then LBORRES=1;
 	else if LBORRES='.' and LBSTNRC='Negative' then LBORRES=0;
 run;
-
-proc report data=LB;
-run;
-
-
-/* LBSTNRC=Positive set LBORRES=1 and and Negative -> 0 ?*/ 
 
 data LB;
 	length temp $60;
@@ -1335,10 +1345,41 @@ run;
 %add_unit(code=LB);
 
 /* table: laboratory data at screening*/ 
-%tabulate(code=LB,visit="Screening");
+%tabulate(code=LB,type="Hematology",visit="Screening");
+
+%macro process_LB(types=,visit=);
+	%local i type;
+	%do i = 1 %to %sysfunc(countw(&types, |));
+  	%let type = %scan(&types, &i, |);
+  		%tabulate(code=LB,type="&type",visit=&visit.);
+	%end;
+%mend process_LB;
+
+%process_LB(types=Clinical Chemistry|Hematology|Urianalysis|HIV Test,visit='Screening')
+
+proc tabulate data=LB;
+	where type='HIV Test' and VISIT_='Screening';
+	var LBORRES;
+	class VISIT_ treat LBTEST;
+	table LBTEST * LBORRES * (mean std median min max n)
+		treat all='both';
+run;
+
+
+proc freq data=LB;
+    where type='HIV test' and VISIT_='Screening';
+    tables VISIT_ * treat * LBTEST / missing;
+run;
+
+proc report data=LB;
+run;
+
+
 
 /* listing: patients with abnormal laboratory data at screening */
 %list_abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
+
+
 
 /* Switch to showing those with CS only?*/ 
 
