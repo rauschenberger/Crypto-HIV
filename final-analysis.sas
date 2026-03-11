@@ -283,7 +283,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 
 
 /* find patients with abnormal results */ 
-%macro extract_ids_abnormal(code=,visit=,test=,position=);
+%macro extract_ids_abnormal(code=,type=,visit=,test=,position=);
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
     data temp;
@@ -291,6 +291,12 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
         where VISIT_ in (&visit.) and not missing(&var_judge_.) and strip(&var_judge_.) not in ('Normal', '.', 'N/A') and not missing(RID); /* use numerical values */ 
 		/*was in ('NCS','CS','Abnormal, NCS','Abnormal, CS') */ 
     run;
+	%if %length(&type.)>0 %then %do;
+		data temp;
+			set temp;
+			where type=&type.;
+		run;
+	%end;
 	%if %length(&test.)>0 %then %do;
 		data temp;
 			set temp;
@@ -323,14 +329,20 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 */
 
 /* show results for some patients */ 
-%macro extract_rows_abnormal(code=,visit=);
+%macro extract_rows_abnormal(code=,type=,visit=);
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	data long;
 		set &code.;
 		if RID in (&ids_abnormal.);
 		if VISIT_ in (&visit.);
-	run; 
+	run;
+	%if %length(&type.)>0 %then %do;
+		data long;
+			set long;
+			where type=&type.;
+		run;
+	%end;
 	proc sort data=long;
 		by &state_by.;
 	run;
@@ -374,14 +386,20 @@ Description: Adds colour for extreme values (see format section). Defines order 
 */
 
 /* report patients with abnormal values*/ 
-%macro list_abnormal(code=,check_visit=,show_visit=);
-	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit ids_abnormal;
+%macro list_abnormal(code=,type=,check_visit=,show_visit=);
+	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit ids_abnormal title;
 	%getvars(code=&code.);
-	%extract_ids_abnormal(code=&code.,visit=&check_visit.);
-	%extract_rows_abnormal(code=&code.,visit=&show_visit.);
+	%extract_ids_abnormal(code=&code.,type=&type.,visit=&check_visit.);
+	%extract_rows_abnormal(code=&code.,type=&type.,visit=&show_visit.);
 	/*%let show_visit_clean = %sysfunc(lowcase(%sysfunc(tranwrd(%sysfunc(compress(&show_visit.,%str('))),%str( ),%str( and )))));*/
 	/*%let check_visit_clean = %sysfunc(lowcase(%sysfunc(dequote(&check_visit.))));*/
-	%report(data=wide,title="%sysfunc(dequote(&label.)) Data at Visit &show_visit., if any Abnormal at Visit &check_visit.",name=&code.);
+	%if %length(&type.)>0 %then %do;
+		%let title = "%sysfunc(dequote(&type.)) Data at Visit &show_visit., if any Abnormal at Visit &check_visit.";
+	%end;
+	%else %do;
+		%let title = "%sysfunc(dequote(&label.)) Data at Visit &show_visit., if any Abnormal at Visit &check_visit.";
+	%end;
+	%report(data=wide,title=&title.,name=&code.);
 	proc datasets lib=work nolist;
         delete wide;
     quit;
@@ -1248,19 +1266,26 @@ run;
 
 %prepare;
 
+proc report data=LB;
+	where type="Urianalysis";
+run;
+
+
+
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
-%as_numeric(code=LB,var=LBORRES);
+%as_numeric(code=LB,var=LBORRES); /* contains values like N, +++, NEG, 1+, TRACE*/ 
 
 /* Change code so that errors and warnings disappear. Is this about missing values?*/ 
 
 /*
 semi-quantitative urine analysis (negative, trace, 1/2/3/4+ 
-split into multiple parts?
-i.e., haematology, clinical chemistry, HIV test, urinanalysis
 change w.r.t. screening should only be done for numerical (not semi-quantitative values)
 */ 
+
+proc report data=LB;
+run;
 
 data LB;
     set LB;
@@ -1278,7 +1303,6 @@ data LB;
 	length temp $60;
 	set LB;
 	temp = coalescec(LBORRESU, LBORRESU2, LBORRESU3, LBORRESU4, LBORRESU5, LBORRESU31);
-	/*LBORRESU = temp;*/
 	drop LBORRESU;
 	rename temp=LBORRESU;
 run;
@@ -1347,6 +1371,10 @@ run;
   			%tabulate(code=LB,type="&type",visit="&visit");
 		%end;
 	%end;
+	%do i = 1 %to %sysfunc(countw(&types, |));
+		%let type = %scan(&types, &i, |);
+		%list_abnormal(code=LB,type="&type",check_visit='Screening',show_visit='Screening' 'Unscheduled');
+	%end;
 %mend process_LB;
 
 %process_LB(types=Clinical Chemistry|Hematology|Urianalysis,visits=Screening|Day 15)
@@ -1377,10 +1405,6 @@ proc tabulate data=LB;
           treat all='both';
 run;
 */
-
-
-/* listing: patients with abnormal laboratory data at screening */
-%list_abnormal(code=LB,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 /* Switch to showing those with CS only?*/ 
 
