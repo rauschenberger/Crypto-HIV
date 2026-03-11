@@ -676,7 +676,7 @@ Plots the results.
 		%end;
 		class treat VISIT_ &var_test. &var_judge.;
 		var &var_score.;
-		%if %length(&type.)>0 and &type.='HIV Test' %then %do;
+		%if %length(&type.)>0 and %sysfunc(dequote(&type.))='HIV Test' %then %do;
 			table	&var_test. * &var_score. * (mean std median min max n),
 					treat all='both';
 		%end;
