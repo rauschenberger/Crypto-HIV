@@ -268,14 +268,19 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let var_score=EGORRES;
 		%let var_unit=EGORRESU;
 	%end;
-	%else %if &code.=LB %then %do;
+	%else %if &code.=LB or &code.=LB_temp %then %do;
 		%let label='Laboratory';
 		%let var_test=LBTEST;
 		%let var_test_=LBTEST_;
 		%let state_by=RID VISIT_;
 		%let var_judge=LBCLSIG;
 		%let var_judge_=LBCLSIG_;
-		%let var_score=LBORRES;
+		%if &code.=LB %then %do;
+			%let var_score=LBORRES;
+		%end;
+		%else %if &code.=LB_temp %then %do;
+			%let var_score=LBORRES_both;
+		%end;
 		%let var_unit=LBORRESU;
 	%end;
 	%else %do;
@@ -1164,7 +1169,17 @@ run;
 */
 
 ods pdf file="&pathOut.\myfile.pdf" style=printer startpage=yes author="Armin Rauschenberger";
-title "Crypto-HIV Statistical Report";
+
+/*
+options nodate nonumber;
+ods escapechar='^';
+ods pdf file="&pathOut.\\myfile.pdf" style=printer startpage=no;
+ods pdf text="^S={just=c font_size=24pt font_weight=bold} ^10n 5FC HIV-Crypto";
+ods pdf text="^S={just=c font_size=24pt} ^1n Tables, Listings, and Figures";
+ods pdf text="^S={just=c font_size=14pt} ^10n Armin Rauschenberger";
+ods pdf text="^S={just=c font_size=14pt} ^1n %sysfunc(today(), worddate.)";
+ods pdf text="^S={just=c font_size=14pt} ^5n ";
+*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: vital signs * * * * * * * * * * * * * * * * * * * * * * */
@@ -1294,6 +1309,17 @@ run;
 
 %prepare;
 
+proc report data=LB;
+	where LBTEST='U-Leucocytes';
+run;
+
+/*
+Leucocytes has either LBORRESU equal to 109/L or cells/uL or a free-text comment in LBCO (multiple variants of 10e3/uL).
+Magnesium has LBORRESU5 equal to mg/dL or nmol/L but sometimes not unit.
+Neutrophils has LBORREESU equal to 109/L or cells/uL but sometimes no unit.
+U-Leucocytes always has the unit Leu/uL. However, its values are not always numeric but also +, NEG, N. Once, the value is in the free-text LCBO ("NEGATIVE").
+*/
+
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
@@ -1320,7 +1346,8 @@ run;
 
 data LB;
 	set LB;
-	if LBORRES in ('Negative','Positive','N','NEG','TRACE','<1.8','<2.0','>10','1+','2+','3+','4+','+','+++') or indexc(LBORRES, '<', '>') > 0 then do;
+	/*LBORRES_original = LBORRES;*/
+	if LBORRES in ('Negative','Positive','N','NEG','TRACE','<1.8','<2.0','>10','1+','2+','3+','4+','+','+++') then do;
 		LBORRES_numeric = '';
 		LBORRES_ordinal = LBORRES;
 	end;
@@ -1328,11 +1355,15 @@ data LB;
 		LBORRES_numeric = LBORRES;
 		LBORRES_ordinal = '';
 	end;
+	LBORRES=LBORRES_numeric;
+	/*
 	drop LBORRES;
-	rename LBORRES_numeric = LBORRES;	
+	rename LBORRES_numeric = LBORRES;
+	*/
 run;
 
 %as_numeric(code=LB,var=LBORRES); /* contains values like N, +++, NEG, 1+, TRACE*/ 
+%as_numeric(code=LB,var=LBORRES_numeric);
 
 data LB;
 	length temp $60;
@@ -1412,7 +1443,49 @@ run;
 	%end;
 %mend process_LB;
 
-%process_LB(types=Clinical Chemistry|Hematology|Urianalysis,visits=Screening|Day 15)
+%process_LB(types=Clinical Chemistry|Hematology,visits=Screening|Day 15)
+
+/* urine analysis*/ 
+
+
+data LB_temp;
+	set LB;
+	if not missing(LBORRES_numeric) then do;
+		LBORRES_both = put(LBORRES_numeric, best12.);
+	end;
+	else if not missing(LBORRES_ordinal) then do;
+		LBORRES_both = LBORRES_ordinal;
+	end;
+	else do;
+		LBORRES_both = '';
+	end;
+	/*
+	drop LBORRES;
+	rename temp=LBORRES;
+	*/
+run;
+
+%list_abnormal(code=LB_temp,type="Urianalysis",check_visit='Screening',show_visit='Screening' 'Unscheduled');
+
+
+proc tabulate data=LB;
+	where type='Urianalysis' and VISIT_='Screening';
+	var LBORRES_numeric;
+	class treat VISIT_ LBTEST LBCLSIG;
+	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
+			LBTEST * LBORRES_numeric * (mean std median min max n),
+			treat all='both';
+run;
+
+proc tabulate data=LB;
+	where type='Urianalysis' and VISIT_='Screening';
+	class treat VISIT_ LBTEST LBCLSIG LBORRES_ordinal;
+	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
+			LBTEST * LBORRES_ordinal * (n pctn<LBORRES_ordinal>='%'),
+			treat all='both';
+run;
+
+/* infection tests*/ 
 
 proc tabulate data=LB;
 	%title(type="table",label='Infection Tests at Screening Visit');
@@ -1426,14 +1499,17 @@ run;
 
 /*
 proc tabulate data=LB;
+	%title(type="table",label='Infection Tests at Screening Visit');
+	title2 "(summary statistics for numerical variables)";
     where type='HIV Test' and VISIT_='Screening' and LBORRES is not missing;
     var LBORRES;
     class VISIT_ treat LBTEST;
     table LBTEST * LBORRES * (mean std median min max n),
           treat all='both';
 run;
-
 proc tabulate data=LB;
+	%title(type="table",label='Infection Tests at Screening Visit');
+	title2 "(counts and percentages for binary variables)";
     where type='HIV Test' and VISIT_='Screening' and LBSTNRC is not missing;
     class VISIT_ treat LBTEST LBSTNRC;
     table LBTEST * LBSTNRC * (n pctn<LBSTNRC>='%'),
@@ -1444,13 +1520,14 @@ run;
 /* Switch to showing those with CS only?*/ 
 
 /* tables: */ 
-%process_table(code=LB,tests=Haemoglobin (g/dL)|Leucocytes);
+
+%process_table(code=LB,tests=Haemoglobin (g per dL)|Leucocytes);
 
 /* */ 
-%process_trend(code=LB,tests=Haemoglobin (g/dL)|Leucocytes);
+%process_trend(code=LB,tests=Haemoglobin (g per dL)|Leucocytes);
 
 /* */ 
-%process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g/dL)|Leucocytes);
+%process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g per dL)|Leucocytes);
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
