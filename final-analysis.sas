@@ -1292,6 +1292,8 @@ run;
 
  */
 
+%prepare;
+
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
@@ -1318,16 +1320,16 @@ run;
 
 data LB;
 	set LB;
-	if LBORRES in ('Negative','Positive','N','NEG','TRACE','+','<1.8','<2.0','>10','1+','2+','3+','4+','+++') or indexc(LBORRES, '<', '>') > 0 then do;
-		LBORRES_num = '';
-		LBORRES_semi = LBORRES;
+	if LBORRES in ('Negative','Positive','N','NEG','TRACE','<1.8','<2.0','>10','1+','2+','3+','4+','+','+++') or indexc(LBORRES, '<', '>') > 0 then do;
+		LBORRES_numeric = '';
+		LBORRES_ordinal = LBORRES;
 	end;
 	else do;
-		LBORRES_num = LBORRES;
-		LBORRES_semi = '';
+		LBORRES_numeric = LBORRES;
+		LBORRES_ordinal = '';
 	end;
 	drop LBORRES;
-	rename LBORRES_num = LBORRES;	
+	rename LBORRES_numeric = LBORRES;	
 run;
 
 %as_numeric(code=LB,var=LBORRES); /* contains values like N, +++, NEG, 1+, TRACE*/ 
