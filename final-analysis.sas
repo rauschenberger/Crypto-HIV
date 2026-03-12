@@ -29,12 +29,22 @@ This SAS script requires three manual interventions:
 
 /* clean workspace */
 
+/*
 proc datasets library=work kill;
 run;
 dm 'odsresults; clear';
 dm "log; clear; ";
 options nosource;
 options nonotes;
+*/
+
+proc datasets library=work kill nolist; run; quit;
+proc catalog catalog=work.formats kill nolist; run; quit;
+%symdel _all_ / nowarn;
+ods _all_ close;
+dm 'odsresults; clear';
+dm "log; clear;";
+options nosource nonotes;
 
 /* define paths */
 
@@ -374,7 +384,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 			define PAGENAME / order order=internal;
 		%end;*/
 		define _NAME_/noprint;
-		title &title.;
+		%title(type="listing",label=&title.);
 	run;
 	options validvarname=v7;
 %mend;
@@ -439,7 +449,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 		var &var_score.; /*was VSORRES*/
 		table 	VISIT * &var_score. * (mean std median min max n), /*was VSORRES*/
 			treat;
-		title &position. ' ' &test. ' - Values';
+		%title(type="table",label="%sysfunc(dequote(&test.)) - Values"); /*%sysfunc(dequote(&position.))*/
 		title2 '(summary statistics by visit and treatment)';
 	run;
 %mend table_values;
@@ -505,7 +515,10 @@ Use this macro to obtain the change with respect to baseline.
 		var diff;
 		table 	VISIT * diff * (mean std median min max n),
 			treat;
-		title &position. ' ' &test. ' - Change';
+		/*
+		%let label = "%sysfunc(dequote(&position.)) %sysfunc(dequote(&test.)) - Change";
+		*/
+		%title(type="table",label="%sysfunc(dequote(&test.)) - Change");
 		title2 '(with respect to screening visit,';
 		title3 'summary statistics by visit and treatment)';
 	run;
@@ -547,7 +560,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 	run;
 	proc sgplot data=temp;
 		series x=VISIT y=&var_score. / group=RID markers;
-    	title &position. ' ' &test.;
+    	%title(type="figure",label="Trajectories of %sysfunc(dequote(&test.))"); /*%sysfunc(dequote(&position.))*/
 		title2 '(for those abnormal at' &check_visit. ')';
     	xaxis label='time'; 
     	yaxis label='value';
@@ -591,11 +604,11 @@ Plots the measurements against the visit names, with one line for each patient.
 		set DATA_MEAN;
 		where not missing(RID);
 	run;
-	*/
+	*/ 
 	proc sgplot data=DATA_MEAN;
-		series x=visit y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
-    	title &title.;
+		%title(type="figure",label=&title.);
 		title2 &title2.;
+		series x=visit y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
     	xaxis label='time';
     	yaxis label='value';
     	keylegend / title='treatment';
@@ -620,7 +633,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		class treat visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(title='Mean ' &position. ' ' &test.,title2='(by treatment)');
+	%plot_internal(title="Mean %sysfunc(dequote(&test.))",title2='(by treatment)'); /*&position.*/
 	proc datasets lib=work nolist;
         delete DATA_MEAN;
     quit;
@@ -640,7 +653,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		class treat visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(title='Mean Change in ' &position. ' ' &test.,title2='(with respect to the screening visit, by treatment)');
+	%plot_internal(title="Mean Change in %sysfunc(dequote(&test.))",title2='(with respect to the screening visit, by treatment)'); /*  &position. */ 
 	proc datasets lib=work nolist;
         delete DATA_MEAN;
     quit;
@@ -679,10 +692,10 @@ Plots the results.
 	%getvars(code=&code.);
 	proc tabulate data=&code.;
 		%if %length(&type.)>0 %then %do;
-			title "%sysfunc(dequote(&type.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment";
+			%title(type="table",label="%sysfunc(dequote(&type.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment");
 		%end;
 		%else %do;
-			title "%sysfunc(dequote(&label.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment";
+			%title(type="table",label="%sysfunc(dequote(&label.)) Data at %sysfunc(dequote(&visit.)) Visit by Treatment");
 		%end;
 		title2 "(top: number and percentage of normal, NCS abnormal, and CS abnormal;";
 		title3 "bottom: summary statistics of numerical values)";
@@ -1104,6 +1117,18 @@ Arguments: Choose one of two CDISC abbreviations (either 'VS' or 'EG').
 Description: This macro uses colour for values below or above the normal range.
 */
 
+%macro title(type=, label=);
+	%let type = %sysfunc(dequote(&type.));
+    %if not %symexist(&type._n) %then %do;
+		%global &type._n;
+        %let &type._n = 0;
+    %end;
+    %let &type._n = %eval(&&&type._n + 1);
+    %let labtitle = %upcase(&type) &&&type._n: %sysfunc(dequote(&label.));
+    title "&labtitle";
+    ods proclabel "&labtitle";
+%mend title;
+
 /******************************************************************************/
 /*** Section 4: Analysis ******************************************************/
 /******************************************************************************/
@@ -1137,6 +1162,9 @@ run;
 - LB: different units, missing units
 - data dictionary?
 */
+
+ods pdf file="&pathOut.\myfile.pdf" style=printer startpage=yes author="Armin Rauschenberger";
+title "Crypto-HIV Statistical Report";
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: vital signs * * * * * * * * * * * * * * * * * * * * * * */
@@ -1213,7 +1241,7 @@ proc summary data=VS nway;
 run;
 
 proc tabulate data=temp;
-	title 'Count and Percentage of Normal, NCS or CS Abnormal VItal Signs';
+	%title(type="listing",label='Count and Percentage of Normal, NCS or CS Abnormal Vital Signs');
 	title2 '(by visit, vital sign, and treatment)';
 	where not missing(RID);
 	class VISIT treat VSTEST VSSTRESC RID / order=internal;
@@ -1263,8 +1291,6 @@ proc report data=LB;
 run;
 
  */
-
-%prepare;
 
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
@@ -1387,7 +1413,7 @@ run;
 %process_LB(types=Clinical Chemistry|Hematology|Urianalysis,visits=Screening|Day 15)
 
 proc tabulate data=LB;
-	title 'Infection Tests at Screening Visit';
+	%title(type="table",label='Infection Tests at Screening Visit');
 	where type='HIV Test' and VISIT_='Screening';
 	var LBORRES;
 	class VISIT_ treat LBTEST;
@@ -1430,48 +1456,48 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=ART;
-	title 'ART initiation';
+	%title(type="listing",label='ART initiation');
 	*column RID VISIT ARTREGIMEN;
 	define RID/order;
 run;
 
 proc report data=ARTT;
-	title 'ART treatment';
+	%title(type="listing",label='ART treatment');
 	column RID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH;
 	define RID/order;
 run;
 
 proc report data=CE spanrows;
-	title 'current symptoms';
+	%title(type="listing",label='current symptoms');
 	column RID VISIT CETERM CEDUR;
 	define RID/order;
 	define VISIT/order=internal;
 run;
 
 proc report data=CM;
-	title 'concomitant medications';
+	%title(type="listing",label='concomitant medications');
 	column RID CMINDC CMTRT;
 	define RID/order;
 run;
 
 proc report data=DD;
-	title 'death';
+	%title(type="listing",label='death');
 	column RID;
 run;
 
 proc report data=DI;
-	title 'discharge';
+	%title(type="listing",label='discharge');
 	column RID LPPERF DISCHARGED;
 run;
 
 proc report data=DS;
-	title 'disposition milestones';
+	%title(type="listing",label='disposition milestones');
 	column RID VISIT DSDECOD;
 	define RID/order;
 run;
 
 proc report data=EX;
-	title 'treatment exposure';
+	%title(type="listing",label='treatment exposure');
 	define RID/order;
 run;
 
@@ -1493,7 +1519,7 @@ run;
 /* lumbar punctures */ 
 
 proc report data=LP;
-	title 'lumbar punctures';
+	%title(type="listing",label='lumbar punctures');
 	column RID VISIT LPORRES LPORRESU;
 	define RID/order;
 run;
@@ -1513,21 +1539,21 @@ run;
 /* prior medications */ 
 
 proc report data=PM;
-	title 'prior medications';
+	%title(type="listing",label='prior medications');
 	column RID CMTRT CMROUTE;
 	define RID/order;
 run;
 
 proc report data=PR;
-	title 'pregnancy';
+	%title(type="listing",label='pregnancy');
 run;
 
 proc report data=QUEST;
-	title 'palatability acceptability';
+	%title(type="listing",label='palatability acceptability');
 run;
 
 proc report data=RANKIN;
-	title 'disability';
+	%title(type="listing",label='disability');
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1541,7 +1567,7 @@ data DS;
 run;
 
 proc tabulate data=DS;
-	title 'withdrawals';
+	%title(type="listing",label='withdrawals');
 	where VISIT='Post Study';
 	class treat withdraw;
 	table withdraw * (n colpctn='%'),
@@ -1550,7 +1576,7 @@ run;
 
 /* TO DO: Add "time of early withdrawal" and "reason of withdrawal". */ 
 proc report data=DS;
-	title 'withdrawals';
+	%title(type="listing",label='withdrawals');
 	where DSTERM='DISCONTINUED';
 	column RID treat;
 run;
@@ -1563,7 +1589,7 @@ proc report data=IE;
 run;
 
 proc report data=IE spanrows;
-	title 'ineligible samples';
+	%title(type="listing",label='ineligible samples');
 	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
 	column SUBJID IECAT IETEST IEORRES;
 	define SUBJID/order;
@@ -1577,7 +1603,7 @@ run;
 /* TO DO: Add table of number of minor and major deviations. */
  
 proc report data=DV spanrows;
-	title 'protocol deviations';
+	%title(type="listing",label='protocol deviations');
 	column RID VISIT FORM DVTERM DVCAT;
 	define RID/order;
 	*define treatment/order;
@@ -1603,7 +1629,7 @@ data DM;
 run;
 
 proc tabulate data=DM;
-	title 'demographics by treatment';
+	%title(type="listing",label='demographics by treatment');
 	class treatment sex race;
 	var age weight height bmi;
 	table (age)*(mean median std min max n)
@@ -1621,7 +1647,7 @@ run;
 %as_numeric(code=SU,var=SUDOSE);
 
 proc tabulate data=SU;
-    title 'alcohol and smoking by sequence';
+    %title(type="listing",label='alcohol and smoking by sequence');
 	class treat SUTRT SUOCCUR / order=internal;
     var SUDOSE;
     table SUTRT * SUOCCUR * (n pctn<SUOCCUR>='%')
@@ -1634,7 +1660,7 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=MH spanrows;
-	title 'medical history';
+	%title(type="listing",label='medical history');
 	where not missing(RID);
 	column RID treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
 	define RID/order;
@@ -1656,13 +1682,13 @@ run;
 
 
 proc report data=AE spanrows;
-	title 'adverse events';
+	%title(type="listing",label='adverse events');
 	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
 	define RID/order;
 run;
 
 
-
+ods pdf close;
 
 
 %macro ignore;
