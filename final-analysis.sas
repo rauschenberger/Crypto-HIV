@@ -1298,33 +1298,24 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
-
 To discuss with Aljosa: Rows with value but without unit. Consider LBCO? But some rows have no free-text comment. And at least one comment is 10E3/L but should be 10E3/UL.
 
 proc report data=LB;
 	where not missing(LBORRES) and missing(LBORRESU) and LBTEST in ('Leucocytes','Magnesium','Neutrophils');
 run;
 
+Leucocytes has either LBORRESU equal to 109/L or cells/uL or a free-text comment in LBCO (multiple variants of 10e3/uL).
+Magnesium has LBORRESU5 equal to mg/dL or nmol/L, but sometimes there is no unit.
+Neutrophils has LBORREESU equal to 109/L or cells/uL, but sometimes there is no unit.
+U-Leucocytes always has the unit Leu/uL. However, its values are not always numerical but also +, NEG, N. Once, the value is in the free-text LCBO ("NEGATIVE").
+(Similar problems also occur for other variables.)
  */
 
 %prepare;
 
-proc report data=LB;
-	where LBTEST='U-Leucocytes';
-run;
-
-/*
-Leucocytes has either LBORRESU equal to 109/L or cells/uL or a free-text comment in LBCO (multiple variants of 10e3/uL).
-Magnesium has LBORRESU5 equal to mg/dL or nmol/L but sometimes not unit.
-Neutrophils has LBORREESU equal to 109/L or cells/uL but sometimes no unit.
-U-Leucocytes always has the unit Leu/uL. However, its values are not always numeric but also +, NEG, N. Once, the value is in the free-text LCBO ("NEGATIVE").
-*/
-
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
-
-/* Change code so that errors and warnings disappear. Is this about missing values?*/ 
 
 /*
 semi-quantitative urine analysis (negative, trace, 1/2/3/4+ 
@@ -1469,6 +1460,7 @@ run;
 
 
 proc tabulate data=LB;
+	%title(type="table",label="Urinalysis - numerical variables");
 	where type='Urianalysis' and VISIT_='Screening';
 	var LBORRES_numeric;
 	class treat VISIT_ LBTEST LBCLSIG;
@@ -1478,6 +1470,7 @@ proc tabulate data=LB;
 run;
 
 proc tabulate data=LB;
+%title(type="table",label="Urinalysis - ordinal variables");
 	where type='Urianalysis' and VISIT_='Screening';
 	class treat VISIT_ LBTEST LBCLSIG LBORRES_ordinal;
 	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
@@ -1708,13 +1701,14 @@ data DM;
 run;
 
 proc tabulate data=DM;
-	%title(type="listing",label='demographics by treatment');
-	class treatment sex race;
+	%title(type="listing",label='Demographics by Treatment');
+	title2 "(top: summary statistics for numerical variables,";
+	title3 "bottom: counts and percentages for categorical variables)";
+	class treat sex race;
 	var age weight height bmi;
-	table (age)*(mean median std min max n)
-		(sex race)*(n colpctn='%')
-		(weight height bmi)*(mean median std min max n),
-		treatment all='both';
+	table 	(age weight height bmi)*(mean median std min max n)
+			(sex race)*(n colpctn='%'),
+			treat all='both';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1724,6 +1718,9 @@ run;
 %order_levels(code=SU,var=SUOCCUR);
 %order_levels(code=SU,var=SUTRT);
 %as_numeric(code=SU,var=SUDOSE);
+
+proc report data=SU;
+run;
 
 proc tabulate data=SU;
     %title(type="listing",label='alcohol and smoking by sequence');
@@ -1744,9 +1741,6 @@ proc report data=MH spanrows;
 	column RID treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
 	define RID/order;
 	define treat/order;
-run;
-
-proc report data=MH;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
