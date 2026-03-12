@@ -1061,10 +1061,10 @@ run;
 		end;
 		*/
 	endcomp;
-	compute 'Pulse Rate (beats per min)'n;
+	compute 'Pulse Rate (beats/min)'n;  /* per */
 			call define(_col_,'style','style={background=PULSE.}');
 	endcomp;
-	compute 'Respiratory Rate (beats per min)'n;
+	compute 'Respiratory Rate (beats/min)'n;  /* per */
 			call define(_col_,'style','style={background=RESPIR.}');
 	endcomp;
 	compute 'Oxygen Saturation (%)'n;
@@ -1197,7 +1197,7 @@ run;
 %order_levels(code=VS,var=VSSTRESC);
 /*%order_levels(code=VS,var=time);*/
 %as_numeric(code=VS,var=VSORRES);
-%sub_per(code=VS);
+/*%sub_per(code=VS);*/
 %add_unit(code=VS);
 
 /* table: vital signs at screening visit by treatment */ 
@@ -1245,7 +1245,7 @@ end trial */
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
 /* tables: values of and change in vital signs*/ 
-%process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats per min)|Respiratory Rate (beats per min)|Oxygen Saturation (%));
+%process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%)); /* per */
 
 /*table: count of abnormal values */
 
@@ -1271,7 +1271,7 @@ run;
 %process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg))
 
 /* figures: mean values and mean change */ 
-%process_trend(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats per min))
+%process_trend(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)) /* per */
 
 /* vital signs post study, by treatment */
 %tabulate(code=VS,visit="Week 10");
@@ -1284,7 +1284,7 @@ run;
 %order_levels(code=EG,var=EGSTRESC1);
 /*%order_levels(code=EG,var=EGTEST);*/
 %as_numeric(code=EG,var=EGORRES);
-%sub_per(code=EG);
+/*%sub_per(code=EG);*/
 %add_unit(code=EG);
 
 /* table: electrocardiogram, at day 1*/ 
@@ -1425,7 +1425,7 @@ data LB;
 	end;
 run;
 
-%sub_per(code=LB);
+/*%sub_per(code=LB);*/
 %add_unit(code=LB);
 
 %macro process_LB(types=,visits=);
@@ -1521,13 +1521,13 @@ run;
 
 /* tables: */ 
 
-%process_table(code=LB,tests=Haemoglobin (g per dL)|Leucocytes);
+%process_table(code=LB,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
 
 /* */ 
-%process_trend(code=LB,tests=Haemoglobin (g per dL)|Leucocytes);
+%process_trend(code=LB,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
 
 /* */ 
-%process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g per dL)|Leucocytes);
+%process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
