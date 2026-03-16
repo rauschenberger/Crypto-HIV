@@ -383,7 +383,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 */
 
 /* report with colour for extreme values */ 
-%macro report(data=,title=,name=none);
+%macro report(data=,title=,title2=,name=none);
 	options validvarname=any;
 	/*
 	proc sort data=&data.;
@@ -400,6 +400,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 		%end;*/
 		/*define _NAME_/noprint;*/
 		%title(type="listing",label=&title.);
+		title2 &title2.;
 	run;
 	options validvarname=v7;
 %mend;
@@ -1213,10 +1214,10 @@ run;
 - LB: different units, missing units
 - data dictionary?
 */
-
-ods pdf file="&pathOut.\myfile.pdf" style=printer startpage=yes author="Armin Rauschenberger";
-
 /*
+ods pdf file="&pathOut.\myfile.pdf" style=printer startpage=yes author="Armin Rauschenberger";
+*/
+
 options nodate nonumber;
 ods escapechar='^';
 ods pdf file="&pathOut.\\myfile.pdf" style=printer startpage=no;
@@ -1225,7 +1226,21 @@ ods pdf text="^S={just=c font_size=24pt} ^1n Tables, Listings, and Figures";
 ods pdf text="^S={just=c font_size=14pt} ^10n Armin Rauschenberger";
 ods pdf text="^S={just=c font_size=14pt} ^1n %sysfunc(today(), worddate.)";
 ods pdf text="^S={just=c font_size=14pt} ^5n ";
+
+proc odstext;
+	h1 "Important Notes";
+	h2 "Disclaimer";
+	p "^{style [color=red fontweight=bold] Problems in the datasets have not yet been fixed.}";
+	p "^{style [color=red fontweight=bold] Reference ranges and conversion factors have not yet been provided.}";
+	p "^{style [color=red fontweight=bold] The programming code has not yet been double-checked.}";
+	h2 "Editing"
+    p 	"Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
+run;
+
+/*
+ods text="Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
 */
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.2: vital signs * * * * * * * * * * * * * * * * * * * * * * */
@@ -1731,36 +1746,20 @@ run;
 /* * Subsection 4.4: protocol deviations   * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-/* TO DO: Add table of number of minor and major deviations. */
- 
-proc report data=DV spanrows;
-	%title(type="listing",label='protocol deviations');
-	column RID VISIT FORM DVTERM DVCAT;
-	define RID/order;
-	*define treatment/order;
-	define VISIT/order;
-	define FORM/order;
+
+
+proc tabulate data=DV;
+	class DVCAT
+	table DVCAT 
 run;
+
 
 data DV_sub;
 	retain RID VISIT FORM DVTERM DVCAT;
 	set DV(keep=RID VISIT FORM DVTERM DVCAT);
-	/*
-	temp = lowcase(DVTERM);
-	drop DVTERM;
-	rename temp = DVTERM;
-	*/
 run;
 
-proc sort data=DV_sub;
-	by RID 
-
-
-%report(data=DV_sub,title='Protocol Deviations',name=DV);
-
-
-
-/* TO DO: Add specific reason.*/ 
+%report(data=DV_sub,title='Protocol Deviations',title2='(sorted by patient and visit)',name=DV);
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.5: demographics  * * * * * * * * * * * * * * * * * * * * * */
@@ -1796,9 +1795,6 @@ run;
 %order_levels(code=SU,var=SUOCCUR);
 %order_levels(code=SU,var=SUTRT);
 %as_numeric(code=SU,var=SUDOSE);
-
-proc report data=SU;
-run;
 
 proc tabulate data=SU;
     %title(type="listing",label='alcohol and smoking by sequence');
