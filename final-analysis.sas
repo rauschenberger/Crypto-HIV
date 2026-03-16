@@ -1228,18 +1228,13 @@ ods pdf text="^S={just=c font_size=14pt} ^1n %sysfunc(today(), worddate.)";
 ods pdf text="^S={just=c font_size=14pt} ^5n ";
 
 proc odstext;
-	h1 "Important Notes";
-	h2 "Disclaimer";
-	p "^{style [color=red fontweight=bold] Problems in the datasets have not yet been fixed.}";
-	p "^{style [color=red fontweight=bold] Reference ranges and conversion factors have not yet been provided.}";
-	p "^{style [color=red fontweight=bold] The programming code has not yet been double-checked.}";
-	h2 "Editing"
-    p 	"Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
+	h1 "Disclaimer";
+	p  "^{style [color=red fontweight=bold] Problems in the datasets have not yet been fixed.}";
+	p  "^{style [color=red fontweight=bold] Reference ranges and conversion factors have not yet been provided.}";
+	p  "^{style [color=red fontweight=bold] The programming code has not yet been double-checked.}";
 run;
 
-/*
 ods text="Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
-*/
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1371,8 +1366,6 @@ Neutrophils has LBORREESU equal to 109/L or cells/uL, but sometimes there is no 
 U-Leucocytes always has the unit Leu/uL. However, its values are not always numerical but also +, NEG, N. Once, the value is in the free-text LCBO ("NEGATIVE").
 (Similar problems also occur for other variables.)
  */
-
-%prepare;
 
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
@@ -1660,6 +1653,8 @@ run;
 
 /* physical examination */
 
+
+
 data PE_sub;
 	retain RID VISIT PETESTCD PEORRES PEORRES_SP;
 	set PE(keep=RID VISIT PETESTCD PEORRES PEORRES_SP);
@@ -1746,13 +1741,13 @@ run;
 /* * Subsection 4.4: protocol deviations   * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-
-
 proc tabulate data=DV;
-	class DVCAT
-	table DVCAT 
+	%title(type="table",label="Protocol Deviations");
+	title2 "(number and percentage by treatment)";
+	class treatment DVCAT;
+	table DVCAT * (n rowpctn='%'),
+		treatment all="total";
 run;
-
 
 data DV_sub;
 	retain RID VISIT FORM DVTERM DVCAT;
