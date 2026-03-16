@@ -256,7 +256,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let label='Vital Sign';
 		%let var_test=VSTEST;
 		%let var_test_=VSTEST_;
-		%let state_by=RID VISIT_ VSPOS;
+		%let state_by=RID VISIT VSPOS;
 		%let var_judge=VSSTRESC;
 		%let var_judge_=VSSTRESC_;
 		%let var_score=VSORRES;
@@ -266,7 +266,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let label='Electrocardiogram';
 		%let var_test=EGTEST;
 		%let var_test_=EGTEST_;
-		%let state_by=RID VISIT_;
+		%let state_by=RID VISIT;
 		%let var_judge=EGSTRESC1;
 		%let var_judge_=EGSTRESC1_;
 		%let var_score=EGORRES;
@@ -276,7 +276,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let label='Laboratory';
 		%let var_test=LBTEST;
 		%let var_test_=LBTEST_;
-		%let state_by=RID VISIT_;
+		%let state_by=RID VISIT;
 		%let var_judge=LBCLSIG;
 		%let var_judge_=LBCLSIG_;
 		%if &code.=LB %then %do;
