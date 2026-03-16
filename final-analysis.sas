@@ -1627,6 +1627,8 @@ proc report data=EX;
 	define RID/order;
 run;
 
+/* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
+
 
 /* Glasgow coma score */
 
@@ -1825,10 +1827,11 @@ run;
 
 proc report data=AE spanrows;
 	%title(type="listing",label='adverse events');
-	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1;
+	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
 	define RID/order;
 run;
 
+/* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLES AEREL / AEREL1!*/ 
 
 ods pdf close;
 
