@@ -1033,8 +1033,14 @@ proc format;
 	value $GCS_motor	'Obeys commands' = 'white'
 						other = &low.;
 	/* PE */
-	value $ORRES		'Abnormal, CS' = &low.
-						other = 'white';
+	value $ORRES		'Normal' = 'white'
+						'Abnormal, NSC' = 'white'
+						'Abnormal, CS' = &high.
+						other = &high.;
+	/* DV */
+	value $DVCAT		'Minor' = 'white'
+						'Major' = &high.
+						other = &high.; 
 run; 
 
 /* colour extreme values */ 
@@ -1118,6 +1124,11 @@ run;
 	%if &name.=PE %then %do;
 	compute PEORRES / character length=50;
 		call define(_col_,'style','style={background=$ORRES.}');
+	endcomp;
+	%end;
+	%if &name.=DV %then %do;
+	compute DVCAT;
+		call define(_col_,'style','style={background=$DVCAT.}');
 	endcomp;
 	%end;
 %mend color;
@@ -1593,7 +1604,7 @@ data GC_sub;
 	drop GCSPERF;
 run;
 
-%report(data=GC_sub,title='Glasgow coma scale',name=GC);
+%report(data=GC_sub,title='Glasgow coma scale - patients with a total score below 15',name=GC);
 
 
 /* lumbar punctures */ 
@@ -1690,6 +1701,16 @@ proc report data=DV spanrows;
 	define VISIT/order;
 	define FORM/order;
 run;
+
+data DV_sub;
+	retain RID VISIT FORM DVTERM DVCAT;
+	set DV(keep=RID VISIT FORM DVTERM DVCAT);
+run;
+
+%report(data=DV_sub,title='physical examination',name=DV);
+
+
+
 /* TO DO: Add specific reason.*/ 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
