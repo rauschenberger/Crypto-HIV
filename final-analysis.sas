@@ -590,7 +590,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 			%end;
 		%end;
 		*/
-		refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.5 pattern=dash);
+		/*refline 0 1 2 3 4 5 6 7 8 9 10 11 / axis=x lineattrs=(thickness=0.1 pattern=dash);*/
 	run;
 	proc datasets lib=work nolist;
         delete temp;
