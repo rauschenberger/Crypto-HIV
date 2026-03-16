@@ -385,14 +385,20 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 /* report with colour for extreme values */ 
 %macro report(data=,title=,name=none);
 	options validvarname=any;
+	/*
+	proc sort data=&data.;
+		by RID VISIT;
+	run;
+	*/
 	proc report data=&data. spanrows;
 		%color(name=&name.);
-		define RID / order order=internal;
-		define VISIT_ / order order=internal;
+		define RID/order order=internal;
+		/*define VISIT/order order=internal;*/
+		/*define VISIT_ /order=internal;*/
 		/*%if &name.=EG %then %do;
 			define PAGENAME / order order=internal;
 		%end;*/
-		define _NAME_/noprint;
+		/*define _NAME_/noprint;*/
 		%title(type="listing",label=&title.);
 	run;
 	options validvarname=v7;
@@ -931,6 +937,7 @@ proc format;
 		;
 	invalue VISIT_invalue
  		'Screening' = 0
+		'Screening Visit' = 0
 		'Day 1' = 1
 		'DAY 1' = 1
  		'Day 2' = 2
@@ -939,10 +946,14 @@ proc format;
 		'Day 5' = 5
 		'Day 6' = 6
 		'Day 7' = 7
-		'Day 15' = 8
-		'Week 4' = 9
-		'Week 6' = 10
-		'Week 10' = 11
+		'Day 7 Visit' = 7
+		'Day 15' = 15
+		'Day 21 Visit' = 21
+		'Week 4' = 28
+		'Week 6' = 42
+		'Week 6 Visit' = 42
+		'Week 10' = 70
+		'Week 10/Early Withdrawal Visit' = 70
 		'Unscheduled' = .
 		;
 	value VISIT_value
@@ -954,10 +965,11 @@ proc format;
 		5 = 'Day 5'
 		6 = 'Day 6'
 		7 = 'Day 7'
-		8 = 'Day 15'
-		9 = 'Week 4'
-		10 = 'Week 6'
-		11 = 'Week 10'
+		15 = 'Day 15'
+		21 = 'Day 21'
+		28 = 'Week 4'
+		42 = 'Week 6'
+		70 = 'Week 10'
 		other = .
 		;
 run;
@@ -1041,6 +1053,11 @@ proc format;
 	value $DVCAT		'Minor' = 'white'
 						'Major' = &high.
 						other = &high.; 
+	/* PR */ 
+	value $PREGPERF		'Yes'='white'
+						other = &low.;
+	value $PREGORRES	'Negative' = 'white' /* change to negative */ 
+						other = &high.;
 run; 
 
 /* colour extreme values */ 
@@ -1127,8 +1144,16 @@ run;
 	endcomp;
 	%end;
 	%if &name.=DV %then %do;
-	compute DVCAT;
+	compute DVCAT / character length=50;
 		call define(_col_,'style','style={background=$DVCAT.}');
+	endcomp;
+	%end;
+	%if &name.=PR %then %do;
+	compute PREGPERF / character length=50;
+		call define(_col_,'style','style={background=$PREGPERF.}');
+	endcomp;
+	compute PREGORRES / character length=50;
+		call define(_col_,'style','style={background=$PREGORRES.}');
 	endcomp;
 	%end;
 %mend color;
@@ -1635,13 +1660,34 @@ proc report data=PM;
 	define RID/order;
 run;
 
-proc report data=PR;
-	%title(type="listing",label='pregnancy');
+
+/* pregnancy */ 
+
+data PR_sub;
+	retain RID VISIT PREGPERF PREGORRES;
+	set PR(keep=RID VISIT PREGPERF PREGORRES);
+	VISIT_N = input(VISIT, VISIT_invalue.);
 run;
 
+proc sort data=PR_sub;
+	by RID VISIT_N;
+run;
+
+data PR_sub;
+	set PR_sub;
+	drop VISIT_N;
+run;
+
+%report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
+
+
+/* palatability */
+ 
 proc report data=QUEST;
 	%title(type="listing",label='palatability acceptability');
 run;
+
+/* disability */ 
 
 proc report data=RANKIN;
 	%title(type="listing",label='disability');
@@ -1705,9 +1751,15 @@ run;
 data DV_sub;
 	retain RID VISIT FORM DVTERM DVCAT;
 	set DV(keep=RID VISIT FORM DVTERM DVCAT);
+	/*
+	temp = lowcase(DVTERM);
+	drop DVTERM;
+	rename temp = DVTERM;
+	*/
 run;
 
-%report(data=DV_sub,title='physical examination',name=DV);
+
+%report(data=DV_sub,title='Protocol Deviations',name=DV);
 
 
 
