@@ -497,12 +497,12 @@ Description: Summarises measurements for each time point (rows) and treatment (c
      		by RID;
      		if treatment = 'immediate-release (IR)' then do;
         		if baseA = . then baseA = &var_score.;
-        		diff = &var_score. - baseA;
+        		change = &var_score. - baseA;
      		end;
 			drop baseA;
      		else if treatment = 'sustained-release (SR)' then do;
         		if baseB = . then baseB = &var_score.;
-				diff = &var_score. - baseB;
+				change = &var_score. - baseB;
     		end;
 			drop baseB;
  		output;
@@ -521,8 +521,8 @@ Use this macro to obtain the change with respect to baseline.
 	%calcdiff(code=&code.,test=&test.,position=&position.); /* returns DATA_DIFF*/
 	proc tabulate data=DATA_DIFF;
 		class VISIT treatment / order=internal;
-		var diff;
-		table 	VISIT * diff * (mean std median min max n),
+		var change;
+		table 	VISIT * change * (mean std median min max n),
 			treatment;
 		/*
 		%let label = "%sysfunc(dequote(&position.)) %sysfunc(dequote(&test.)) - Change";
@@ -658,7 +658,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		%else %do;
 			where not missing (RID) and &var_test.=&test.;
 		%end;
-		var diff;
+		var change;
 		class treatment visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
