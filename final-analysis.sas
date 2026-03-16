@@ -148,6 +148,7 @@ Description: Converts character variable to numeric.
 */
 
 /* derive treatment period */ 
+/*
 %macro add_period(code=);
 	data &code.;
 		set &code.;
@@ -156,22 +157,25 @@ Description: Converts character variable to numeric.
 		else period = '';
 	run;
 %mend add_period;
+*/
 /*
 Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
 Description: Uses the variable 'VISIT' to create the variable 'period'.
 */
 
-/* derive treatment */ 
+/* derive treatment */
+/* 
 %macro add_treat(code=);
 	data &code.;
 		set &code.;
-    	if period='1' and seq='1 (AB)' then treat='A';
-		else if period='1' and seq='2 (BA)' then treat='B';
-		else if period='2' and seq='1 (AB)' then treat='B';
-		else if period='2' and seq='2 (BA)' then treat='A';
-		else treat = '';
+    	if period='1' and seq='1 (AB)' then treatment='A';
+		else if period='1' and seq='2 (BA)' then treatment='B';
+		else if period='2' and seq='1 (AB)' then treatment='B';
+		else if period='2' and seq='2 (BA)' then treatment='A';
+		else treatment = '';
 	run;
 %mend add_treat;
+*/
 /*
 Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
 Description: Uses the variable for the period (1 or 2)
@@ -436,16 +440,16 @@ and shows the results for these patients at one or more visits ('show_visit').
 	proc tabulate data=&code.;
 		%if &code.=VS and %length(&position.)>0 %then %do;
 			where VSPOS=&position. and &var_test.=&test.;
-			class &var_test. VSPOS VISIT treat / order=internal;
+			class &var_test. VSPOS VISIT treatment / order=internal;
 		%end;
 		%else %do;
 			where &var_test.=&test.;
-			class &var_test. VISIT treat / order=internal;		
+			class &var_test. VISIT treatment / order=internal;		
 		%end;
 		/*
 		%else %if &code.=LB %then %do;
 			where &var_test.=&test.;
-			class &var_test. VISIT treat / order=internal;		
+			class &var_test. VISIT treatment / order=internal;		
 		%end;
 		%else %do;
 			%put ERROR;
@@ -453,7 +457,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 		*/
 		var &var_score.; /*was VSORRES*/
 		table 	VISIT * &var_score. * (mean std median min max n), /*was VSORRES*/
-			treat;
+			treatment;
 		%title(type="table",label="%sysfunc(dequote(&test.)) - Values"); /*%sysfunc(dequote(&position.))*/
 		title2 '(summary statistics by visit and treatment)';
 	run;
@@ -491,12 +495,12 @@ Description: Summarises measurements for each time point (rows) and treatment (c
   		do until(last.RID);
      		set DATA_DIFF;
      		by RID;
-     		if treat = 'immediate-release (IR)' then do;
+     		if treatment = 'immediate-release (IR)' then do;
         		if baseA = . then baseA = &var_score.;
         		diff = &var_score. - baseA;
      		end;
 			drop baseA;
-     		else if treat = 'sustained-release (SR)' then do;
+     		else if treatment = 'sustained-release (SR)' then do;
         		if baseB = . then baseB = &var_score.;
 				diff = &var_score. - baseB;
     		end;
@@ -516,10 +520,10 @@ Use this macro to obtain the change with respect to baseline.
 %macro table_change(code=,test=,position=);
 	%calcdiff(code=&code.,test=&test.,position=&position.); /* returns DATA_DIFF*/
 	proc tabulate data=DATA_DIFF;
-		class VISIT treat / order=internal;
+		class VISIT treatment / order=internal;
 		var diff;
 		table 	VISIT * diff * (mean std median min max n),
-			treat;
+			treatment;
 		/*
 		%let label = "%sysfunc(dequote(&position.)) %sysfunc(dequote(&test.)) - Change";
 		*/
@@ -613,12 +617,12 @@ Plots the measurements against the visit names, with one line for each patient.
 	proc sgplot data=DATA_MEAN;
 		%title(type="figure",label=&title.);
 		title2 &title2.;
-		series x=visit y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
+		series x=visit y=mean / group=treatment markers markerattrs=(symbol=CircleFilled);
     	xaxis label='time';
     	yaxis label='value';
     	keylegend / title='treatment';
-		highlow x=visit low=lclm high=uclm / group=treat;
-		scatter x=visit y=mean/yerrorlower=lclm yerrorupper=uclm group=treat;
+		highlow x=visit low=lclm high=uclm / group=treatment;
+		scatter x=visit y=mean/yerrorlower=lclm yerrorupper=uclm group=treatment;
 	run;
 	proc datasets lib=work nolist;
         delete DATA_MEAN;
@@ -635,7 +639,7 @@ Plots the measurements against the visit names, with one line for each patient.
 			where not missing(RID) and &var_test.=&test.;
 		%end;
 		var &var_score.;
-		class treat visit;
+		class treatment visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(title="Mean %sysfunc(dequote(&test.))",title2='(by treatment)'); /*&position.*/
@@ -655,7 +659,7 @@ Plots the measurements against the visit names, with one line for each patient.
 			where not missing (RID) and &var_test.=&test.;
 		%end;
 		var diff;
-		class treat visit;
+		class treatment visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
 	%plot_internal(title="Mean Change in %sysfunc(dequote(&test.))",title2='(with respect to the screening visit, by treatment)'); /*  &position. */ 
@@ -711,15 +715,15 @@ Plots the results.
 			where VISIT_=&visit.;
 		%end;
 		var &var_score.;
-		class treat VISIT_ &var_test. &var_judge.;
+		class treatment VISIT_ &var_test. &var_judge.;
 		table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
 				&var_test. * &var_score. * (mean std median min max n),
-				treat all='both';
+				treatment all='total';
 	run;
 %mend tabulate;
 
 /* perform mixed modelling */ 
-%macro mixmod(outcome=,data=PKpars,class=rid treat period treat,fixed=treat period treat,random=rid(treat),lsmeans=treat,alpha=0.10);
+%macro mixmod(outcome=,data=PKpars,class=rid treatment period,fixed=treatment period treat,random=rid(treat),lsmeans=treat,alpha=0.10);
 	proc mixed data=&data.;
 		Class &class.;
 		Model &outcome.= &fixed. / ddfm=kr; /* was seq period treat  */ 
@@ -1150,9 +1154,13 @@ run;
 data random;
 	set random;
 	if treatment=1 then
-		treat='sustained-release (SR)';
+		temp ='sustained-release (SR)';
+	else if treatment=2 then
+		temp='immediate-release (IR)';
 	else
-		treat='immediate-release (IR)';
+		put 'ERROR: invalid value for treatment';
+	drop treatment;
+	rename temp=treatment;
 run;
 
 %prepare;
@@ -1251,7 +1259,7 @@ end trial */
 
 proc summary data=VS nway;
 	where not missing(RID);
-	class VSSTRESC VSTEST RID VISIT treat;
+	class VSSTRESC VSTEST RID VISIT treatment;
 	output out=temp;
 run;
 
@@ -1259,9 +1267,9 @@ proc tabulate data=temp;
 	%title(type="listing",label='Count and Percentage of Normal, NCS or CS Abnormal Vital Signs');
 	title2 '(by visit, vital sign, and treatment)';
 	where not missing(RID);
-	class VISIT treat VSTEST VSSTRESC RID / order=internal;
+	class VISIT treatment VSTEST VSSTRESC RID / order=internal;
 	table VISIT * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%'),
-		  treat;
+		  treatment;
 run;
 
 /* listing: abnormal during treatment */ 
@@ -1463,19 +1471,19 @@ proc tabulate data=LB;
 	%title(type="table",label="Urinalysis - numerical variables");
 	where type='Urianalysis' and VISIT_='Screening';
 	var LBORRES_numeric;
-	class treat VISIT_ LBTEST LBCLSIG;
+	class treatment VISIT_ LBTEST LBCLSIG;
 	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
 			LBTEST * LBORRES_numeric * (mean std median min max n),
-			treat all='both';
+			treatment all='total';
 run;
 
 proc tabulate data=LB;
 %title(type="table",label="Urinalysis - ordinal variables");
 	where type='Urianalysis' and VISIT_='Screening';
-	class treat VISIT_ LBTEST LBCLSIG LBORRES_ordinal;
+	class treatment VISIT_ LBTEST LBCLSIG LBORRES_ordinal;
 	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
 			LBTEST * LBORRES_ordinal * (n pctn<LBORRES_ordinal>='%'),
-			treat all='both';
+			treatment all='total';
 run;
 
 /* infection tests*/ 
@@ -1484,9 +1492,9 @@ proc tabulate data=LB;
 	%title(type="table",label='Infection Tests at Screening Visit');
 	where type='HIV Test' and VISIT_='Screening';
 	var LBORRES;
-	class VISIT_ treat LBTEST;
+	class VISIT_ treatment LBTEST;
 	table 	LBTEST * LBORRES * (mean std median min max n),
-			treat all='both';
+			treatment all='total';
 run;
 
 
@@ -1496,17 +1504,17 @@ proc tabulate data=LB;
 	title2 "(summary statistics for numerical variables)";
     where type='HIV Test' and VISIT_='Screening' and LBORRES is not missing;
     var LBORRES;
-    class VISIT_ treat LBTEST;
+    class VISIT_ treatment LBTEST;
     table LBTEST * LBORRES * (mean std median min max n),
-          treat all='both';
+          treatment all='total';
 run;
 proc tabulate data=LB;
 	%title(type="table",label='Infection Tests at Screening Visit');
 	title2 "(counts and percentages for binary variables)";
     where type='HIV Test' and VISIT_='Screening' and LBSTNRC is not missing;
-    class VISIT_ treat LBTEST LBSTNRC;
+    class VISIT_ treatment LBTEST LBSTNRC;
     table LBTEST * LBSTNRC * (n pctn<LBSTNRC>='%'),
-          treat all='both';
+          treatment all='total';
 run;
 */
 
@@ -1641,16 +1649,16 @@ run;
 proc tabulate data=DS;
 	%title(type="listing",label='withdrawals');
 	where VISIT='Post Study';
-	class treat withdraw;
+	class treatment withdraw;
 	table withdraw * (n colpctn='%'),
-			treat all='both';
+			treatment all='total';
 run;
 
 /* TO DO: Add "time of early withdrawal" and "reason of withdrawal". */ 
 proc report data=DS;
 	%title(type="listing",label='withdrawals');
 	where DSTERM='DISCONTINUED';
-	column RID treat;
+	column RID treatment;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1704,11 +1712,11 @@ proc tabulate data=DM;
 	%title(type="listing",label='Demographics by Treatment');
 	title2 "(top: summary statistics for numerical variables,";
 	title3 "bottom: counts and percentages for categorical variables)";
-	class treat sex race;
+	class treatment sex race;
 	var age weight height bmi;
 	table 	(age weight height bmi)*(mean median std min max n)
 			(sex race)*(n colpctn='%'),
-			treat all='both';
+			treatment all='total';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1724,11 +1732,11 @@ run;
 
 proc tabulate data=SU;
     %title(type="listing",label='alcohol and smoking by sequence');
-	class treat SUTRT SUOCCUR / order=internal;
+	class treatment SUTRT SUOCCUR / order=internal;
     var SUDOSE;
     table SUTRT * SUOCCUR * (n pctn<SUOCCUR>='%')
           SUTRT * SUDOSE *(mean std median min max n),
-          treat all='both';
+          treatment all='total';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1740,7 +1748,7 @@ proc report data=MH spanrows;
 	where not missing(RID);
 	column RID treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
 	define RID/order;
-	define treat/order;
+	define treatment/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1787,7 +1795,7 @@ data PK;
 run;
 
 %add_seq(code=PK);
-%add_treat(code=PK);
+/*%add_treat(code=PK);*/
 
 %as_numeric(code=PK,var=SAMPLETIME);
 %as_numeric(code=PK,var=CONCENTRATION);
@@ -1797,31 +1805,31 @@ run;
 proc sgpanel data=PK noautolegend;
 	title 'concentration against time by treatment';
 	panelby RID/columns=3 rows=4;
-	series x=SAMPLETIME y=CONCENTRATION/group=treat markers;
+	series x=SAMPLETIME y=CONCENTRATION/group=treatment markers;
 run;
 
 /* one common scatterplot for all samples */
 
 proc means data=PK noprint;
 	var CONCENTRATION;
-	class SAMPLETIME treat;
+	class SAMPLETIME treatment;
 	output out=PK_mean mean=mean std=std;
 run;
 
 data PK_mean;
 	set PK_mean;
-	if not missing(SAMPLETIME) and not missing (treat);
+	if not missing(SAMPLETIME) and not missing (treatment);
 	lower=mean-std;
 	upper=mean+std;
 run;
 
 proc sgplot data=PK_mean;
 	title 'concentration against time by treatment';
-	series x=SAMPLETIME y=mean / group=treat markers markerattrs=(symbol=CircleFilled);
+	series x=SAMPLETIME y=mean / group=treatment markers markerattrs=(symbol=CircleFilled);
     xaxis label='time';
     yaxis label='concentration';
     keylegend / title='treatment';
-	scatter x=SAMPLETIME y=mean/yerrorlower=lower yerrorupper=upper group=treat;
+	scatter x=SAMPLETIME y=mean/yerrorlower=lower yerrorupper=upper group=treatment;
 run;
 
 /* prepare data for WinNonLin */ 
@@ -1856,7 +1864,7 @@ data temp;
 	set merged;
 	time = SAMPLETIME - PC_DELAY/60; /* double-check unit and sign in R */
 	conc = CONCENTRATION;
-	keep RID period treat time conc seqence;
+	keep RID period treatment time conc seqence;
 run;
 
 %let version=2024-01-03_T09-45; /* Adapt this line (see below) */ 
@@ -1880,10 +1888,10 @@ run;
 2. 	Phoenix WinNonlin:
 
 	- 	Import data set: Click on 'file' (in the menu), click on 'import', select "concentration-data_XXX.csv", click on 'open', click on 'finish'.
-		You should now see a table with the columns RID, seqence, period, treat, time and conc.
+		You should now see a table with the columns RID, seqence, period, treatment, time and conc.
 
 	- 	Perform analysis: Click on 'send to' (in the menu), click on 'NonCompartmental Analysis', click on 'NCA'.
-		In the mappings, select 'sort' for the columns RID, seqence, period and treat,
+		In the mappings, select 'sort' for the columns RID, seqence, period and treatment,
 		select 'time' for time, and select 'concentration' for conc.
 		In the options, select the calculation method 'linear up - log down'.
 		Execute the workflow by clicking on the green arrow (below the menu).
