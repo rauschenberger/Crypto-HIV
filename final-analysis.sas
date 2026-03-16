@@ -986,7 +986,7 @@ proc format;
 						140-high=&high.;
 	value DBP			low-60=&low.
 						60-90='white'
-						90-high=&high;
+						90-high=&high.;
 	/*
 	value	sup_sys 	low-90=&low.
 						90-140='white'
@@ -1045,8 +1045,10 @@ proc format;
 	value $GCS_motor	'Obeys commands' = 'white'
 						other = &low.;
 	/* PE */
-	value $ORRES		'Normal' = 'white'
-						'Abnormal, NSC' = 'white'
+	value $PEORRES		'' = 'white'
+						'.' = 'white'
+						'Normal' = 'white'
+						'Abnormal, NCS' = 'white'
 						'Abnormal, CS' = &high.
 						other = &high.;
 	/* DV */
@@ -1140,7 +1142,7 @@ run;
 	%end;
 	%if &name.=PE %then %do;
 	compute PEORRES / character length=50;
-		call define(_col_,'style','style={background=$ORRES.}');
+		call define(_col_,'style','style={background=$PEORRES.}');
 	endcomp;
 	%end;
 	%if &name.=DV %then %do;
@@ -1647,10 +1649,10 @@ data PE_sub;
 	retain RID VISIT PETESTCD PEORRES PEORRES_SP;
 	set PE(keep=RID VISIT PETESTCD PEORRES PEORRES_SP);
 	if PEORRES='D' then PEORRES='';
-	where PEORRES not in ('Normal', '');
+	where not missing(PEORRES) and PEORRES not in ('Normal','','D');
 run;
 
-%report(data=PE_sub,title='physical examination',name=PE);
+%report(data=PE_sub,title='Physical Examination with Abnormal Results',name=PE);
 
 /* prior medications */ 
 
@@ -1663,19 +1665,11 @@ run;
 
 /* pregnancy */ 
 
+%order_levels(code=PR,var=VISIT);
+
 data PR_sub;
 	retain RID VISIT PREGPERF PREGORRES;
 	set PR(keep=RID VISIT PREGPERF PREGORRES);
-	VISIT_N = input(VISIT, VISIT_invalue.);
-run;
-
-proc sort data=PR_sub;
-	by RID VISIT_N;
-run;
-
-data PR_sub;
-	set PR_sub;
-	drop VISIT_N;
 run;
 
 %report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
@@ -1757,6 +1751,9 @@ data DV_sub;
 	rename temp = DVTERM;
 	*/
 run;
+
+proc sort data=DV_sub;
+	by RID 
 
 
 %report(data=DV_sub,title='Protocol Deviations',name=DV);
