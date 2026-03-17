@@ -287,6 +287,14 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%end;
 		%let var_unit=LBORRESU;
 	%end;
+	%else %if &code.=LP %then %do;
+		%let label='Lumbar Puncture';
+		%let var_test=LPTEST;
+		%let var_test_=LPTEST_;
+		%let state_by=RID VISIT;
+		%let var_score=LPORRES;
+		%let var_unit=LPORRESU;
+	%end;
 	%else %do;
 		%put ERROR;
 	%end;
@@ -1670,11 +1678,47 @@ run;
 
 /* lumbar punctures */ 
 
-proc report data=LP;
-	%title(type="listing",label='lumbar punctures');
-	column RID VISIT LPORRES LPORRESU;
-	define RID/order;
+%prepare;
+
+data LP;
+	set LP;
+	if LPORRES in ('1+') then do;
+		LPORRES_numeric = '';
+		LPORRES_ordinal = LPORRES;
+	end;
+	else do;
+		LPORRES_numeric = LPORRES;
+		LPORRES_ordinal = '';
+	end;
+	LPORRES=LPORRES_numeric;
 run;
+
+%add_unit(code=LP);
+%as_numeric(code=LP,var=LPORRES_numeric); /* some values are semi-quantitative */ 
+
+
+proc report data=LP;
+run;
+
+proc tabulate data=LP;
+	%title(type="table",label="LP - numerical");
+	var LPORRES_numeric;
+	class VISIT treatment LPTEST;
+	where VISIT='Day 1';
+	table LPTEST * LPORRES_numeric * (mean median std min max n),
+		treatment all='total';
+run;
+
+proc tabulate data=LP;
+	%title(type="table",label="LP - ordinal");
+	class VISIT treatment LPTEST LPORRES_ordinal;
+	where VISIT='Day 1';
+	table LPTEST * LPORRES_ordinal * (n),
+		treatment all='total';
+run;
+
+
+
 
 
 /* physical examination */
