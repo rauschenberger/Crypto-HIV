@@ -1650,7 +1650,6 @@ data GC;
 	end;
 run;
 
-
 proc tabulate data=GC;
 	%title(type="table",label="Glasgow Coma Scale - Fully Awake Patients");
 	title2 '(by visit and treatment)';
@@ -1704,13 +1703,22 @@ run;
 
 %order_levels(code=PR,var=VISIT);
 
+proc tabulate data=PR;
+	%title(type="table",label="Pregnancy Tests");
+	title2 '(by visit and treatment)';
+	class VISIT treatment PREGORRES / order=internal;
+	table VISIT * PREGORRES * (n pctn<PREGORRES>='%'),
+			treatment all='total';
+run;
+
+/*
 data PR_sub;
 	retain RID VISIT PREGPERF PREGORRES;
 	set PR(keep=RID VISIT PREGPERF PREGORRES);
 run;
 
 %report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
-
+*/
 
 /* palatability */
  
