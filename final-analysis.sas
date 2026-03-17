@@ -1523,33 +1523,32 @@ run;
 
 %list_abnormal(code=LB_temp,type="Urianalysis",check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
-/*
-proc report data=LB;
-	where type="Urianalysis";
-run;
-*/
-
-proc tabulate data=LB;
-	%title(type="table",label="Urinalysis - numerical variables");
-	where type='Urianalysis' and VISIT_='Screening';
-	var LBORRES_numeric;
-	class treatment VISIT_ LBTEST LBCLSIG;
-	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
+%macro tabulate_urine(visit=);
+	proc tabulate data=LB;
+		%title(type="table",label="Urinalysis at %sysfunc(dequote(&visit.)) Visit - Numerical Variables");
+		title2 '(top: number and percentage of normal, NCS abnormal, and CS abnormal values';
+		title3 'bottom: summary statistics of numerical values)';
+		where type='Urianalysis' and VISIT_=&visit.;
+		var LBORRES_numeric;
+		class treatment VISIT_ LBTEST LBCLSIG;
+		table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
 			LBTEST * LBORRES_numeric * (mean std median min max n),
 			treatment all='total';
-run;
-
-proc tabulate data=LB;
-%title(type="table",label="Urinalysis - ordinal variables");
-	where type='Urianalysis' and VISIT_='Screening';
-	class treatment VISIT_ LBTEST LBCLSIG LBORRES_ordinal;
-	table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
+	run;
+	proc tabulate data=LB;
+		%title(type="table",label="Urinalysis at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
+		title2 '(top: number and percentage of normal, NCS abnormal, and CS abnormal values';
+		title3 'bottom: counts and percentages of ordinal variables)';
+		where type='Urianalysis' and VISIT_=&visit.;
+		class treatment VISIT_ LBTEST LBCLSIG LBORRES_ordinal;
+		table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
 			LBTEST * LBORRES_ordinal * (n pctn<LBORRES_ordinal>='%'),
 			treatment all='total';
-run;
+	run;
+%mend tabulate_urine;
 
-/* write macro and run this for each visit!*/ 
-
+%tabulate_urine(visit='Screening');
+%tabulate_urine(visit='Day 15');
 
 /* infection tests*/ 
 
@@ -1685,7 +1684,6 @@ run;
 
 %report(data=GC_sub,title='Glasgow coma scale - patients with a total score below 15',name=GC);
 
-
 /* lumbar punctures */ 
 
 %prepare;
@@ -1708,7 +1706,7 @@ run;
 
 %macro tabulateLP(visit=);
 	proc tabulate data=LP;
-		%title(type="table",label="Lumbar Puncture at %sysfunc(dequote(&visit.)) Visit - Numerical Variables");
+		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Numerical Variables");
 		var LPORRES_numeric;
 		class VISIT treatment LPTEST;
 		where VISIT=&visit.;
@@ -1716,7 +1714,7 @@ run;
 		treatment all='total';
 	run;
 	proc tabulate data=LP;
-		%title(type="table",label="Lumbar Puncture at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
+		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
 		class VISIT treatment LPTEST LPORRES_ordinal;
 		where VISIT=&visit.;
 		table LPTEST * LPORRES_ordinal * (n),
@@ -1734,10 +1732,7 @@ run;
 
 %processLP(visits=Day 1|Day 3|Day 7|Day 15);
 
-
 /* physical examination */
-
-
 
 data PE_sub;
 	retain RID VISIT PETESTCD PEORRES PEORRES_SP;
