@@ -955,7 +955,8 @@ proc format;
 		'Week 6 Visit' = 42
 		'Week 10' = 70
 		'Week 10/Early Withdrawal Visit' = 70
-		'Unscheduled' = .
+		'Unscheduled' = 100
+		'Unscheduled Visit' = 100
 		;
 	value VISIT_value
  		0 = 'Screening'
@@ -971,7 +972,7 @@ proc format;
 		28 = 'Week 4'
 		42 = 'Week 6'
 		70 = 'Week 10'
-		other = .
+		100 = 'Unscheduled'
 		;
 run;
 
@@ -1632,7 +1633,31 @@ run;
 
 /* Glasgow coma score */
 
+%prepare;
+
 %as_numeric(code=GC,var=GCS_TOTAL);
+%order_levels(code=GC,var=VISIT);
+
+data GC;
+	set GC;
+	length GCS_max $5;
+	if GCSPERF='Yes' then do;
+		if GCS_TOTAL=15 then GCS='=15';
+		else GCS='<15';  
+	end;
+	else do;
+		GCS='N/A';
+	end;
+run;
+
+
+proc tabulate data=GC;
+	%title(type="table",label="Glasgow Coma Scale - Fully Awake Patients");
+	title2 '(by visit and treatment)';
+	class VISIT GCS treatment / order=internal;
+	table VISIT * GCS * (n pctn<GCS>='%'),
+			treatment all='total';
+run;
 
 data GC_sub;
   	retain RID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
