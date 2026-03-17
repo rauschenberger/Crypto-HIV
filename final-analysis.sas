@@ -1376,6 +1376,8 @@ U-Leucocytes always has the unit Leu/uL. However, its values are not always nume
 (Similar problems also occur for other variables.)
  */
 
+%prepare;
+
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
@@ -1521,6 +1523,11 @@ run;
 
 %list_abnormal(code=LB_temp,type="Urianalysis",check_visit='Screening',show_visit='Screening' 'Unscheduled');
 
+/*
+proc report data=LB;
+	where type="Urianalysis";
+run;
+*/
 
 proc tabulate data=LB;
 	%title(type="table",label="Urinalysis - numerical variables");
@@ -1540,6 +1547,9 @@ proc tabulate data=LB;
 			LBTEST * LBORRES_ordinal * (n pctn<LBORRES_ordinal>='%'),
 			treatment all='total';
 run;
+
+/* write macro and run this for each visit!*/ 
+
 
 /* infection tests*/ 
 
@@ -1696,29 +1706,33 @@ run;
 %add_unit(code=LP);
 %as_numeric(code=LP,var=LPORRES_numeric); /* some values are semi-quantitative */ 
 
-
-proc report data=LP;
-run;
-
-proc tabulate data=LP;
-	%title(type="table",label="LP - numerical");
-	var LPORRES_numeric;
-	class VISIT treatment LPTEST;
-	where VISIT='Day 1';
-	table LPTEST * LPORRES_numeric * (mean median std min max n),
+%macro tabulateLP(visit=);
+	proc tabulate data=LP;
+		%title(type="table",label="Lumbar Puncture at %sysfunc(dequote(&visit.)) Visit - Numerical Variables");
+		var LPORRES_numeric;
+		class VISIT treatment LPTEST;
+		where VISIT=&visit.;
+		table LPTEST * LPORRES_numeric * (mean median std min max n),
 		treatment all='total';
-run;
+	run;
+	proc tabulate data=LP;
+		%title(type="table",label="Lumbar Puncture at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
+		class VISIT treatment LPTEST LPORRES_ordinal;
+		where VISIT=&visit.;
+		table LPTEST * LPORRES_ordinal * (n),
+			treatment all='total';
+	run;
+%mend tabulateLP;
 
-proc tabulate data=LP;
-	%title(type="table",label="LP - ordinal");
-	class VISIT treatment LPTEST LPORRES_ordinal;
-	where VISIT='Day 1';
-	table LPTEST * LPORRES_ordinal * (n),
-		treatment all='total';
-run;
+%macro processLP(visits=);
+    %let n = %sysfunc(countw(&visits., |));
+    %do i = 1 %to &n.;
+        %let visit = %scan(&visits., &i., |);
+        %tabulateLP(visit="&visit.");
+    %end;
+%mend processLP;
 
-
-
+%processLP(visits=Day 1|Day 3|Day 7|Day 15);
 
 
 /* physical examination */
