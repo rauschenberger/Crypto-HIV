@@ -1211,7 +1211,7 @@ ods text="Please add text directly to the source code (.sas) and not to the comp
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.2: vital signs * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: vital signs * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data VS;
@@ -1306,7 +1306,7 @@ run;
 %tabulate(code=VS,visit="Week 10");
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.2: electrocardiogram * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: electrocardiogram * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %order_levels(code=EG,var=VISIT);
@@ -1323,7 +1323,7 @@ run;
 %list_abnormal(code=EG,check_visit='Day 1',show_visit='Day 1');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * * Subsection 4.3: laboratory* * * * * * * * * * * * * * * * * * * * * * */
+/* * * Subsection 4.X: laboratory* * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 /*
@@ -1560,7 +1560,7 @@ run;
 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.XXX: XXX * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: ART initiation* * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=ART;
@@ -1569,11 +1569,19 @@ proc report data=ART;
 	define RID/order;
 run;
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: ART treatment * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 proc report data=ARTT;
 	%title(type="listing",label='ART treatment');
 	column RID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH;
 	define RID/order;
 run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: current symptoms* * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=CE spanrows;
 	%title(type="listing",label='current symptoms');
@@ -1582,27 +1590,47 @@ proc report data=CE spanrows;
 	define VISIT/order=internal;
 run;
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: concomitant medications * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 proc report data=CM;
 	%title(type="listing",label='concomitant medications');
 	column RID CMINDC CMTRT;
 	define RID/order;
 run;
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: death details * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 proc report data=DD;
 	%title(type="listing",label='death');
 	column RID;
 run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: discharge * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=DI;
 	%title(type="listing",label='discharge');
 	column RID LPPERF DISCHARGED;
 run;
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: disposition milestones* * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 proc report data=DS;
 	%title(type="listing",label='disposition milestones');
 	column RID VISIT DSDECOD;
 	define RID/order;
 run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: treatment exposure* * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=EX;
 	%title(type="listing",label='treatment exposure');
@@ -1611,10 +1639,9 @@ run;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
 
-
-/* Glasgow coma score */
-
-%prepare;
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: Glasgow coma score* * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %as_numeric(code=GC,var=GCS_TOTAL);
 %order_levels(code=GC,var=VISIT);
@@ -1648,9 +1675,9 @@ run;
 
 %report(data=GC_sub,title='Glasgow coma scale - patients with a total score below 15',name=GC);
 
-/* lumbar punctures */ 
-
-%prepare;
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: lumbar punctures* * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data LP;
 	set LP;
@@ -1696,7 +1723,9 @@ run;
 
 %processLP(visits=Day 1|Day 3|Day 7|Day 15);
 
-/* physical examination */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: physical examination* * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data PE_sub;
 	retain RID VISIT PETESTCD PEORRES PEORRES_SP;
@@ -1707,7 +1736,9 @@ run;
 
 %report(data=PE_sub,title='Physical Examination with Abnormal Results',name=PE);
 
-/* prior medications */ 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: prior medications * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=PM;
 	%title(type="listing",label='prior medications');
@@ -1715,8 +1746,9 @@ proc report data=PM;
 	define RID/order;
 run;
 
-
-/* pregnancy */ 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: pregnancy * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %order_levels(code=PR,var=VISIT);
 
@@ -1737,20 +1769,24 @@ run;
 %report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
 */
 
-/* palatability */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: palatability acceptability* * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
  
 proc report data=QUEST;
 	%title(type="listing",label='palatability acceptability');
 run;
 
-/* disability */ 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: Rankin disability questionnaire * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=RANKIN;
 	%title(type="listing",label='disability');
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.2: withdrawals * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: withdrawals * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data DS;
@@ -1775,7 +1811,7 @@ proc report data=DS;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.3: ineligibility * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: ineligibility * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=IE;
@@ -1790,7 +1826,7 @@ proc report data=IE spanrows;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.4: protocol deviations   * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: protocol deviations   * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc tabulate data=DV;
@@ -1809,7 +1845,7 @@ run;
 %report(data=DV_sub,title='Protocol Deviations',title2='(sorted by patient and visit)',name=DV);
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.5: demographics  * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: demographics  * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %as_numeric(code=DM,var=vsorres_weight);
@@ -1836,7 +1872,7 @@ proc tabulate data=DM;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.6: alcohol and smoking * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: alcohol and smoking * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %order_levels(code=SU,var=SUOCCUR);
@@ -1853,7 +1889,7 @@ proc tabulate data=SU;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.7: medical history * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: medical history * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=MH spanrows;
@@ -1865,7 +1901,7 @@ proc report data=MH spanrows;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.18: adverse events * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data AE;
@@ -1889,7 +1925,7 @@ ods pdf close;
 %macro ignore;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.19: pharmacokinetics * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: pharmacokinetics * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 filename temp "&pathPhar.\0131FRM18_Flucytosine_20230314.csv";
