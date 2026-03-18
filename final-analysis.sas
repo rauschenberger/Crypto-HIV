@@ -79,7 +79,8 @@ and stores it in the data set 'code'.
 %macro add_rid(code=); 
 data &code;
  	set &code;
- 	RID = input(substr(USUBJID,index(USUBJID,'/')+1),best.);
+ 	/*RID = input(substr(USUBJID,index(USUBJID,'/')+1),best.);*/ /* original */ 
+	RID = input(scan(USUBJID,2,'/'),8.);
 run;
 %mend add_rid;
 /*
@@ -1340,8 +1341,6 @@ U-Leucocytes always has the unit Leu/uL. However, its values are not always nume
 (Similar problems also occur for other variables.)
  */
 
-%prepare;
-
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
@@ -1558,14 +1557,15 @@ run;
 /* */ 
 %process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: ART initiation* * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%prepare;
+
 proc report data=ART;
 	%title(type="listing",label='ART initiation');
-	*column RID VISIT ARTREGIMEN;
+	column RID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
 	define RID/order;
 run;
 
@@ -1575,7 +1575,7 @@ run;
 
 proc report data=ARTT;
 	%title(type="listing",label='ART treatment');
-	column RID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH;
+	column RID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
 	define RID/order;
 run;
 
@@ -1583,11 +1583,14 @@ run;
 /* * Subsection 4.X: current symptoms* * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=CE spanrows;
-	%title(type="listing",label='current symptoms');
-	column RID VISIT CETERM CEDUR;
-	define RID/order;
-	define VISIT/order=internal;
+%order_levels(code=CE,var=VISIT);
+
+proc tabulate data=CE;
+	%title(type="table",label="Current Symptoms");
+	title2 '(number of patients by visit and treatment)';
+	class VISIT treatment CETERM / order=internal;
+	table VISIT * CETERM * (n pctn<CETERM>='%'),
+			treatment all='total';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1596,8 +1599,9 @@ run;
 
 proc report data=CM;
 	%title(type="listing",label='concomitant medications');
-	column RID CMINDC CMTRT;
+	column RID CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
 	define RID/order;
+	define 
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
