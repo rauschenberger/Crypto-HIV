@@ -339,7 +339,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 		by &state_by.;
 	run;
 	options validvarname=any;
-	proc transpose data=long out=wide;
+	proc transpose data=long out=wide(drop=_name_);
 		by &state_by.;
 		id &var_test.;
 		/*idlabel &var_test_.;*/
