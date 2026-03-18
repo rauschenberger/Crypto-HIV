@@ -101,13 +101,13 @@ Description: Sorts the dataset 'code' by the random identifier (RID).
 */
 
 /* add random info */
-%macro add_seq(code=);
+%macro add_random(code=);
 	data &code;
 		merge &code(in=a) random(in=b);
 		by RID;
 		if a;
 	run;
-%mend add_seq;
+%mend add_random;
 /*
 Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
 Description: Merges dataset 'code' and dataset 'random' by the random identifier (RID).
@@ -122,7 +122,7 @@ This adds information on the treatment sequence to dataset 'code'.
     	%import(path=&pathClin,code=%scan(&code,&i));
 		%add_rid(code=%scan(&code,&i));
 		%sort_rid(code=%scan(&code,&i));
-		%add_seq(code=%scan(&code,&i));
+		%add_random(code=%scan(&code,&i));
 	%end;
 %mend prepare;
 /*
@@ -1944,7 +1944,7 @@ data PK;
 	rename SAMPLETIME__HR_=SAMPLETIME;
 run;
 
-%add_seq(code=PK);
+%add_random(code=PK);
 /*%add_treat(code=PK);*/
 
 %as_numeric(code=PK,var=SAMPLETIME);
