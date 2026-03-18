@@ -549,12 +549,12 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		drop time_lag;
 	run;
 	proc sgplot data=temp;
-		series x=VISIT y=&var_score. / group=USUBJD markers;
+		series x=VISIT y=&var_score. / group=USUBJID markers;
     	%title(type="figure",label="Trajectories of %sysfunc(dequote(&test.))"); /*%sysfunc(dequote(&position.))*/
 		title2 '(for those abnormal at' &check_visit. ')';
     	xaxis label='time'; 
     	yaxis label='value';
-   		keylegend / title='USUBJD';
+   		keylegend / title='USUBJID';
 		%if %bquote(&test.)=%bquote("Systolic Blood Pressure (mmHg)") %then %do;
 			refline 90 140 / axis=y lineattrs=(thickness=2);
 		%end;
@@ -1564,8 +1564,8 @@ run;
 
 proc report data=ART;
 	%title(type="listing",label='ART Initiation');
-	column USUBJD VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
-	define USUBJD/order;
+	column USUBJID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
+	define USUBJID/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1574,8 +1574,8 @@ run;
 
 proc report data=ARTT;
 	%title(type="listing",label='ART Treatment');
-	column USUBJD ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
-	define USUBJD/order;
+	column USUBJID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
+	define USUBJID/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1598,9 +1598,8 @@ run;
 
 proc report data=CM;
 	%title(type="listing",label='Concomitant Medications');
-	column USUBJD CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
-	define USUBJD/order;
-	define 
+	column USUBJID CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
+	define USUBJID/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1609,7 +1608,7 @@ run;
 
 proc report data=DD;
 	%title(type="listing",label='death');
-	column USUBJD;
+	column USUBJID;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1618,7 +1617,7 @@ run;
 
 proc report data=DI;
 	%title(type="listing",label='discharge');
-	column USUBJD LPPERF DISCHARGED;
+	column USUBJID LPPERF DISCHARGED;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1627,8 +1626,8 @@ run;
 
 proc report data=DS;
 	%title(type="listing",label='disposition milestones');
-	*column USUBJD VISIT DSDECOD;
-	define USUBJD/order;
+	*column USUBJID VISIT DSDECOD;
+	define USUBJID/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1637,7 +1636,7 @@ run;
 
 proc report data=EX;
 	%title(type="listing",label='treatment exposure');
-	define USUBJD/order;
+	define USUBJID/order;
 run;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
@@ -1670,8 +1669,8 @@ proc tabulate data=GC;
 run;
 
 data GC_sub;
-  	retain USUBJD VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
-	set GC(keep=USUBJD VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL);
+  	retain USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
+	set GC(keep=USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL);
 	where GCSPERF="Yes" and GCS_TOTAL < 15;
 	drop GCSPERF;
 run;
@@ -1731,8 +1730,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data PE_sub;
-	retain USUBJD VISIT PETESTCD PEORRES PEORRES_SP;
-	set PE(keep=USUBJD VISIT PETESTCD PEORRES PEORRES_SP);
+	retain USUBJID VISIT PETESTCD PEORRES PEORRES_SP;
+	set PE(keep=USUBJID VISIT PETESTCD PEORRES PEORRES_SP);
 	if PEORRES='D' then PEORRES='';
 	where not missing(PEORRES) and PEORRES not in ('Normal','','D');
 run;
@@ -1745,8 +1744,8 @@ run;
 
 proc report data=PM;
 	%title(type="listing",label='prior medications');
-	column USUBJD CMTRT CMROUTE;
-	define USUBJD/order;
+	column USUBJID CMTRT CMROUTE;
+	define USUBJID/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1765,8 +1764,8 @@ run;
 
 /*
 data PR_sub;
-	retain USUBJD VISIT PREGPERF PREGORRES;
-	set PR(keep=USUBJD VISIT PREGPERF PREGORRES);
+	retain USUBJID VISIT PREGPERF PREGORRES;
+	set PR(keep=USUBJID VISIT PREGPERF PREGORRES);
 run;
 
 %report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
@@ -1810,15 +1809,12 @@ run;
 proc report data=DS;
 	%title(type="listing",label='withdrawals');
 	where DSTERM='DISCONTINUED';
-	column USUBJD treatment;
+	column USUBJID treatment;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: ineligibility * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-proc report data=IE;
-run;
 
 proc report data=IE spanrows;
 	%title(type="listing",label='ineligible samples');
@@ -1841,8 +1837,8 @@ proc tabulate data=DV;
 run;
 
 data DV_sub;
-	retain USUBJD VISIT FORM DVTERM DVCAT;
-	set DV(keep=USUBJD VISIT FORM DVTERM DVCAT);
+	retain USUBJID VISIT FORM DVTERM DVCAT;
+	set DV(keep=USUBJID VISIT FORM DVTERM DVCAT);
 run;
 
 %report(data=DV_sub,title='Protocol Deviations',title2='(sorted by patient and visit)',name=DV);
@@ -1878,6 +1874,7 @@ run;
 /* * Subsection 4.X: alcohol and smoking * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/*
 %order_levels(code=SU,var=SUOCCUR);
 %order_levels(code=SU,var=SUTRT);
 %as_numeric(code=SU,var=SUDOSE);
@@ -1890,6 +1887,7 @@ proc tabulate data=SU;
           SUTRT * SUDOSE *(mean std median min max n),
           treatment all='total';
 run;
+*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: medical history * * * * * * * * * * * * * * * * * * * * */
@@ -1898,8 +1896,8 @@ run;
 proc report data=MH spanrows;
 	%title(type="listing",label='medical history');
 	where not missing(RID);
-	column USUBJD treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
-	define USUBJD/order;
+	column USUBJID treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
+	define USUBJID/order;
 	define treatment/order;
 run;
 
@@ -1916,8 +1914,8 @@ run;
 
 proc report data=AE spanrows;
 	%title(type="listing",label='adverse events');
-	column USUBJD AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
-	define USUBJD/order;
+	column USUBJID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
+	define USUBJID/order;
 run;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLES AEREL / AEREL1!*/ 
