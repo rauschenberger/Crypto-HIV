@@ -915,13 +915,28 @@ proc format;
 		'Screening Visit' = 0
 		'Day 1' = 1
 		'DAY 1' = 1
+		'Treatment Day 1' = 1
  		'Day 2' = 2
+		'Treatment Day 2' = 2
 		'Day 3' = 3
+		'Treatment Day 3' = 3
 		'Day 4' = 4
+		'Treatment Day 4' = 4
 		'Day 5' = 5
+		'Treatment Day 5' = 5
 		'Day 6' = 6
+		'Treatment Day 6' = 6
 		'Day 7' = 7
 		'Day 7 Visit' = 7
+		'Treatment Day 7' = 7
+		'Treatment Day 8' = 8
+		'Treatment Day 9' = 9
+		'Treatment Day 10' = 10
+		'Treatment Day 11' = 11
+		'Treatment Day 12' = 12
+		'Treatment Day 13' = 13
+		'Treatment Day 14' = 14
+		'Treatment Day 15' = 15
 		'Day 15' = 15
 		'Day 21 Visit' = 21
 		'Week 4' = 28
@@ -941,12 +956,41 @@ proc format;
 		5 = 'Day 5'
 		6 = 'Day 6'
 		7 = 'Day 7'
+		8 = 'Day 8'
+		9 = 'Day 9'
+		10 = 'Day 10'
+		11 = 'Day 11'
+		12 = 'Day 12'
+		13 = 'Day 13'
+		14 = 'Day 14'
 		15 = 'Day 15'
 		21 = 'Day 21'
 		28 = 'Week 4'
 		42 = 'Week 6'
 		70 = 'Week 10'
 		100 = 'Unscheduled'
+		;
+	invalue DSDECOD_invalue
+		'INFORMED CONSENT OBTAINED' = 1
+		'NOT RANDOMIZED' = 2
+		'RANDOMIZED' = 3
+		'ENROLLED' = 4
+		'COMPLETED' = 5
+		;
+	value DSDECOD_value
+		1 = 'informed consent obtained'
+		2 = 'not randomized'
+		3 = 'randomized'
+		4 = 'enrolled'
+		5 = 'completed'
+		;
+	invalue CMROUTE_invalue
+		"Oral Route of Administration" = 1
+		"Intravenous Route of Administration" = 2
+		;
+	value CMROUTE_value
+		1 = "oral"
+		2 = "intravenous"
 		;
 run;
 
@@ -1627,7 +1671,7 @@ proc tabulate data=CE;
 	%title(type="table",label="Current Symptoms");
 	title2 '(number of patients by visit and treatment)';
 	class VISIT treatment CETERM / order=internal;
-	table VISIT * CETERM * (n pctn<CETERM>='%'),
+	table VISIT * CETERM * (n rowpctn<CETERM>='%'),
 			treatment all='total';
 run;
 
@@ -1665,26 +1709,60 @@ run;
 
 proc report data=DI;
 	%title(type="listing",label='discharge');
-	column USUBJID LPPERF DISCHARGED;
+	*column USUBJID LPPERF DISCHARGED;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: disposition milestones* * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=DS;
+%order_levels(code=DS,var=DSDECOD);
+
+/*
+proc sort data=DS;
+	by USUBJID;
+run;
+
+proc transpose data=DS out=DS_wide;
+	by USUBJID;
+	id DSSEQ;
+	idlabel DSDECOD;
+	var DSTERM;
+run;
+
+proc report data=DS_wide;
+run;
+*/
+
+proc tabulate data=DS;
+	%title(type="table",label='Disposition Milestones');
+	title2 '(number of patients)';
+	class DSDECOD / order=internal;
+	table DSDECOD='' * (n);
+run;
+
+/*
+proc report data=DS spanrows;
 	%title(type="listing",label='disposition milestones');
 	*column USUBJID VISIT DSDECOD;
 	define USUBJID/order;
 run;
+*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: treatment exposure* * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%order_levels(code=EX,var=VISIT);
+
 proc report data=EX;
 	%title(type="listing",label='treatment exposure');
 	define USUBJID/order;
+run;
+
+proc tabulate data=EX;
+	class VISIT EXARM treatment EXTRT;
+	table VISIT * (EXARM EXTRT), treatment;
 run;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
@@ -1790,9 +1868,11 @@ run;
 /* * Subsection 4.X: prior medications * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=PM;
-	%title(type="listing",label='prior medications');
-	column USUBJID CMTRT CMROUTE;
+%order_levels(code=PM,var=CMROUTE);
+
+proc report data=PM spanrows;
+	%title(type="listing",label='Prior Medications');
+	column USUBJID CMTRT CMDOSE CMDOSU CMDOSFRQ CMROUTE CMINDCREF;
 	define USUBJID/order;
 run;
 
@@ -1949,9 +2029,9 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=MH spanrows;
-	%title(type="listing",label='medical history');
-	where not missing(RID);
-	column USUBJID treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
+	%title(type="listing",label='Medical History');
+	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
+	column USUBJID MHTERMPREP MHTERM_YN MHTERM MHSTDAT MHENDAT MHONGO;
 	define USUBJID/order;
 	define treatment/order;
 run;
