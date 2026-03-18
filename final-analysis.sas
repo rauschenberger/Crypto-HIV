@@ -221,7 +221,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let label='Vital Sign';
 		%let var_test=VSTEST;
 		%let var_test_=VSTEST_;
-		%let state_by=RID VISIT VSPOS;
+		%let state_by=USUBJID VISIT VSPOS;
 		%let var_judge=VSSTRESC;
 		%let var_judge_=VSSTRESC_;
 		%let var_score=VSORRES;
@@ -231,7 +231,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let label='Electrocardiogram';
 		%let var_test=EGTEST;
 		%let var_test_=EGTEST_;
-		%let state_by=RID VISIT;
+		%let state_by=USUBJID VISIT;
 		%let var_judge=EGSTRESC1;
 		%let var_judge_=EGSTRESC1_;
 		%let var_score=EGORRES;
@@ -241,7 +241,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let label='Laboratory';
 		%let var_test=LBTEST;
 		%let var_test_=LBTEST_;
-		%let state_by=RID VISIT;
+		%let state_by=USUBJID VISIT;
 		%let var_judge=LBCLSIG;
 		%let var_judge_=LBCLSIG_;
 		%if &code.=LB %then %do;
@@ -256,7 +256,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let label='Lumbar Puncture';
 		%let var_test=LPTEST;
 		%let var_test_=LPTEST_;
-		%let state_by=RID VISIT;
+		%let state_by=USUBJID VISIT;
 		%let var_score=LPORRES;
 		%let var_unit=LPORRESU;
 	%end;
@@ -365,7 +365,8 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 	*/
 	proc report data=&data. spanrows;
 		%color(name=&name.);
-		define RID/order order=internal;
+		/*define RID/order order=internal;*/
+		define USUBJID/order;
 		/*define VISIT/order order=internal;*/
 		/*define VISIT_ /order=internal;*/
 		/*%if &name.=EG %then %do;
@@ -548,12 +549,12 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		drop time_lag;
 	run;
 	proc sgplot data=temp;
-		series x=VISIT y=&var_score. / group=RID markers;
+		series x=VISIT y=&var_score. / group=USUBJD markers;
     	%title(type="figure",label="Trajectories of %sysfunc(dequote(&test.))"); /*%sysfunc(dequote(&position.))*/
 		title2 '(for those abnormal at' &check_visit. ')';
     	xaxis label='time'; 
     	yaxis label='value';
-   		keylegend / title='RID';
+   		keylegend / title='USUBJD';
 		%if %bquote(&test.)=%bquote("Systolic Blood Pressure (mmHg)") %then %do;
 			refline 90 140 / axis=y lineattrs=(thickness=2);
 		%end;
@@ -1286,7 +1287,7 @@ proc summary data=VS nway;
 run;
 
 proc tabulate data=temp;
-	%title(type="listing",label='Count and Percentage of Normal, NCS or CS Abnormal Vital Signs');
+	%title(type="table",label='Count and Percentage of Normal, NCS or CS Abnormal Vital Signs');
 	title2 '(by visit, vital sign, and treatment)';
 	where not missing(RID);
 	class VISIT treatment VSTEST VSSTRESC RID / order=internal;
@@ -1561,12 +1562,10 @@ run;
 /* * Subsection 4.X: ART initiation* * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%prepare;
-
 proc report data=ART;
-	%title(type="listing",label='ART initiation');
-	column RID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
-	define RID/order;
+	%title(type="listing",label='ART Initiation');
+	column USUBJD VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
+	define USUBJD/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1574,9 +1573,9 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=ARTT;
-	%title(type="listing",label='ART treatment');
-	column RID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
-	define RID/order;
+	%title(type="listing",label='ART Treatment');
+	column USUBJD ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
+	define USUBJD/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1598,9 +1597,9 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 proc report data=CM;
-	%title(type="listing",label='concomitant medications');
-	column RID CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
-	define RID/order;
+	%title(type="listing",label='Concomitant Medications');
+	column USUBJD CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
+	define USUBJD/order;
 	define 
 run;
 
@@ -1610,7 +1609,7 @@ run;
 
 proc report data=DD;
 	%title(type="listing",label='death');
-	column RID;
+	column USUBJD;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1619,7 +1618,7 @@ run;
 
 proc report data=DI;
 	%title(type="listing",label='discharge');
-	column RID LPPERF DISCHARGED;
+	column USUBJD LPPERF DISCHARGED;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1628,8 +1627,8 @@ run;
 
 proc report data=DS;
 	%title(type="listing",label='disposition milestones');
-	column RID VISIT DSDECOD;
-	define RID/order;
+	*column USUBJD VISIT DSDECOD;
+	define USUBJD/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1638,7 +1637,7 @@ run;
 
 proc report data=EX;
 	%title(type="listing",label='treatment exposure');
-	define RID/order;
+	define USUBJD/order;
 run;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
@@ -1671,8 +1670,8 @@ proc tabulate data=GC;
 run;
 
 data GC_sub;
-  	retain RID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
-	set GC(keep=RID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL);
+  	retain USUBJD VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
+	set GC(keep=USUBJD VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL);
 	where GCSPERF="Yes" and GCS_TOTAL < 15;
 	drop GCSPERF;
 run;
@@ -1732,8 +1731,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 data PE_sub;
-	retain RID VISIT PETESTCD PEORRES PEORRES_SP;
-	set PE(keep=RID VISIT PETESTCD PEORRES PEORRES_SP);
+	retain USUBJD VISIT PETESTCD PEORRES PEORRES_SP;
+	set PE(keep=USUBJD VISIT PETESTCD PEORRES PEORRES_SP);
 	if PEORRES='D' then PEORRES='';
 	where not missing(PEORRES) and PEORRES not in ('Normal','','D');
 run;
@@ -1746,8 +1745,8 @@ run;
 
 proc report data=PM;
 	%title(type="listing",label='prior medications');
-	column RID CMTRT CMROUTE;
-	define RID/order;
+	column USUBJD CMTRT CMROUTE;
+	define USUBJD/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1766,8 +1765,8 @@ run;
 
 /*
 data PR_sub;
-	retain RID VISIT PREGPERF PREGORRES;
-	set PR(keep=RID VISIT PREGPERF PREGORRES);
+	retain USUBJD VISIT PREGPERF PREGORRES;
+	set PR(keep=USUBJD VISIT PREGPERF PREGORRES);
 run;
 
 %report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
@@ -1811,7 +1810,7 @@ run;
 proc report data=DS;
 	%title(type="listing",label='withdrawals');
 	where DSTERM='DISCONTINUED';
-	column RID treatment;
+	column USUBJD treatment;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1842,8 +1841,8 @@ proc tabulate data=DV;
 run;
 
 data DV_sub;
-	retain RID VISIT FORM DVTERM DVCAT;
-	set DV(keep=RID VISIT FORM DVTERM DVCAT);
+	retain USUBJD VISIT FORM DVTERM DVCAT;
+	set DV(keep=USUBJD VISIT FORM DVTERM DVCAT);
 run;
 
 %report(data=DV_sub,title='Protocol Deviations',title2='(sorted by patient and visit)',name=DV);
@@ -1899,8 +1898,8 @@ run;
 proc report data=MH spanrows;
 	%title(type="listing",label='medical history');
 	where not missing(RID);
-	column RID treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
-	define RID/order;
+	column USUBJD treatment MHTERMPREP MHTERM MHSTDAT MHENDAT MHONGO;
+	define USUBJD/order;
 	define treatment/order;
 run;
 
@@ -1917,8 +1916,8 @@ run;
 
 proc report data=AE spanrows;
 	%title(type="listing",label='adverse events');
-	column RID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
-	define RID/order;
+	column USUBJD AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
+	define USUBJD/order;
 run;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLES AEREL / AEREL1!*/ 
