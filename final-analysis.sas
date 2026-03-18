@@ -437,7 +437,7 @@ and shows the results for these patients at one or more visits ('show_visit').
 		%end;
 		*/
 		var &var_score.; /*was VSORRES*/
-		table 	VISIT * &var_score. * (mean std median min max n), /*was VSORRES*/
+		table 	VISIT * &var_score.='' * (mean std median min max n),
 			treatment;
 		%title(type="table",label="%sysfunc(dequote(&test.)) - Values"); /*%sysfunc(dequote(&position.))*/
 		title2 '(summary statistics by visit and treatment)';
@@ -503,7 +503,7 @@ Use this macro to obtain the change with respect to baseline.
 	proc tabulate data=DATA_DIFF;
 		class VISIT treatment / order=internal;
 		var change;
-		table 	VISIT * change * (mean std median min max n),
+		table 	VISIT * change='' * (mean std median min max n),
 			treatment;
 		/*
 		%let label = "%sysfunc(dequote(&position.)) %sysfunc(dequote(&test.)) - Change";
@@ -698,7 +698,7 @@ Plots the results.
 		var &var_score.;
 		class treatment VISIT_ &var_test. &var_judge.;
 		table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
-				&var_test. * &var_score. * (mean std median min max n),
+				&var_test. * &var_score.='' * (mean std median min max n),
 				treatment all='total';
 	run;
 %mend tabulate;
@@ -1160,6 +1160,13 @@ Description: This macro uses colour for values below or above the normal range.
 /* * Subsection 4.1: import clinical data  * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%global table_n figure_n listing_n;
+%let table_n   = 0;
+%let figure_n  = 0;
+%let listing_n = 0;
+title;
+*ods proclabel ' ';
+
 proc import datafile="&pathRand.\randomisation_list.csv"
 		out=random
 		dbms=csv;
@@ -1496,7 +1503,7 @@ run;
 		var LBORRES_numeric;
 		class treatment VISIT_ LBTEST LBCLSIG;
 		table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
-			LBTEST * LBORRES_numeric * (mean std median min max n),
+			LBTEST * LBORRES_numeric='' * (mean std median min max n),
 			treatment all='total';
 	run;
 	proc tabulate data=LB;
@@ -1521,7 +1528,7 @@ proc tabulate data=LB;
 	where type='HIV Test' and VISIT_='Screening';
 	var LBORRES;
 	class VISIT_ treatment LBTEST;
-	table 	LBTEST * LBORRES * (mean std median min max n),
+	table 	LBTEST * LBORRES='' * (mean std median min max n),
 			treatment all='total';
 run;
 
@@ -1703,7 +1710,7 @@ run;
 		var LPORRES_numeric;
 		class VISIT treatment LPTEST;
 		where VISIT=&visit.;
-		table LPTEST * LPORRES_numeric * (mean median std min max n),
+		table LPTEST * LPORRES_numeric='' * (mean median std min max n),
 		treatment all='total';
 	run;
 	proc tabulate data=LP;
