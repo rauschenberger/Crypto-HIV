@@ -1021,10 +1021,11 @@ proc format;
 	value $GCS_motor	'Obeys commands' = 'white'
 						other = &low.;
 	/* PE */
-	value $PEORRES		'' = 'white'
-						'.' = 'white'
+	value $PEORRES		
 						'Normal' = 'white'
 						'Abnormal, NCS' = 'white'
+						'' = 'white'
+						'.' = 'white'
 						'Abnormal, CS' = &high.
 						other = &high.;
 	/* DV */
@@ -1034,8 +1035,35 @@ proc format;
 	/* PR */ 
 	value $PREGPERF		'Yes'='white'
 						other = &low.;
-	value $PREGORRES	'Negative' = 'white' /* change to negative */ 
+	value $PREGORRES	'Negative' = 'white'
 						other = &high.;
+	/* AE */
+	value $AESEV		'Mild' = 'white'
+						'Moderate' = 'white'
+						other = &high.;
+	value $AEOUT		'Recovered/Resolved' = 'white'
+						'Recovering/Resolving' = 'white'
+						'Unknown' = &high.
+						'Not Recovered/Not Resolved' = &high.
+						other = &high.;
+	value $AEREL_one	'Not related with Arm 1' = 'white'
+						'Probably not Related with Arm 1' = 'white'
+						'.' = 'white'
+						'' = 'white'
+						' ' = 'white'
+						'Possibly Related with Arm 1' = &high.
+						'Probably Related with Arm 1' = &high.
+						'Definitely Related with Arm 1' = &high.
+						other = &high.;
+	value $AEREL_two	'Not related with Arm 2' = 'white'
+						'Probably not Related with Arm 2' = 'white'
+						'.' = 'white'
+						'' = 'white'
+						' ' = 'white'
+						'Possibly Related with Arm 2' = &high.
+						'Probably Related with Arm 2' = &high.
+						'Definitely Related with Arm 2' = &high.
+						other = &high.;				
 run; 
 
 /* colour extreme values */ 
@@ -1132,6 +1160,20 @@ run;
 	endcomp;
 	compute PREGORRES / character length=50;
 		call define(_col_,'style','style={background=$PREGORRES.}');
+	endcomp;
+	%end;
+	%if &name.=AE %then %do;
+	compute AESEV / character length=50;
+		call define(_col_,'style','style={background=$AESEV.}');
+	endcomp;
+	compute AEOUT / character length=50;
+		call define(_col_,'style','style={background=$AEOUT.}');
+	endcomp;
+	compute AEREL / character length=50;
+		call define(_col_,'style','style={background=$AEREL_one.}');
+	endcomp;
+	compute AEREL1 / character length=50;
+		call define(_col_,'style','style={background=$AEREL_two.}');
 	endcomp;
 	%end;
 %mend color;
@@ -1824,10 +1866,18 @@ run;
 /* * Subsection 4.X: ineligibility * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+proc tabulate data=IE;
+	%title(type="table",label="Ineligibility");
+	title2 "number and percentage of patients satisfying an inclusion or exclusion criterion";
+	class IECAT IETEST IEORRES;
+	table IECAT * IETEST * IEORRES,
+	(n pctn='%');
+run;
+
 proc report data=IE spanrows;
-	%title(type="listing",label='ineligible samples');
+	%title(type="listing",label='Ineligible Samples');
 	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
-	column SUBJID IECAT IETEST IEORRES;
+	column SUBJID IECAT IETEST IEORRES EC_CHECK;
 	define SUBJID/order;
 	define IECAT/order;
 run;
@@ -1913,6 +1963,7 @@ run;
 /* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+
 data AE;
 	set AE;
 	if AEREL in ('A') then AEREL='';
@@ -1920,13 +1971,19 @@ data AE;
 run;
 
 
-proc report data=AE spanrows;
-	%title(type="listing",label='adverse events');
-	column USUBJID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
-	define USUBJID/order;
+proc tabulate data=AE;
+	class treatment AETERM;
+	table AETERM * (n pctn<treatment>='%'),
+		treatment all='total';
 run;
 
-/* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLES AEREL / AEREL1!*/ 
+proc report data=AE spanrows;
+	where AESEV not in ('Mild','Moderate');
+	%title(type="listing",label='adverse events');
+	%color(name=AE);
+	*column USUBJID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
+	define USUBJID/order;
+run;
 
 
 /*
