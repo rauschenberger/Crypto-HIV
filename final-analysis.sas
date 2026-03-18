@@ -1646,7 +1646,7 @@ run;
 /* * Subsection 4.X: concomitant medications * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=CM;
+proc report data=CM spanrows;
 	%title(type="listing",label='Concomitant Medications');
 	column USUBJID CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
 	define USUBJID/order;
@@ -1656,10 +1656,19 @@ run;
 /* * Subsection 4.X: death details * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=DD;
-	%title(type="listing",label='death');
-	column USUBJID;
+%order_levels(code=DD,var=VISIT);
+
+proc tabulate data=DD;
+	%title(type="table",label="Death Details");
+	class VISIT treatment DSSTATUS / order=internal;
+	table VISIT * DSSTATUS * (n pctn<DSSTATUS>='%'), treatment all='total';
 run;
+
+proc report data=DD;
+	%title(type="listing",label='Death Details');
+	where not missing(DSSTATUS) and DSSTATUS ne "Alive";
+run;
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: discharge * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1868,10 +1877,9 @@ run;
 
 proc tabulate data=IE;
 	%title(type="table",label="Ineligibility");
-	title2 "number and percentage of patients satisfying an inclusion or exclusion criterion";
+	title2 "(number of patients satisfying an inclusion or exclusion criterion)";
 	class IECAT IETEST IEORRES;
-	table IECAT * IETEST * IEORRES,
-	(n pctn='%');
+	table IECAT * IETEST, IEORRES * (n);
 run;
 
 proc report data=IE spanrows;
