@@ -147,42 +147,6 @@ and a variable name (e.g., 'var=vsorres_weight').
 Description: Converts character variable to numeric.
 */
 
-/* derive treatment period */ 
-/*
-%macro add_period(code=);
-	data &code.;
-		set &code.;
-		if VISIT in ('Treatment Period 1: 30 hrs PD','Unscheduled Treatment Period 1') then period='1';
-		else if VISIT in ('Treatment Period 2: 30 hrs PD','Unscheduled Treatment Period 2') then period='2';
-		else period = '';
-	run;
-%mend add_period;
-*/
-/*
-Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
-Description: Uses the variable 'VISIT' to create the variable 'period'.
-*/
-
-/* derive treatment */
-/* 
-%macro add_treat(code=);
-	data &code.;
-		set &code.;
-    	if period='1' and seq='1 (AB)' then treatment='A';
-		else if period='1' and seq='2 (BA)' then treatment='B';
-		else if period='2' and seq='1 (AB)' then treatment='B';
-		else if period='2' and seq='2 (BA)' then treatment='A';
-		else treatment = '';
-	run;
-%mend add_treat;
-*/
-/*
-Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
-Description: Uses the variable for the period (1 or 2)
-and the variable for the treatment sequence (AB or BA)
-to create the variable for the treatment (A or B).
-*/
-
 /* re-order category levels */
 %macro order_levels(code=,var=);
 data &code.;
@@ -1945,7 +1909,6 @@ data PK;
 run;
 
 %add_random(code=PK);
-/*%add_treat(code=PK);*/
 
 %as_numeric(code=PK,var=SAMPLETIME);
 %as_numeric(code=PK,var=CONCENTRATION);
