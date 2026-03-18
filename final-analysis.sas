@@ -1568,17 +1568,6 @@ run;
 
 proc tabulate data=LB;
 	%title(type="table",label='Infection Tests at Screening Visit');
-	where type='HIV Test' and VISIT_='Screening';
-	var LBORRES;
-	class VISIT_ treatment LBTEST;
-	table 	LBTEST * LBORRES='' * (mean std median min max n),
-			treatment all='total';
-run;
-
-
-/*
-proc tabulate data=LB;
-	%title(type="table",label='Infection Tests at Screening Visit');
 	title2 "(summary statistics for numerical variables)";
     where type='HIV Test' and VISIT_='Screening' and LBORRES is not missing;
     var LBORRES;
@@ -1594,7 +1583,7 @@ proc tabulate data=LB;
     table LBTEST * LBSTNRC * (n pctn<LBSTNRC>='%'),
           treatment all='total';
 run;
-*/
+
 
 /* Switch to showing those with CS only?*/ 
 
