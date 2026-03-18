@@ -1148,6 +1148,7 @@ Description: This macro uses colour for values below or above the normal range.
     %end;
     %let &type._n = %eval(&&&type._n + 1);
     %let labtitle = %upcase(&type) &&&type._n: %sysfunc(dequote(&label.));
+	/*ods pdf startpage=now;*/
     title "&labtitle";
     ods proclabel "&labtitle";
 %mend title;
@@ -1202,7 +1203,7 @@ ods pdf file="&pathOut.\myfile.pdf" style=printer startpage=yes author="Armin Ra
 
 options nodate nonumber;
 ods escapechar='^';
-ods pdf file="&pathOut.\\myfile.pdf" style=printer startpage=no;
+ods pdf file="&pathOut.\\myfile.pdf" style=printer startpage=yes;
 ods pdf text="^S={just=c font_size=24pt font_weight=bold} ^10n 5FC HIV-Crypto";
 ods pdf text="^S={just=c font_size=24pt} ^1n Tables, Listings, and Figures";
 ods pdf text="^S={just=c font_size=14pt} ^10n Armin Rauschenberger";
@@ -1926,6 +1927,15 @@ proc report data=AE spanrows;
 run;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLES AEREL / AEREL1!*/ 
+
+
+/*
+TO-DO-LIST
+- continue discussion on data corrections
+- do not overwrite variables when bringing values to the same unit
+- improve listings
+*/
+
 
 ods pdf close;
 
