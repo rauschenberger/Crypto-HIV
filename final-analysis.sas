@@ -1769,10 +1769,13 @@ run;
 
 %order_levels(code=EX,var=VISIT);
 
+/* 
+Find a more compact way of presenting this.
 proc report data=EX;
 	%title(type="listing",label='treatment exposure');
 	define USUBJID/order;
 run;
+*/
 
 proc tabulate data=EX;
 	class VISIT EXARM treatment EXTRT;
@@ -1930,10 +1933,12 @@ run;
 /* * Subsection 4.X: palatability acceptability* * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
  
+/*
+Find a more compact way of presenting this.
 proc report data=QUEST;
 	%title(type="listing",label='palatability acceptability');
 run;
-
+*/
 
 /* CONTINUE HERE: tabulate with different levels for each variable? */ 
 
@@ -2099,10 +2104,13 @@ run;
 
 
 proc tabulate data=AE;
+	%title(type="table",label="Adverse Events");
 	class treatment AETERM;
-	table AETERM * (n pctn<treatment>='%'),
+	table AETERM * (n),
 		treatment all='total';
 run;
+
+/* TO DO: summarise number of mild, moderate, severe, life-threatening by treatment*/ 
 
 proc report data=AE spanrows;
 	where AESEV not in ('Mild','Moderate');
