@@ -1821,6 +1821,8 @@ run;
 /* * Subsection 4.X: lumbar punctures* * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%prepare;
+
 data LP;
 	set LP;
 	if LPORRES in ('1+') then do;
@@ -1853,6 +1855,17 @@ run;
 		table LPTEST * LPORRES_ordinal * (n),
 			treatment all='total';
 	run;
+	/*
+	proc tabulate data=LP;
+		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - All Variables");
+		var LPORRES_numeric;
+		class VISIT treatment LPTEST LPORRES_ordinal;
+		where VISIT=&visit.;
+		table 	LPTEST * LPORRES_numeric='' * (mean median std min max n)
+				LPTEST * LPORRES_ordinal * (n),
+				treatment all='total';
+	run;
+	*/
 %mend tabulateLP;
 
 %macro processLP(visits=);
@@ -1921,6 +1934,9 @@ proc report data=QUEST;
 	%title(type="listing",label='palatability acceptability');
 run;
 
+
+/* CONTINUE HERE: tabulate with different levels for each variable? */ 
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: Rankin disability questionnaire * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1930,11 +1946,11 @@ run;
 
 proc tabulate data=RANKIN;
 	%title(type="table",label="Rankin Disability Questionnaire");
-	title2 '(top: categorical variables, bottom: ordinal variable)'
+	title2 '(top: categorical variables, bottom: ordinal variable)';
 	var RANKIN_GRADE;
 	class VISIT treatment LPPERF RANKIN_Q1 RANKIN_Q2 / order=internal;
-	table VISIT * (LPPERF RANKIN_Q1 RANKIN_Q2) * (n pctn<LPPERF RANKIN_Q1 RANKIN_Q2>='%')
-			VISIT * RANKIN_GRADE * (mean median std min max n),
+	table 	VISIT * (LPPERF='lumbar puncture' RANKIN_Q1='Q1 (daily help)' RANKIN_Q2='Q2 (other problems)') * (n pctn<LPPERF RANKIN_Q1 RANKIN_Q2>='%')
+			VISIT * RANKIN_GRADE='grade' * (mean median std min max n),
 			treatment all='total';
 run;
 
