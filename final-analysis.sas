@@ -1925,8 +1925,17 @@ run;
 /* * Subsection 4.X: Rankin disability questionnaire * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-proc report data=RANKIN;
-	%title(type="listing",label='disability');
+%as_numeric(code=RANKIN,var=RANKIN_GRADE);
+%order_levels(code=RANKIN,var=VISIT);
+
+proc tabulate data=RANKIN;
+	%title(type="table",label="Rankin Disability Questionnaire");
+	title2 '(top: categorical variables, bottom: ordinal variable)'
+	var RANKIN_GRADE;
+	class VISIT treatment LPPERF RANKIN_Q1 RANKIN_Q2 / order=internal;
+	table VISIT * (LPPERF RANKIN_Q1 RANKIN_Q2) * (n pctn<LPPERF RANKIN_Q1 RANKIN_Q2>='%')
+			VISIT * RANKIN_GRADE * (mean median std min max n),
+			treatment all='total';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
