@@ -992,6 +992,20 @@ proc format;
 		1 = "oral"
 		2 = "intravenous"
 		;
+	invalue MHTERMPREP_invalue
+		'Previous medical history of TB' = 1     
+		'Previous opportunistic infections other than TB' = 2      
+		'Previous HIV diagnosis' = 3 
+		'Previous anti-viral treatment' = 4
+		'Additional serious, life-threatening disease according to site PI' = 5
+		;
+	value MHTERMPREP_value
+		1 = 'Previous medical history of TB'    
+		2 = 'Previous opportunistic infections other than TB'      
+		3 = 'Previous HIV diagnosis'
+		4 = 'Previous anti-viral treatment'
+		5 = 'Additional serious, life-threatening disease according to site PI'
+		;
 run;
 
 proc format; 
@@ -2028,13 +2042,24 @@ run;
 /* * Subsection 4.X: medical history * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%order_levels(code=MH,var=MHTERMPREP);
+
+proc tabulate data=MH;
+	%title(type="table",label="Medical History");
+	title2 '(number and percentage of patients by treatment)';
+	class MHTERMPREP MHTERM_YN treatment /order=internal;
+	table MHTERMPREP * MHTERM_YN='' * (n pctn<MHTERM_YN>='%'), treatment all='total';
+run;
+
 proc report data=MH spanrows;
-	%title(type="listing",label='Medical History');
+	%title(type="listing",label='Medical History By Patient');
 	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
 	column USUBJID MHTERMPREP MHTERM_YN MHTERM MHSTDAT MHENDAT MHONGO;
 	define USUBJID/order;
 	define treatment/order;
 run;
+
+
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
