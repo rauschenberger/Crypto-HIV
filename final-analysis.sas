@@ -118,7 +118,7 @@ This adds information on the treatment sequence to dataset 'code'.
 /* import and process clinical data */
 %macro prepare;
 	%local code i;
-	%let code = AE ART ARTT CE CM DD DI DM DS DV EG EX GC IE LB LP MH PE PM PR QUEST RANKIN VS; /* Also add files without code! */
+	%let code = AE ART ARTT CE DA CM DD DI DM DS DV EG EQ EX GC IE LB LP MH PC PE PM PR QUEST RANKIN VS; /* Also add files without code! */
 	%do i = 1 %to %sysfunc(countw(&code));
     	%import(path=&pathClin,code=%scan(&code,&i));
 		%add_rid(code=%scan(&code,&i));
@@ -815,7 +815,25 @@ proc format;
 		3 = '4 hours post-dose'
 		4 = '6 hours post-dose'
 		5 = '48 hours post-dose'
-		; 
+		;
+	invalue PC_SAMPLING_TIME_invalue
+		'Pre-dose' = 0
+		'2' = 2
+		'4' = 4
+		'6' = 6
+		'7.5' = 7.5
+		'12' = 12
+		'24' = 24
+		;
+	value PC_SAMPLING_TIME_value
+		 0 = 'Pre-dose'
+		 2 = '2'
+		 4 = '4'
+		 6 = '6'
+		 7.5 = '7.5'
+		 12 = '12'
+		 24 = '24'
+		;
 	/*
 	invalue VSTEST_invalue
 		'Weight' = 1
@@ -936,8 +954,9 @@ proc format;
 		'Treatment Day 12' = 12
 		'Treatment Day 13' = 13
 		'Treatment Day 14' = 14
-		'Treatment Day 15' = 15
 		'Day 15' = 15
+		'Treatment Day 15' = 15
+		'Sparse PK - Day 15' = 15
 		'Day 21 Visit' = 21
 		'Week 4' = 28
 		'Week 6' = 42
@@ -1123,7 +1142,13 @@ proc format;
 						'Possibly Related with Arm 2' = &high.
 						'Probably Related with Arm 2' = &high.
 						'Definitely Related with Arm 2' = &high.
-						other = &high.;				
+						other = &high.;	
+	value $PC_DEVIATION 'No' = 'white'
+						'Yes' = &high.
+						other = &high.;
+	VALUE PC_DELAY		low--20 = &low.
+						-20-20 = 'white'
+						20-high = &high.;	
 run; 
 
 /* colour extreme values */ 
@@ -1234,6 +1259,14 @@ run;
 	endcomp;
 	compute AEREL1 / character length=50;
 		call define(_col_,'style','style={background=$AEREL_two.}');
+	endcomp;
+	%end;
+	%if &name.=PC %then %do;
+	compute PC_DEVIATION / character length=50;
+		call define(_col_,'style','style={background=$PC_DEVIATION.}');
+	endcomp;
+	compute PC_DELAY;  /* per */
+		call define(_col_,'style','style={background=PC_DELAY.}');
 	endcomp;
 	%end;
 %mend color;
@@ -1826,8 +1859,6 @@ run;
 /* * Subsection 4.X: lumbar punctures* * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%prepare;
-
 data LP;
 	set LP;
 	if LPORRES in ('1+') then do;
@@ -1975,8 +2006,8 @@ run;
 proc report data=IE spanrows;
 	%title(type="listing",label='Ineligible Samples');
 	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
-	column SUBJID IECAT IETEST IEORRES EC_CHECK;
-	define SUBJID/order;
+	column USUBJID IECAT IETEST IEORRES EC_CHECK;
+	define USUBJID/order;
 	define IECAT/order;
 run;
 
@@ -2096,6 +2127,79 @@ proc report data=AE spanrows;
 	*column USUBJID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
 	define USUBJID/order;
 run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: drug accountability * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/* empty data set*
+proc report data=DA;
+run;
+*/
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: quality of life * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+proc report data=EQ;
+	%title(type="listing",label="Quality of Life (EQ-5D-3L)");
+	column USUBJID VISIT treatment MOBILITY SELFCARE USUALACTIVITIES PAINDISCOMFORT ANXIETYDEPRESSION SCALE;
+	where not missing(MOBILITY) or not missing(SELFCARE) or not missing(USUALACTIVITIES) or not missing(PAINDISCOMFORT) or not missing(ANXIETYDEPRESSION) or not missing (SCALE);
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: pharmacokinetics * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%prepare;
+
+%as_numeric(code=PC,var=PC_DELAY);
+%order_levels(code=PC,var=PC_SAMPLING_TIME);
+
+proc tabulate data=PC;
+	%title(type="table",label="Calculated Delay in Blood Sampling for Pharmacokinetics");
+	title2 '(in minutes, by visit and treatment)';
+	class VISIT PC_SAMPLING_TIME treatment /order=internal;
+	var PC_DELAY;
+	table VISIT * PC_SAMPLING_TIME * PC_DELAY='' * (mean median std min max n), treatment all="total";
+run;
+
+data PC;
+	set PC;
+	if VISIT in ('Day 1','Day 2') then do;
+		idv = cats(RID,'_one');
+	end;
+	else if VISIT in ('Day 6','Day 7') then do;
+		idv = cats(RID,'_two');
+	end;
+run;
+
+data temp;
+	set PC;
+	where not missing(PC_DELAY) and (PC_DELAY < -20 or PC_DELAY > 20);
+run;
+
+proc sql noprint;
+	select distinct quote(trim(idv),"'")
+	into :idv_delay separated by ','
+	from temp;
+quit;
+
+proc report data=PC spanrows;
+	%color(name=PC);
+	%title(type="table",label="Patients with a PK Blood Sampling Deviation");
+	title2 '(patients on days 1/2 or 6/7 with <-20 or >20 minutes)'; 
+	columns USUBJID VISIT PC_SAMPLING_TIME PCTPTREF PCDTC PC_DELAY_RSN PC_DEVIATION PC_DELAY;
+	where idv in (&idv_delay.);
+	define USUBJID/order;
+	define VISIT/order;
+run;
+
+/*
+proc report data=PC;
+	where PC_DEVIATION='Yes';
+run;
+*/
 
 
 /*
