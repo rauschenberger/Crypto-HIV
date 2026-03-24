@@ -257,6 +257,8 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		%let var_test=LPTEST;
 		%let var_test_=LPTEST_;
 		%let state_by=USUBJID VISIT;
+		%let var_judge=;
+		%let var_judge_=;
 		%let var_score=LPORRES;
 		%let var_unit=LPORRESU;
 	%end;
@@ -966,6 +968,7 @@ proc format;
 		'Unscheduled' = 99
 		'Unscheduled Visit' = 99
 		'End of Study' = 100
+		'Death' = 101
 		;
 	value VISIT_value
  		0 = 'Screening'
@@ -990,6 +993,7 @@ proc format;
 		70 = 'Week 10'
 		99 = 'Unscheduled'
 		100 = 'End of Study'
+		101 = 'Death'
 		;
 	invalue DSDECOD_invalue
 		'INFORMED CONSENT OBTAINED' = 1
