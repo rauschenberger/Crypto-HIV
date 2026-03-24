@@ -1260,7 +1260,7 @@ run;
 	endcomp;
 	%end;
 	%if &name.=AE %then %do;
-	compute AESEV / character length=50;
+	compute AESEV_ / character length=50;
 		call define(_col_,'style','style={background=$AESEV.}');
 	endcomp;
 	compute AEOUT / character length=50;
@@ -1732,7 +1732,7 @@ proc tabulate data=CE;
 	%title(type="table",label="Current Symptoms");
 	title2 '(number of patients by visit and treatment)';
 	class VISIT treatment CETERM / order=internal;
-	table VISIT * CETERM * (n rowpctn<CETERM>='%'),
+	table VISIT * CETERM * (n rowpctn='%'),
 			treatment all='total';
 run;
 
@@ -2115,6 +2115,8 @@ run;
 /* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%prepare;
+
 %order_levels(code=AE,var=AESEV);
 
 data AE;
@@ -2135,14 +2137,14 @@ proc tabulate data=AE;
 	%title(type="table",label="Number of Adverse Events");
 	title2 '(by severity and treatment)';
 	class AESEV treatment/order=internal;
-	table AESEV * (n rowpctn<AESEV>='%'), treatment all='total';
+	table AESEV * (n rowpctn='%'), treatment all='total';
 run;
 
 proc report data=AE spanrows;
 	where AESEV_ not in ('Mild','Moderate');
 	%title(type="listing",label='Severe or Life-Threatening Adverse Events');
 	%color(name=AE);
-	column USUBJID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
+	column USUBJID AETERM AESEV_ AEACN1 AEOUT AEREL AEREL1 treatment;
 	define USUBJID/order;
 run;
 
