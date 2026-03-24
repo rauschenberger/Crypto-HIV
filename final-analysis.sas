@@ -944,8 +944,9 @@ proc format;
 		'Week 6 Visit' = 42
 		'Week 10' = 70
 		'Week 10/Early Withdrawal Visit' = 70
-		'Unscheduled' = 100
-		'Unscheduled Visit' = 100
+		'Unscheduled' = 99
+		'Unscheduled Visit' = 99
+		'End of Study' = 100
 		;
 	value VISIT_value
  		0 = 'Screening'
@@ -968,7 +969,8 @@ proc format;
 		28 = 'Week 4'
 		42 = 'Week 6'
 		70 = 'Week 10'
-		100 = 'Unscheduled'
+		99 = 'Unscheduled'
+		100 = 'End of Study'
 		;
 	invalue DSDECOD_invalue
 		'INFORMED CONSENT OBTAINED' = 1
@@ -1957,31 +1959,6 @@ proc tabulate data=RANKIN;
 	table 	VISIT * (LPPERF='lumbar puncture' RANKIN_Q1='Q1 (daily help)' RANKIN_Q2='Q2 (other problems)') * (n pctn<LPPERF RANKIN_Q1 RANKIN_Q2>='%')
 			VISIT * RANKIN_GRADE='grade' * (mean median std min max n),
 			treatment all='total';
-run;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: withdrawals * * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-data DS;
-	set DS;
-	if DSTERM='DISCONTINUED' then withdraw='yes';
-	else withdraw='no';
-run;
-
-proc tabulate data=DS;
-	%title(type="listing",label='withdrawals');
-	where VISIT='Post Study';
-	class treatment withdraw;
-	table withdraw * (n colpctn='%'),
-			treatment all='total';
-run;
-
-/* TO DO: Add "time of early withdrawal" and "reason of withdrawal". */ 
-proc report data=DS;
-	%title(type="listing",label='withdrawals');
-	where DSTERM='DISCONTINUED';
-	column USUBJID treatment;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
