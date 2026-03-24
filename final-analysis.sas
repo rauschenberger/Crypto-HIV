@@ -1027,6 +1027,18 @@ proc format;
 		4 = 'Previous anti-viral treatment'
 		5 = 'Additional serious, life-threatening disease according to site PI'
 		;
+	invalue AESEV_invalue
+		'Mild' = 1
+		'Moderate' = 2
+		'Severe' = 3
+		'Life threatening' = 4
+		;
+	value AESEV_value
+		1 = 'Mild'
+		2 = 'Moderate'
+		3 = 'Severe'
+		4 = 'Life threatening'
+		;
 run;
 
 proc format; 
@@ -2103,6 +2115,7 @@ run;
 /* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%order_levels(code=AE,var=AESEV);
 
 data AE;
 	set AE;
@@ -2110,21 +2123,26 @@ data AE;
 	if AEREL1 in ('A') then AEREL1='';
 run;
 
-
 proc tabulate data=AE;
-	%title(type="table",label="Adverse Events");
+	%title(type="table",label="Number Adverse Events");
+	title2 '(by type and treatment)';
 	class treatment AETERM;
-	table AETERM * (n),
+	table AETERM='' * (n),
 		treatment all='total';
 run;
 
-/* TO DO: summarise number of mild, moderate, severe, life-threatening by treatment*/ 
+proc tabulate data=AE;
+	%title(type="table",label="Number of Adverse Events");
+	title2 '(by severity and treatment)';
+	class AESEV treatment/order=internal;
+	table AESEV * (n rowpctn<AESEV>='%'), treatment all='total';
+run;
 
 proc report data=AE spanrows;
-	where AESEV not in ('Mild','Moderate');
-	%title(type="listing",label='adverse events');
+	where AESEV_ not in ('Mild','Moderate');
+	%title(type="listing",label='Severe or Life-Threatening Adverse Events');
 	%color(name=AE);
-	*column USUBJID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
+	column USUBJID AETERM AESEV AEACN1 AEOUT AEREL AEREL1 treatment;
 	define USUBJID/order;
 run;
 
