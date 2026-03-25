@@ -1377,6 +1377,8 @@ ods text="Please add text directly to the source code (.sas) and not to the comp
 /* * Subsection 4.X: vital signs * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- vital signs ---;
+
 data VS;
 	set VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
@@ -1471,6 +1473,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: electrocardiogram * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- electrocardiogram ---;
 
 %order_levels(code=EG,var=VISIT);
 %order_levels(code=EG,var=EGSTRESC1);
@@ -1712,6 +1716,8 @@ run;
 /* * Subsection 4.X: ART initiation* * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- ART initiation ---;
+
 proc report data=ART;
 	%title(type="listing",label='ART Initiation');
 	column USUBJID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
@@ -1722,6 +1728,8 @@ run;
 /* * Subsection 4.X: ART treatment * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- ART treatment ---;
+
 proc report data=ARTT;
 	%title(type="listing",label='ART Treatment');
 	column USUBJID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
@@ -1731,6 +1739,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: current symptoms* * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- current symptoms ---;
 
 %order_levels(code=CE,var=VISIT);
 
@@ -1746,6 +1756,8 @@ run;
 /* * Subsection 4.X: concomitant medications * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- concomitant medications ---;
+
 proc report data=CM spanrows;
 	%title(type="listing",label='Concomitant Medications');
 	column USUBJID CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
@@ -1755,6 +1767,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: death details * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- death details ---;
 
 %order_levels(code=DD,var=VISIT);
 
@@ -1774,6 +1788,8 @@ run;
 /* * Subsection 4.X: discharge * * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- discharge ---;
+
 proc report data=DI;
 	%title(type="listing",label='discharge');
 	*column USUBJID LPPERF DISCHARGED;
@@ -1782,6 +1798,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: disposition milestones* * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- disposition milestones ---;
 
 %order_levels(code=DS,var=DSDECOD);
 
@@ -1820,6 +1838,8 @@ run;
 /* * Subsection 4.X: treatment exposure* * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- treatment exposure ---;
+
 %order_levels(code=EX,var=VISIT);
 
 /* 
@@ -1840,6 +1860,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: Glasgow coma score* * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- coma score ---;
 
 %as_numeric(code=GC,var=GCS_TOTAL);
 %order_levels(code=GC,var=VISIT);
@@ -1876,6 +1898,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: lumbar punctures* * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- lumbar punctures ---;
 
 data LP;
 	set LP;
@@ -1936,6 +1960,8 @@ run;
 /* * Subsection 4.X: physical examination* * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- physical examination ---;
+
 data PE_sub;
 	retain USUBJID VISIT PETESTCD PEORRES PEORRES_SP;
 	set PE(keep=USUBJID VISIT PETESTCD PEORRES PEORRES_SP);
@@ -1949,6 +1975,8 @@ run;
 /* * Subsection 4.X: prior medications * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- prior medications ---;
+
 %order_levels(code=PM,var=CMROUTE);
 
 proc report data=PM spanrows;
@@ -1960,6 +1988,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: pregnancy * * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- pregnancy ---;
 
 %order_levels(code=PR,var=VISIT);
 
@@ -1997,6 +2027,8 @@ run;
 /* * Subsection 4.X: Rankin disability questionnaire * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- disability ---;
+
 %as_numeric(code=RANKIN,var=RANKIN_GRADE);
 %order_levels(code=RANKIN,var=VISIT);
 
@@ -2013,6 +2045,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: ineligibility * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- ineligibility ---;
 
 proc tabulate data=IE;
 	%title(type="table",label="Ineligibility");
@@ -2033,6 +2067,8 @@ run;
 /* * Subsection 4.X: protocol deviations   * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- protocol deviations ---;
+
 proc tabulate data=DV;
 	%title(type="table",label="Protocol Deviations");
 	title2 "(number and percentage by treatment)";
@@ -2051,6 +2087,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: demographics  * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- demographics ---;
 
 %as_numeric(code=DM,var=vsorres_weight);
 %as_numeric(code=DM,var=vsorres_height);
@@ -2098,6 +2136,8 @@ run;
 /* * Subsection 4.X: medical history * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- medical history ---;
+
 %order_levels(code=MH,var=MHTERMPREP);
 
 proc tabulate data=MH;
@@ -2116,12 +2156,11 @@ proc report data=MH spanrows;
 run;
 
 
-
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%prepare;
+%put --- adverse events ---;
 
 %order_levels(code=AE,var=AESEV);
 
@@ -2167,6 +2206,8 @@ run;
 /* * Subsection 4.X: quality of life * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%put --- quality of life ---;
+
 proc report data=EQ;
 	%title(type="listing",label="Quality of Life (EQ-5D-3L)");
 	column USUBJID VISIT treatment MOBILITY SELFCARE USUALACTIVITIES PAINDISCOMFORT ANXIETYDEPRESSION SCALE;
@@ -2177,7 +2218,7 @@ run;
 /* * Subsection 4.X: pharmacokinetics * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%prepare;
+%put --- pharmacokinetics ---;
 
 %as_numeric(code=PC,var=PC_DELAY);
 %order_levels(code=PC,var=PC_SAMPLING_TIME);
