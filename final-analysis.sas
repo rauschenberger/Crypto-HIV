@@ -1045,6 +1045,20 @@ proc format;
 		3 = 'Severe'
 		4 = 'Life threatening'
 		;
+	invalue EXDOSNB_invalue
+		'' = 0
+		'FIRST DOSE' = 1
+		'SECOND DOSE' = 2
+		'THIRD DOSE' = 3
+		'FOURTH DOSE' = 4
+		;
+	value EXDOSNB_value
+		0 = ' '
+		1 = 'FIRST DOSE'
+		2 = 'SECOND DOSE'
+		3 = 'THIRD DOSE'
+		4 = 'FOURTH DOSE'
+		;
 run;
 
 proc format; 
@@ -1841,18 +1855,18 @@ run;
 %put --- treatment exposure ---;
 
 %order_levels(code=EX,var=VISIT);
+%order_levels(code=EX,var=EXDOSNB);
 
-/* 
-Find a more compact way of presenting this.
-proc report data=EX;
-	%title(type="listing",label='treatment exposure');
-	define USUBJID/order;
+data EX;
+	set EX;
+	dose = EXTRT || EXDOSNB;
 run;
-*/
 
-proc tabulate data=EX;
-	class VISIT EXARM treatment EXTRT;
-	table VISIT * (EXARM EXTRT), treatment;
+proc tabulate data=EX missing;
+	%title(type="table",label="Treatment Exposure");
+	title2 '(by visit and treatment)';
+	class VISIT dose treatment EXDOSNB EXTRT /order=internal;
+	table VISIT * (EXDOSNB * EXTRT) * (n), treatment;
 run;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
