@@ -145,7 +145,12 @@ sorting the datasets by random identifiers and adding information on the treatme
 		proc datasets lib=work nolist;
 			modify &code.;
 			label
-				age = "Age";
+				age = "Age"
+				vsorres_weight = "Weight"
+				vsorres_height = "Height"
+				vsorres_bmi = "BMI"
+				SEX = "Sex"
+				RACE = "Race";
 		quit;
 	%end;
 	%else %if &code.=MH %then %do;
@@ -160,24 +165,14 @@ sorting the datasets by random identifiers and adding information on the treatme
 				MHONGO = "Ongoing";
 		quit;
 	%end;
-	%else %if &code.=DV %then %do;
-		proc datasets lib=work nolist;
-			modify &code.;
-			label
-				VISIT = "Visit"
-				FORM = "Page"
-				DVTERM = "Deviation"
-				DVCAT = "Category";
-		quit;
-	%end;
 	%else %if &code.=PM %then %do;
 		proc datasets lib=work nolist;
 			modify &code.;
 			label
-				CMTRT = "Drug, Medicine, or Therapy"
+				CMTRT = "Drug, Medication, or Therapy"
 				CMDOSE = "Total Daily Dose"
 				CMDOSU = "Dose Units"
-				CMDOSFRQ = "Dosing Frequency per Internal"
+				CMDOSFRQ = "Dosing Frequency per Interval"
 				CMROUTE = "Route of Administration"
 				CMINDCREF = "Reason for Prior Medication Specification";
 		quit;
@@ -192,16 +187,194 @@ sorting the datasets by random identifiers and adding information on the treatme
 				EC_CHECK = "Check";
 		quit;
 	%end;
+	%else %if &code.=DV %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				FORM = "Page"
+				DVTERM = "Deviation"
+				DVCAT = "Category";
+		quit;
+	%end;
+	%else %if &code.=ART %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				ARTINITDAT = "Date"
+				ARTREGIMEN = "Regimen"
+				ENHANCEDART = "Enhanced Adherence Arranged";
+		quit;
+	%end;
+	%else %if &code.=ARTT %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				ARTSTDAT = "start date first regimen"
+				ART_FIRST_REGIMEN = "first regimen"
+				ART_SWITCH = "switch"
+				ARTSTDAT2 = "start date current regimen"
+				ART_CURRENT_REGIMEN = "current regimen" 
+				ADHERENT_ART = "adherence"
+				NB_MISSED_DOSES = "doses missed last month"
+				ART_DECISION = "decision"
+				VIRAL_LOAD_AVAILABLE = "last viral load available"
+				VIRAL_LOAD_RESULT = "viral load (copies per mL)"
+				VIRALDAT = "viral load date";
+		quit;
+	%end;
+	%else %if &code.=EX %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				EXDOSNB = "Dose Number"
+				EXTRT = "Other Product";
+		quit;
+	%end;
+	%else %if &code.=CM %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				CMTRT = "Drug, Medication, or Therapy"
+				CMINDC = "Reason"
+				CMSTDTC = "Start Date"
+				CMENDTC = "End Date"
+				CMONGO = "Ongoing";
+		quit;
+	%end;
+	%else %if &code.=CE %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				CETERM = "Clinical Event";
+		quit;
+	%end;
+	%else %if &code.=AE %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				AESEV = "Severity"
+				AESEV_ = "Severity"
+				AETERM = "Adverse Event"
+				AEOUT = "Outcome" 
+				AEREL = "Relation A"
+				AEREL1 = "Relation B";
+		quit;
+	%end;
+	%else %if &code.=PE %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				PETESTCD = "Body System Examined"
+				PEORRES = "Result"
+				PEORRES_SP = "Details";
+		quit;
+	%end;
+	%else %if &code.=VS %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				VSTEST = "Vital Signs Test"
+				VSSTRESC = "Result"
+				VSPOS = "Position";
+		quit;
+	%end;
+	%else %if &code.=GC %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				BESTEYERESPONSE = "Best Eye Response"
+				BESTVERBALRESPONSE = "Best Verbal Response"
+				BESTMOTORRESPONSE = "Best Motor Response"
+				GCS_TOTAL = "GCS Total";
+		quit;
+	%end;
+	%else %if &code.=LP %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				LPTEST = "Lumbar Puncture Test";
+		quit;
+	%end;
+	%else %if &code.=LB %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				LBTEST = "Laboratory Test"
+				LBCLSIG = "Clinically Significant, Collected";
+		quit;
+	%end;
+	%else %if &code.=XXX %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit";
+		quit;
+	%end;
+	%else %if &code.=EG %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				EGTEST = "ECG Test or Examination"
+				EGSTRESC1 = "Result";
+		quit;
+	%end;
+	%else %if &code.=RANKIN %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit";
+		quit;
+	%end;
+	%else %if &code.=DD %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				DSSTATUS = "Vital Status";
+		quit;
+	%end;
+	%else %if &code.=PR %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				PREGORRES = "Result";
+		quit;
+	%end;
+	%else %if %bquote(&code.)=%bquote(EQ) %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				MOBILITY = "Mobility"
+				SELFCARE = "Self-Care"
+				USUALACTIVITIES = "Usual Activities"
+				PAINDISCOMFORT = "Pain, Discomfort"
+				ANXIETYDEPRESSION = "Anxiety, Depression"
+				SCALE = "Scale"; 
+		quit;
+	%end;
 	%else %if &code.=PC %then %do;
 		proc datasets lib=work nolist;
 			modify &code.;
 			label
 				VISIT = "Visit"
 				PC_SAMPLING_TIME = "Sampling Time"
-				PCTPTREF = "Reference Time"
+				PCTPTREF = "Target Time"
 				PCDTC = "Actual Time"
 				PC_DELAY_RSN = "Reason"
-				PC_DEVIATION = "Deviation?"
+				PC_DEVIATION = "Deviation"
 				PC_DELAY = "Deviation (Minutes)";
 		quit;
 	%end;
@@ -558,12 +731,12 @@ Description: Summarises measurements for each time point (rows) and treatment (c
   		do until(last.RID);
      		set DATA_DIFF;
      		by RID;
-     		if treatment = 'immediate-release (IR)' then do;
+     		if treatment = 'Immediate-Release (IR)' then do;
         		if baseA = . then baseA = &var_score.;
         		change = &var_score. - baseA;
      		end;
 			drop baseA;
-     		else if treatment = 'sustained-release (SR)' then do;
+     		else if treatment = 'Sustained-Release (SR)' then do;
         		if baseB = . then baseB = &var_score.;
 				change = &var_score. - baseB;
     		end;
@@ -781,7 +954,7 @@ Plots the results.
 		class treatment VISIT_ &var_test. &var_judge.;
 		table	&var_test. * &var_judge. * (n pctn<&var_judge.>='%')
 				&var_test. * &var_score.='' * (mean std median min max n),
-				treatment all='total';
+				treatment all='Total';
 	run;
 %mend tabulate;
 
@@ -1421,9 +1594,9 @@ run;
 data random;
 	set random;
 	if treatment=1 then
-		temp ='sustained-release (SR)';
+		temp ='Sustained-Release (SR)';
 	else if treatment=2 then
-		temp='immediate-release (IR)';
+		temp='Immediate-Release (IR)';
 	else
 		put 'ERROR: invalid value for treatment';
 	drop treatment;
@@ -1474,23 +1647,26 @@ ods text="Please add text directly to the source code (.sas) and not to the comp
 %as_numeric(code=DM,var=vsorres_height);
 %as_numeric(code=DM,var=vsorres_bmi);
 %as_numeric(code=DM,var=age);
+%label_vars(code=DM);
 
+/*
 data DM;
 	set DM;
 	weight=vsorres_weight;
 	height=vsorres_height;
 	bmi=vsorres_bmi;
 run;
+*/
 
 proc tabulate data=DM;
-	%title(type="listing",label='Demographics by Treatment');
+	%title(type="table",label='Demographics by Treatment');
 	title2 "(top: summary statistics for numerical variables,";
 	title3 "bottom: counts and percentages for categorical variables)";
 	class treatment sex race;
-	var age weight height bmi;
-	table 	(age weight height bmi)*(mean median std min max n)
+	var age vsorres_weight vsorres_height vsorres_bmi;
+	table 	(age vsorres_weight vsorres_height vsorres_bmi)*(mean median std min max n)
 			(sex race)*(n colpctn='%'),
-			treatment all='total';
+			treatment all='Total';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1506,7 +1682,7 @@ proc tabulate data=MH;
 	%title(type="table",label="Medical History");
 	title2 '(number and percentage of patients by treatment)';
 	class MHTERMPREP MHTERM_YN treatment /order=internal;
-	table MHTERMPREP * MHTERM_YN='' * (n pctn<MHTERM_YN>='%'), treatment all='total';
+	table MHTERMPREP * MHTERM_YN='' * (n pctn<MHTERM_YN>='%'), treatment all='Total';
 run;
 
 proc report data=MH spanrows;
@@ -1561,6 +1737,8 @@ run;
 
 %put --- protocol deviations ---;
 
+%label_vars(code=DV);
+
 proc tabulate data=DV;
 	%title(type="table",label="Protocol Deviations");
 	title2 "(number and percentage by treatment)";
@@ -1583,6 +1761,7 @@ run;
 %put --- disposition milestones ---;
 
 %order_levels(code=DS,var=DSDECOD);
+%label_vars(code=DS);
 
 /*
 proc sort data=DS;
@@ -1621,6 +1800,8 @@ run;
 
 %put --- discharge ---;
 
+%label_vars(code=DI);
+
 proc report data=DI;
 	%title(type="listing",label='discharge');
 	*column USUBJID LPPERF DISCHARGED;
@@ -1632,7 +1813,9 @@ run;
 
 %put --- ART initiation ---;
 
-proc report data=ART;
+%label_vars(code=ART);
+
+proc report data=ART spanrows;
 	%title(type="listing",label='ART Initiation');
 	column USUBJID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
 	define USUBJID/order;
@@ -1643,6 +1826,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %put --- ART treatment ---;
+
+%label_vars(code=ARTT);
 
 proc report data=ARTT;
 	%title(type="listing",label='ART Treatment');
@@ -1658,6 +1843,7 @@ run;
 
 %order_levels(code=EX,var=VISIT);
 %order_levels(code=EX,var=EXDOSNB);
+%label_vars(code=EX);
 
 data EX;
 	set EX;
@@ -1693,9 +1879,16 @@ run;
 
 %put --- concomitant medications ---;
 
+%label_vars(code=CM);
+
+data CM;
+	set CM;
+	Dosing = catx('',CMDOSE,CMDOSU_LIB) || ' (' || strip(CMDOSFRQ) || ', ' || strip(CMROUTE_LIB) || ')';
+run;
+
 proc report data=CM spanrows;
 	%title(type="listing",label='Concomitant Medications');
-	column USUBJID CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
+	column USUBJID CMINDC CMTRT Dosing CMSTDTC CMENDTC CMONGO;
 	define USUBJID/order;
 run;
 
@@ -1706,13 +1899,14 @@ run;
 %put --- current symptoms ---;
 
 %order_levels(code=CE,var=VISIT);
+%label_vars(code=CE);
 
 proc tabulate data=CE;
 	%title(type="table",label="Current Symptoms");
 	title2 '(number of patients by visit and treatment)';
 	class VISIT treatment CETERM / order=internal;
 	table VISIT * CETERM * (n rowpctn='%'),
-			treatment all='total';
+			treatment all='Total';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1722,6 +1916,7 @@ run;
 %put --- adverse events ---;
 
 %order_levels(code=AE,var=AESEV);
+%label_vars(code=AE);
 
 data AE;
 	set AE;
@@ -1734,14 +1929,14 @@ proc tabulate data=AE;
 	title2 '(by type and treatment)';
 	class treatment AETERM;
 	table AETERM='' * (n),
-		treatment all='total';
+		treatment all='Total';
 run;
 
 proc tabulate data=AE;
 	%title(type="table",label="Number of Adverse Events");
 	title2 '(by severity and treatment)';
 	class AESEV treatment/order=internal;
-	table AESEV * (n rowpctn='%'), treatment all='total';
+	table AESEV * (n rowpctn='%'), treatment all='Total';
 run;
 
 proc report data=AE spanrows;
@@ -1758,6 +1953,8 @@ run;
 
 %put --- physical examination ---;
 
+%label_vars(code=PE);
+
 data PE_sub;
 	retain USUBJID VISIT PETESTCD PEORRES PEORRES_SP;
 	set PE(keep=USUBJID VISIT PETESTCD PEORRES PEORRES_SP);
@@ -1771,6 +1968,8 @@ run;
 /* * Subsection 4.X: vital signs * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%prepare;
+
 %put --- vital signs ---;
 
 data VS;
@@ -1779,7 +1978,6 @@ data VS;
 	if VSSTRESC in (' ','.') then VSSTRESC='N/A';
 run;
 
-
 %order_levels(code=VS,var=VISIT);
 /*%order_levels(code=VS,var=VSTEST);*/
 %order_levels(code=VS,var=VSSTRESC);
@@ -1787,6 +1985,7 @@ run;
 %as_numeric(code=VS,var=VSORRES);
 /*%sub_per(code=VS);*/
 %add_unit(code=VS);
+%label_vars(code=VS);
 
 /* table: vital signs at screening visit by treatment */ 
 %tabulate(code=VS,visit="Screening");
@@ -1870,8 +2069,9 @@ run;
 
 %put --- coma score ---;
 
-%as_numeric(code=GC,var=GCS_TOTAL);
 %order_levels(code=GC,var=VISIT);
+%as_numeric(code=GC,var=GCS_TOTAL);
+%label_vars(code=GC);
 
 data GC;
 	set GC;
@@ -1890,7 +2090,7 @@ proc tabulate data=GC;
 	title2 '(by visit and treatment)';
 	class VISIT GCS treatment / order=internal;
 	table VISIT * GCS * (n pctn<GCS>='%'),
-			treatment all='total';
+			treatment all='Total';
 run;
 
 data GC_sub;
@@ -1923,6 +2123,7 @@ run;
 
 %add_unit(code=LP);
 %as_numeric(code=LP,var=LPORRES_numeric); /* some values are semi-quantitative */ 
+%label_vars(code=LP);
 
 %macro tabulateLP(visit=);
 	proc tabulate data=LP;
@@ -1931,14 +2132,14 @@ run;
 		class VISIT treatment LPTEST;
 		where VISIT=&visit.;
 		table LPTEST * LPORRES_numeric='' * (mean median std min max n),
-		treatment all='total';
+		treatment all='Total';
 	run;
 	proc tabulate data=LP;
 		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
 		class VISIT treatment LPTEST LPORRES_ordinal;
 		where VISIT=&visit.;
-		table LPTEST * LPORRES_ordinal * (n),
-			treatment all='total';
+		table LPTEST * LPORRES_ordinal='' * (n),
+			treatment all='Total';
 	run;
 	/*
 	proc tabulate data=LP;
@@ -1948,7 +2149,7 @@ run;
 		where VISIT=&visit.;
 		table 	LPTEST * LPORRES_numeric='' * (mean median std min max n)
 				LPTEST * LPORRES_ordinal * (n),
-				treatment all='total';
+				treatment all='Total';
 	run;
 	*/
 %mend tabulateLP;
@@ -1986,6 +2187,7 @@ U-Leucocytes always has the unit Leu/uL. However, its values are not always nume
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
+%label_vars(code=LB);
 
 /*
 semi-quantitative urine analysis (negative, trace, 1/2/3/4+ 
@@ -2137,7 +2339,7 @@ run;
 		class treatment VISIT_ LBTEST LBCLSIG;
 		table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
 			LBTEST * LBORRES_numeric='' * (mean std median min max n),
-			treatment all='total';
+			treatment all='Total';
 	run;
 	proc tabulate data=LB;
 		%title(type="table",label="Urinalysis at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
@@ -2147,7 +2349,7 @@ run;
 		class treatment VISIT_ LBTEST LBCLSIG LBORRES_ordinal;
 		table	LBTEST * LBCLSIG * (n pctn<LBCLSIG>='%')
 			LBTEST * LBORRES_ordinal * (n pctn<LBORRES_ordinal>='%'),
-			treatment all='total';
+			treatment all='Total';
 	run;
 %mend tabulate_urine;
 
@@ -2163,7 +2365,7 @@ proc tabulate data=LB;
     var LBORRES;
     class VISIT_ treatment LBTEST;
     table LBTEST * LBORRES * (mean std median min max n),
-          treatment all='total';
+          treatment all='Total';
 run;
 proc tabulate data=LB;
 	%title(type="table",label='Infection Tests at Screening Visit');
@@ -2171,7 +2373,7 @@ proc tabulate data=LB;
     where type='HIV Test' and VISIT_='Screening' and LBSTNRC is not missing;
     class VISIT_ treatment LBTEST LBSTNRC;
     table LBTEST * LBSTNRC * (n pctn<LBSTNRC>='%'),
-          treatment all='total';
+          treatment all='Total';
 run;
 
 
@@ -2199,6 +2401,7 @@ run;
 %as_numeric(code=EG,var=EGORRES);
 /*%sub_per(code=EG);*/
 %add_unit(code=EG);
+%label_vars(code=EG);
 
 /* table: electrocardiogram, at day 1*/ 
 %tabulate(code=EG,visit="Day 1");
@@ -2212,8 +2415,9 @@ run;
 
 %put --- disability ---;
 
-%as_numeric(code=RANKIN,var=RANKIN_GRADE);
 %order_levels(code=RANKIN,var=VISIT);
+%label_vars(code=RANKIN);
+%as_numeric(code=RANKIN,var=RANKIN_GRADE);
 
 proc tabulate data=RANKIN;
 	%title(type="table",label="Rankin Disability Questionnaire");
@@ -2222,7 +2426,7 @@ proc tabulate data=RANKIN;
 	class VISIT treatment LPPERF RANKIN_Q1 RANKIN_Q2 / order=internal;
 	table 	VISIT * (LPPERF='lumbar puncture' RANKIN_Q1='Q1 (daily help)' RANKIN_Q2='Q2 (other problems)') * (n pctn<LPPERF RANKIN_Q1 RANKIN_Q2>='%')
 			VISIT * RANKIN_GRADE='grade' * (mean median std min max n),
-			treatment all='total';
+			treatment all='Total';
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -2232,11 +2436,12 @@ run;
 %put --- death details ---;
 
 %order_levels(code=DD,var=VISIT);
+%label_vars(code=DD);
 
 proc tabulate data=DD;
 	%title(type="table",label="Death Details");
 	class VISIT treatment DSSTATUS / order=internal;
-	table VISIT * DSSTATUS * (n pctn<DSSTATUS>='%'), treatment all='total';
+	table VISIT * DSSTATUS * (n pctn<DSSTATUS>='%'), treatment all='Total';
 run;
 
 proc report data=DD;
@@ -2251,13 +2456,14 @@ run;
 %put --- pregnancy ---;
 
 %order_levels(code=PR,var=VISIT);
+%label_vars(code=PR);
 
 proc tabulate data=PR;
-	%title(type="table",label="Pregnancy Tests");
+	%title(type="table",label="Pregnancy Rapid Urine Test");
 	title2 '(by visit and treatment)';
 	class VISIT treatment PREGORRES / order=internal;
 	table VISIT * PREGORRES * (n pctn<PREGORRES>='%'),
-			treatment all='total';
+			treatment all='Total';
 run;
 
 /*
@@ -2275,6 +2481,8 @@ run;
 
 %put --- quality of life ---;
 
+%label_vars(code=EQ);
+
 proc report data=EQ;
 	%title(type="listing",label="Quality of Life (EQ-5D-3L)");
 	column USUBJID VISIT treatment MOBILITY SELFCARE USUALACTIVITIES PAINDISCOMFORT ANXIETYDEPRESSION SCALE;
@@ -2287,6 +2495,8 @@ run;
  
 %put --- palatability ---;
 
+%label_vars(code=QUEST);
+
 /*
 Find a more compact way of presenting this.
 proc report data=QUEST;
@@ -2297,7 +2507,7 @@ run;
 /*
 proc tabulate data=QUEST;
 	class VISIT treatment PARTICIPANT_Q1 PARTICIPANT_Q2;
-	table VISIT * (PARTICIPANT_Q1 PARTICIPANT_Q2), treatment all='total';
+	table VISIT * (PARTICIPANT_Q1 PARTICIPANT_Q2), treatment all='Total';
 run;
 */
 	
@@ -2309,9 +2519,9 @@ run;
 
 %put --- pharmacokinetics ---;
 
-%as_numeric(code=PC,var=PC_DELAY);
 %order_levels(code=PC,var=PC_SAMPLING_TIME);
 %label_vars(code=PC);
+%as_numeric(code=PC,var=PC_DELAY);
 
 proc tabulate data=PC;
 	%title(type="table",label="Calculated Delay in Blood Sampling for Pharmacokinetics");
@@ -2367,6 +2577,7 @@ TO-DO-LIST
 - continue discussion on data corrections
 - do not overwrite variables when bringing values to the same unit
 - improve listings
+- check NCS and CS in LB_LABORATORY
 */
 
 ods pdf close;
