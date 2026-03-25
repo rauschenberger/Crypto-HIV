@@ -124,6 +124,7 @@ This adds information on the treatment sequence to dataset 'code'.
 		%add_rid(code=%scan(&code,&i));
 		%sort_rid(code=%scan(&code,&i));
 		%add_random(code=%scan(&code,&i));
+		*%label_vars(code=%scan(&code,&i));
 	%end;
 %mend prepare;
 /*
@@ -132,6 +133,80 @@ Note: Loops through a list of abbreviations (e.g., 'code = VS DM' for vital sign
 Description: Prepares the datasets by importing the datasets, adding the random identifiers,
 sorting the datasets by random identifiers and adding information on the treatment sequence.
 */
+
+%macro label_vars(code=);
+	proc datasets lib=work nolist;
+		modify &code.;
+		label
+			USUBJID = "Subject"
+			treatment = "Treatment";
+	quit;
+	%if &code.=DM %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				age = "Age";
+		quit;
+	%end;
+	%else %if &code.=MH %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				MHTERMPREP = "Given Reported Term"
+				MHTERM_YN = "Status"
+				MHTERM = "Other Reported Term"
+				MHSTDAT = "Start Date"
+				MHENDAT = "End Date"
+				MHONGO = "Ongoing";
+		quit;
+	%end;
+	%else %if &code.=DV %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				FORM = "Page"
+				DVTERM = "Deviation"
+				DVCAT = "Category";
+		quit;
+	%end;
+	%else %if &code.=PM %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				CMTRT = "Drug, Medicine, or Therapy"
+				CMDOSE = "Total Daily Dose"
+				CMDOSU = "Dose Units"
+				CMDOSFRQ = "Dosing Frequency per Internal"
+				CMROUTE = "Route of Administration"
+				CMINDCREF = "Reason for Prior Medication Specification";
+		quit;
+	%end;
+	%else %if &code.=IE %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				IECAT = "Category"
+				IETEST = "Criterion"
+				IEORRES = "Result"
+				EC_CHECK = "Check";
+		quit;
+	%end;
+	%else %if &code.=PC %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				PC_SAMPLING_TIME = "Sampling Time"
+				PCTPTREF = "Reference Time"
+				PCDTC = "Actual Time"
+				PC_DELAY_RSN = "Reason"
+				PC_DEVIATION = "Deviation?"
+				PC_DELAY = "Deviation (Minutes)";
+		quit;
+	%end;
+%mend label_vars;
+
 
 /* convert character to numeric */
 %macro as_numeric(code=,var=);
@@ -475,6 +550,9 @@ Description: Summarises measurements for each time point (rows) and treatment (c
 		%else %do;
 			where &var_test.=&test. and not missing(RID);
 		%end;
+	run;
+	proc sort data=DATA_DIFF;
+		by RID VISIT;
 	run;
 	data DATA_DIFF;
   		do until(last.RID);
@@ -1422,6 +1500,7 @@ run;
 %put --- medical history ---;
 
 %order_levels(code=MH,var=MHTERMPREP);
+%label_vars(code=MH);
 
 proc tabulate data=MH;
 	%title(type="table",label="Medical History");
@@ -1445,6 +1524,7 @@ run;
 %put --- prior medications ---;
 
 %order_levels(code=PM,var=CMROUTE);
+%label_vars(code=PM);
 
 proc report data=PM spanrows;
 	%title(type="listing",label='Prior Medications');
@@ -1457,6 +1537,8 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %put --- ineligibility ---;
+
+%label_vars(code=IE);
 
 proc tabulate data=IE;
 	%title(type="table",label="Ineligibility");
@@ -2229,6 +2311,7 @@ run;
 
 %as_numeric(code=PC,var=PC_DELAY);
 %order_levels(code=PC,var=PC_SAMPLING_TIME);
+%label_vars(code=PC);
 
 proc tabulate data=PC;
 	%title(type="table",label="Calculated Delay in Blood Sampling for Pharmacokinetics");
@@ -2263,11 +2346,15 @@ proc report data=PC spanrows;
 	%color(name=PC);
 	%title(type="table",label="Patients with a PK Blood Sampling Deviation");
 	title2 '(patients on days 1/2 or 6/7 with <-20 or >20 minutes)'; 
-	columns USUBJID VISIT PC_SAMPLING_TIME PCTPTREF PCDTC PC_DELAY_RSN PC_DEVIATION PC_DELAY;
+	columns USUBJID VISIT PC_SAMPLING_TIME PCTPTREF PCDTC PC_DEVIATION PC_DELAY PC_DELAY_RSN ;
 	where idv in (&idv_delay.);
 	define USUBJID/order;
 	define VISIT/order;
 run;
+
+/*
+Combine two columns on reasons! The second one is currently empty but might contain data in the future.
+*/
 
 /*
 proc report data=PC;
