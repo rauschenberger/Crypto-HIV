@@ -2035,6 +2035,13 @@ proc report data=QUEST;
 run;
 */
 
+/*
+proc tabulate data=QUEST;
+	class VISIT treatment PARTICIPANT_Q1 PARTICIPANT_Q2;
+	table VISIT * (PARTICIPANT_Q1 PARTICIPANT_Q2), treatment all='total';
+run;
+*/
+	
 /* CONTINUE HERE: tabulate with different levels for each variable? */ 
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -2166,7 +2173,7 @@ proc report data=MH spanrows;
 	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
 	column USUBJID MHTERMPREP MHTERM_YN MHTERM MHSTDAT MHENDAT MHONGO;
 	define USUBJID/order;
-	define treatment/order;
+	*define treatment/order;
 run;
 
 
