@@ -310,6 +310,8 @@ sorting the datasets by random identifiers and adding information on the treatme
 			label
 				VISIT = "Visit"
 				LBTEST = "Laboratory Test"
+				LBORRES = "Results"
+				LBSTNRC = "Result"
 				LBCLSIG = "Clinically Significant, Collected";
 		quit;
 	%end;
@@ -591,7 +593,7 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 		by &state_by.;
 	run;
 	options validvarname=any;
-	proc transpose data=long out=wide(drop=_name_);
+	proc transpose data=long out=wide(drop=_name_ _label_);
 		by &state_by.;
 		id &var_test.;
 		/*idlabel &var_test_.;*/
@@ -1699,12 +1701,43 @@ run;
 
 %put --- prior medications ---;
 
-%order_levels(code=PM,var=CMROUTE);
+%prepare;
+
+/*%order_levels(code=PM,var=CMROUTE);*/
 %label_vars(code=PM);
+
+data PM;
+	set PM;
+	length CMDOSU_LIB $60;
+	if CMDOSU='Milligram' then do;
+		CMDOSU_LIB = 'mg';
+	end;
+	else if CMDOSU = 'Gram' then do;
+		CMDOSU_LIB = 'g';
+	end;
+	else if CMDOSU = 'International Unit' then do;
+		CMDOSU_LIB = 'IU';
+	end;
+	else do;
+		CMDOSU_LIB = CMDOSU;
+	end;
+	length CMROUTE_LIB $60;
+	if CMROUTE = 'Oral Route of Administration' then do;
+		CMROUTE_LIB = 'oral';
+	end;
+	else if CMROUTE = 'Intravenous Route of Administration' then do;
+		CMROUTE_LIB = 'intravenous';
+	end;
+	else do;
+		CMROUTE_LIB = CMROUTE;
+	end;
+	Dosing = catx('',CMDOSE,CMDOSU_LIB) || ' (' || strip(CMDOSFRQ) || ', ' || strip(CMROUTE_LIB) || ')';
+run;
+
 
 proc report data=PM spanrows;
 	%title(type="listing",label='Prior Medications');
-	column USUBJID CMTRT CMDOSE CMDOSU CMDOSFRQ CMROUTE CMINDCREF;
+	column USUBJID CMTRT Dosing CMINDCREF;
 	define USUBJID/order;
 run;
 
@@ -2187,7 +2220,6 @@ U-Leucocytes always has the unit Leu/uL. However, its values are not always nume
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
 /*%order_levels(code=LB,var=time);*/
-%label_vars(code=LB);
 
 /*
 semi-quantitative urine analysis (negative, trace, 1/2/3/4+ 
@@ -2290,6 +2322,7 @@ run;
 
 /*%sub_per(code=LB);*/
 %add_unit(code=LB);
+%label_vars(code=LB);
 
 %macro process_LB(types=,visits=);
 	%local i type j visit;
@@ -2578,6 +2611,7 @@ TO-DO-LIST
 - do not overwrite variables when bringing values to the same unit
 - improve listings
 - check NCS and CS in LB_LABORATORY
+- check discharge listing
 */
 
 ods pdf close;
