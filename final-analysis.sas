@@ -1386,6 +1386,304 @@ run;
 
 ods text="Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
 
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: demographics  * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- demographics ---;
+
+%as_numeric(code=DM,var=vsorres_weight);
+%as_numeric(code=DM,var=vsorres_height);
+%as_numeric(code=DM,var=vsorres_bmi);
+%as_numeric(code=DM,var=age);
+
+data DM;
+	set DM;
+	weight=vsorres_weight;
+	height=vsorres_height;
+	bmi=vsorres_bmi;
+run;
+
+proc tabulate data=DM;
+	%title(type="listing",label='Demographics by Treatment');
+	title2 "(top: summary statistics for numerical variables,";
+	title3 "bottom: counts and percentages for categorical variables)";
+	class treatment sex race;
+	var age weight height bmi;
+	table 	(age weight height bmi)*(mean median std min max n)
+			(sex race)*(n colpctn='%'),
+			treatment all='total';
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: medical history * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- medical history ---;
+
+%order_levels(code=MH,var=MHTERMPREP);
+
+proc tabulate data=MH;
+	%title(type="table",label="Medical History");
+	title2 '(number and percentage of patients by treatment)';
+	class MHTERMPREP MHTERM_YN treatment /order=internal;
+	table MHTERMPREP * MHTERM_YN='' * (n pctn<MHTERM_YN>='%'), treatment all='total';
+run;
+
+proc report data=MH spanrows;
+	%title(type="listing",label='Medical History By Patient');
+	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
+	column USUBJID MHTERMPREP MHTERM_YN MHTERM MHSTDAT MHENDAT MHONGO;
+	define USUBJID/order;
+	*define treatment/order;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: prior medications * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- prior medications ---;
+
+%order_levels(code=PM,var=CMROUTE);
+
+proc report data=PM spanrows;
+	%title(type="listing",label='Prior Medications');
+	column USUBJID CMTRT CMDOSE CMDOSU CMDOSFRQ CMROUTE CMINDCREF;
+	define USUBJID/order;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: ineligibility * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- ineligibility ---;
+
+proc tabulate data=IE;
+	%title(type="table",label="Ineligibility");
+	title2 "(number of patients satisfying an inclusion or exclusion criterion)";
+	class IECAT IETEST IEORRES;
+	table IECAT * IETEST, IEORRES * (n);
+run;
+
+proc report data=IE spanrows;
+	%title(type="listing",label='Ineligible Samples');
+	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
+	column USUBJID IECAT IETEST IEORRES EC_CHECK;
+	define USUBJID/order;
+	define IECAT/order;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: protocol deviations   * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- protocol deviations ---;
+
+proc tabulate data=DV;
+	%title(type="table",label="Protocol Deviations");
+	title2 "(number and percentage by treatment)";
+	class treatment DVCAT;
+	table DVCAT * (n rowpctn='%'),
+		treatment all="total";
+run;
+
+data DV_sub;
+	retain USUBJID VISIT FORM DVTERM DVCAT;
+	set DV(keep=USUBJID VISIT FORM DVTERM DVCAT);
+run;
+
+%report(data=DV_sub,title='Protocol Deviations',title2='(sorted by patient and visit)',name=DV);
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: disposition milestones* * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- disposition milestones ---;
+
+%order_levels(code=DS,var=DSDECOD);
+
+/*
+proc sort data=DS;
+	by USUBJID;
+run;
+
+proc transpose data=DS out=DS_wide;
+	by USUBJID;
+	id DSSEQ;
+	idlabel DSDECOD;
+	var DSTERM;
+run;
+
+proc report data=DS_wide;
+run;
+*/
+
+proc tabulate data=DS;
+	%title(type="table",label='Disposition Milestones');
+	title2 '(number of patients)';
+	class DSDECOD / order=internal;
+	table DSDECOD='' * (n);
+run;
+
+/*
+proc report data=DS spanrows;
+	%title(type="listing",label='disposition milestones');
+	*column USUBJID VISIT DSDECOD;
+	define USUBJID/order;
+run;
+*/
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: discharge * * * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- discharge ---;
+
+proc report data=DI;
+	%title(type="listing",label='discharge');
+	*column USUBJID LPPERF DISCHARGED;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: ART initiation* * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- ART initiation ---;
+
+proc report data=ART;
+	%title(type="listing",label='ART Initiation');
+	column USUBJID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
+	define USUBJID/order;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: ART treatment * * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- ART treatment ---;
+
+proc report data=ARTT;
+	%title(type="listing",label='ART Treatment');
+	column USUBJID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
+	define USUBJID/order;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: treatment exposure* * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- treatment exposure ---;
+
+%order_levels(code=EX,var=VISIT);
+%order_levels(code=EX,var=EXDOSNB);
+
+data EX;
+	set EX;
+	dose = EXTRT || EXDOSNB;
+run;
+
+proc tabulate data=EX missing;
+	%title(type="table",label="Treatment Exposure");
+	title2 '(by visit and treatment)';
+	class VISIT dose treatment EXDOSNB EXTRT /order=internal;
+	table VISIT * (EXDOSNB * EXTRT) * (n), treatment;
+run;
+
+/* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: drug accountability * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+/*
+The dataset on drug accountability is empty.
+It does not contain any information on taken and remaining amounts.
+
+%put --- drug accountability ---;
+
+proc report data=DA;
+run;
+*/
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: concomitant medications * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- concomitant medications ---;
+
+proc report data=CM spanrows;
+	%title(type="listing",label='Concomitant Medications');
+	column USUBJID CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
+	define USUBJID/order;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: current symptoms* * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- current symptoms ---;
+
+%order_levels(code=CE,var=VISIT);
+
+proc tabulate data=CE;
+	%title(type="table",label="Current Symptoms");
+	title2 '(number of patients by visit and treatment)';
+	class VISIT treatment CETERM / order=internal;
+	table VISIT * CETERM * (n rowpctn='%'),
+			treatment all='total';
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- adverse events ---;
+
+%order_levels(code=AE,var=AESEV);
+
+data AE;
+	set AE;
+	if AEREL in ('A') then AEREL='';
+	if AEREL1 in ('A') then AEREL1='';
+run;
+
+proc tabulate data=AE;
+	%title(type="table",label="Number Adverse Events");
+	title2 '(by type and treatment)';
+	class treatment AETERM;
+	table AETERM='' * (n),
+		treatment all='total';
+run;
+
+proc tabulate data=AE;
+	%title(type="table",label="Number of Adverse Events");
+	title2 '(by severity and treatment)';
+	class AESEV treatment/order=internal;
+	table AESEV * (n rowpctn='%'), treatment all='total';
+run;
+
+proc report data=AE spanrows;
+	where AESEV_ not in ('Mild','Moderate');
+	%title(type="listing",label='Severe or Life-Threatening Adverse Events');
+	%color(name=AE);
+	column USUBJID AETERM AESEV_ AEACN1 AEOUT AEREL AEREL1 treatment;
+	define USUBJID/order;
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: physical examination* * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- physical examination ---;
+
+data PE_sub;
+	retain USUBJID VISIT PETESTCD PEORRES PEORRES_SP;
+	set PE(keep=USUBJID VISIT PETESTCD PEORRES PEORRES_SP);
+	if PEORRES='D' then PEORRES='';
+	where not missing(PEORRES) and PEORRES not in ('Normal','','D');
+run;
+
+%report(data=PE_sub,title='Physical Examination with Abnormal Results',name=PE);
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: vital signs * * * * * * * * * * * * * * * * * * * * * * */
@@ -1485,27 +1783,109 @@ run;
 %tabulate(code=VS,visit="Week 10");
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: electrocardiogram * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: Glasgow coma score* * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%put --- electrocardiogram ---;
+%put --- coma score ---;
 
-%order_levels(code=EG,var=VISIT);
-%order_levels(code=EG,var=EGSTRESC1);
-/*%order_levels(code=EG,var=EGTEST);*/
-%as_numeric(code=EG,var=EGORRES);
-/*%sub_per(code=EG);*/
-%add_unit(code=EG);
+%as_numeric(code=GC,var=GCS_TOTAL);
+%order_levels(code=GC,var=VISIT);
 
-/* table: electrocardiogram, at day 1*/ 
-%tabulate(code=EG,visit="Day 1");
+data GC;
+	set GC;
+	length GCS_max $5;
+	if GCSPERF='Yes' then do;
+		if GCS_TOTAL=15 then GCS='=15';
+		else GCS='<15';  
+	end;
+	else do;
+		GCS='N/A';
+	end;
+run;
 
-/* listing: abnormal EG at day 1*/ 
-%list_abnormal(code=EG,check_visit='Day 1',show_visit='Day 1');
+proc tabulate data=GC;
+	%title(type="table",label="Glasgow Coma Scale - Fully Awake Patients");
+	title2 '(by visit and treatment)';
+	class VISIT GCS treatment / order=internal;
+	table VISIT * GCS * (n pctn<GCS>='%'),
+			treatment all='total';
+run;
+
+data GC_sub;
+  	retain USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
+	set GC(keep=USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL);
+	where GCSPERF="Yes" and GCS_TOTAL < 15;
+	drop GCSPERF;
+run;
+
+%report(data=GC_sub,title='Glasgow coma scale - patients with a total score below 15',name=GC);
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: lumbar punctures* * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- lumbar punctures ---;
+
+data LP;
+	set LP;
+	if LPORRES in ('1+') then do;
+		LPORRES_numeric = '';
+		LPORRES_ordinal = LPORRES;
+	end;
+	else do;
+		LPORRES_numeric = LPORRES;
+		LPORRES_ordinal = '';
+	end;
+	LPORRES=LPORRES_numeric;
+run;
+
+%add_unit(code=LP);
+%as_numeric(code=LP,var=LPORRES_numeric); /* some values are semi-quantitative */ 
+
+%macro tabulateLP(visit=);
+	proc tabulate data=LP;
+		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Numerical Variables");
+		var LPORRES_numeric;
+		class VISIT treatment LPTEST;
+		where VISIT=&visit.;
+		table LPTEST * LPORRES_numeric='' * (mean median std min max n),
+		treatment all='total';
+	run;
+	proc tabulate data=LP;
+		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
+		class VISIT treatment LPTEST LPORRES_ordinal;
+		where VISIT=&visit.;
+		table LPTEST * LPORRES_ordinal * (n),
+			treatment all='total';
+	run;
+	/*
+	proc tabulate data=LP;
+		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - All Variables");
+		var LPORRES_numeric;
+		class VISIT treatment LPTEST LPORRES_ordinal;
+		where VISIT=&visit.;
+		table 	LPTEST * LPORRES_numeric='' * (mean median std min max n)
+				LPTEST * LPORRES_ordinal * (n),
+				treatment all='total';
+	run;
+	*/
+%mend tabulateLP;
+
+%macro processLP(visits=);
+    %let n = %sysfunc(countw(&visits., |));
+    %do i = 1 %to &n.;
+        %let visit = %scan(&visits., &i., |);
+        %tabulateLP(visit="&visit.");
+    %end;
+%mend processLP;
+
+%processLP(visits=Day 1|Day 3|Day 7|Day 15);
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * * Subsection 4.X: laboratory* * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- laboratory ---;
 
 /*
 To discuss with Aljosa: Rows with value but without unit. Consider LBCO? But some rows have no free-text comment. And at least one comment is 10E3/L but should be 10E3/UL.
@@ -1646,7 +2026,6 @@ run;
 
 /* urine analysis*/ 
 
-
 data LB_temp;
 	set LB;
 	if not missing(LBORRES_numeric) then do;
@@ -1727,55 +2106,41 @@ run;
 %process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: ART initiation* * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: electrocardiogram * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%put --- ART initiation ---;
+%put --- electrocardiogram ---;
 
-proc report data=ART;
-	%title(type="listing",label='ART Initiation');
-	column USUBJID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
-	define USUBJID/order;
-run;
+%order_levels(code=EG,var=VISIT);
+%order_levels(code=EG,var=EGSTRESC1);
+/*%order_levels(code=EG,var=EGTEST);*/
+%as_numeric(code=EG,var=EGORRES);
+/*%sub_per(code=EG);*/
+%add_unit(code=EG);
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: ART treatment * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* table: electrocardiogram, at day 1*/ 
+%tabulate(code=EG,visit="Day 1");
 
-%put --- ART treatment ---;
-
-proc report data=ARTT;
-	%title(type="listing",label='ART Treatment');
-	column USUBJID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
-	define USUBJID/order;
-run;
+/* listing: abnormal EG at day 1*/ 
+%list_abnormal(code=EG,check_visit='Day 1',show_visit='Day 1');
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: current symptoms* * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: Rankin disability questionnaire * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%put --- current symptoms ---;
+%put --- disability ---;
 
-%order_levels(code=CE,var=VISIT);
+%as_numeric(code=RANKIN,var=RANKIN_GRADE);
+%order_levels(code=RANKIN,var=VISIT);
 
-proc tabulate data=CE;
-	%title(type="table",label="Current Symptoms");
-	title2 '(number of patients by visit and treatment)';
-	class VISIT treatment CETERM / order=internal;
-	table VISIT * CETERM * (n rowpctn='%'),
+proc tabulate data=RANKIN;
+	%title(type="table",label="Rankin Disability Questionnaire");
+	title2 '(top: categorical variables, bottom: ordinal variable)';
+	var RANKIN_GRADE;
+	class VISIT treatment LPPERF RANKIN_Q1 RANKIN_Q2 / order=internal;
+	table 	VISIT * (LPPERF='lumbar puncture' RANKIN_Q1='Q1 (daily help)' RANKIN_Q2='Q2 (other problems)') * (n pctn<LPPERF RANKIN_Q1 RANKIN_Q2>='%')
+			VISIT * RANKIN_GRADE='grade' * (mean median std min max n),
 			treatment all='total';
-run;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: concomitant medications * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- concomitant medications ---;
-
-proc report data=CM spanrows;
-	%title(type="listing",label='Concomitant Medications');
-	column USUBJID CMINDC CMTRT CMDOSE CMDOSU_LIB CMDOSFRQ_LIB CMROUTE_LIB CMSTDAT CMENDAT CMONGO;
-	define USUBJID/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1795,208 +2160,6 @@ run;
 proc report data=DD;
 	%title(type="listing",label='Death Details');
 	where not missing(DSSTATUS) and DSSTATUS ne "Alive";
-run;
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: discharge * * * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- discharge ---;
-
-proc report data=DI;
-	%title(type="listing",label='discharge');
-	*column USUBJID LPPERF DISCHARGED;
-run;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: disposition milestones* * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- disposition milestones ---;
-
-%order_levels(code=DS,var=DSDECOD);
-
-/*
-proc sort data=DS;
-	by USUBJID;
-run;
-
-proc transpose data=DS out=DS_wide;
-	by USUBJID;
-	id DSSEQ;
-	idlabel DSDECOD;
-	var DSTERM;
-run;
-
-proc report data=DS_wide;
-run;
-*/
-
-proc tabulate data=DS;
-	%title(type="table",label='Disposition Milestones');
-	title2 '(number of patients)';
-	class DSDECOD / order=internal;
-	table DSDECOD='' * (n);
-run;
-
-/*
-proc report data=DS spanrows;
-	%title(type="listing",label='disposition milestones');
-	*column USUBJID VISIT DSDECOD;
-	define USUBJID/order;
-run;
-*/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: treatment exposure* * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- treatment exposure ---;
-
-%order_levels(code=EX,var=VISIT);
-%order_levels(code=EX,var=EXDOSNB);
-
-data EX;
-	set EX;
-	dose = EXTRT || EXDOSNB;
-run;
-
-proc tabulate data=EX missing;
-	%title(type="table",label="Treatment Exposure");
-	title2 '(by visit and treatment)';
-	class VISIT dose treatment EXDOSNB EXTRT /order=internal;
-	table VISIT * (EXDOSNB * EXTRT) * (n), treatment;
-run;
-
-/* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: Glasgow coma score* * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- coma score ---;
-
-%as_numeric(code=GC,var=GCS_TOTAL);
-%order_levels(code=GC,var=VISIT);
-
-data GC;
-	set GC;
-	length GCS_max $5;
-	if GCSPERF='Yes' then do;
-		if GCS_TOTAL=15 then GCS='=15';
-		else GCS='<15';  
-	end;
-	else do;
-		GCS='N/A';
-	end;
-run;
-
-proc tabulate data=GC;
-	%title(type="table",label="Glasgow Coma Scale - Fully Awake Patients");
-	title2 '(by visit and treatment)';
-	class VISIT GCS treatment / order=internal;
-	table VISIT * GCS * (n pctn<GCS>='%'),
-			treatment all='total';
-run;
-
-data GC_sub;
-  	retain USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
-	set GC(keep=USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL);
-	where GCSPERF="Yes" and GCS_TOTAL < 15;
-	drop GCSPERF;
-run;
-
-%report(data=GC_sub,title='Glasgow coma scale - patients with a total score below 15',name=GC);
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: lumbar punctures* * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- lumbar punctures ---;
-
-data LP;
-	set LP;
-	if LPORRES in ('1+') then do;
-		LPORRES_numeric = '';
-		LPORRES_ordinal = LPORRES;
-	end;
-	else do;
-		LPORRES_numeric = LPORRES;
-		LPORRES_ordinal = '';
-	end;
-	LPORRES=LPORRES_numeric;
-run;
-
-%add_unit(code=LP);
-%as_numeric(code=LP,var=LPORRES_numeric); /* some values are semi-quantitative */ 
-
-%macro tabulateLP(visit=);
-	proc tabulate data=LP;
-		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Numerical Variables");
-		var LPORRES_numeric;
-		class VISIT treatment LPTEST;
-		where VISIT=&visit.;
-		table LPTEST * LPORRES_numeric='' * (mean median std min max n),
-		treatment all='total';
-	run;
-	proc tabulate data=LP;
-		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
-		class VISIT treatment LPTEST LPORRES_ordinal;
-		where VISIT=&visit.;
-		table LPTEST * LPORRES_ordinal * (n),
-			treatment all='total';
-	run;
-	/*
-	proc tabulate data=LP;
-		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - All Variables");
-		var LPORRES_numeric;
-		class VISIT treatment LPTEST LPORRES_ordinal;
-		where VISIT=&visit.;
-		table 	LPTEST * LPORRES_numeric='' * (mean median std min max n)
-				LPTEST * LPORRES_ordinal * (n),
-				treatment all='total';
-	run;
-	*/
-%mend tabulateLP;
-
-%macro processLP(visits=);
-    %let n = %sysfunc(countw(&visits., |));
-    %do i = 1 %to &n.;
-        %let visit = %scan(&visits., &i., |);
-        %tabulateLP(visit="&visit.");
-    %end;
-%mend processLP;
-
-%processLP(visits=Day 1|Day 3|Day 7|Day 15);
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: physical examination* * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- physical examination ---;
-
-data PE_sub;
-	retain USUBJID VISIT PETESTCD PEORRES PEORRES_SP;
-	set PE(keep=USUBJID VISIT PETESTCD PEORRES PEORRES_SP);
-	if PEORRES='D' then PEORRES='';
-	where not missing(PEORRES) and PEORRES not in ('Normal','','D');
-run;
-
-%report(data=PE_sub,title='Physical Examination with Abnormal Results',name=PE);
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: prior medications * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- prior medications ---;
-
-%order_levels(code=PM,var=CMROUTE);
-
-proc report data=PM spanrows;
-	%title(type="listing",label='Prior Medications');
-	column USUBJID CMTRT CMDOSE CMDOSU CMDOSFRQ CMROUTE CMINDCREF;
-	define USUBJID/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -2025,9 +2188,23 @@ run;
 */
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/* * Subsection 4.X: quality of life * * * * * * * * * * * * * * * * * * * * */
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
+%put --- quality of life ---;
+
+proc report data=EQ;
+	%title(type="listing",label="Quality of Life (EQ-5D-3L)");
+	column USUBJID VISIT treatment MOBILITY SELFCARE USUALACTIVITIES PAINDISCOMFORT ANXIETYDEPRESSION SCALE;
+	where not missing(MOBILITY) or not missing(SELFCARE) or not missing(USUALACTIVITIES) or not missing(PAINDISCOMFORT) or not missing(ANXIETYDEPRESSION) or not missing (SCALE);
+run;
+
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: palatability acceptability* * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
  
+%put --- palatability ---;
+
 /*
 Find a more compact way of presenting this.
 proc report data=QUEST;
@@ -2043,197 +2220,6 @@ run;
 */
 	
 /* CONTINUE HERE: tabulate with different levels for each variable? */ 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: Rankin disability questionnaire * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- disability ---;
-
-%as_numeric(code=RANKIN,var=RANKIN_GRADE);
-%order_levels(code=RANKIN,var=VISIT);
-
-proc tabulate data=RANKIN;
-	%title(type="table",label="Rankin Disability Questionnaire");
-	title2 '(top: categorical variables, bottom: ordinal variable)';
-	var RANKIN_GRADE;
-	class VISIT treatment LPPERF RANKIN_Q1 RANKIN_Q2 / order=internal;
-	table 	VISIT * (LPPERF='lumbar puncture' RANKIN_Q1='Q1 (daily help)' RANKIN_Q2='Q2 (other problems)') * (n pctn<LPPERF RANKIN_Q1 RANKIN_Q2>='%')
-			VISIT * RANKIN_GRADE='grade' * (mean median std min max n),
-			treatment all='total';
-run;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: ineligibility * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- ineligibility ---;
-
-proc tabulate data=IE;
-	%title(type="table",label="Ineligibility");
-	title2 "(number of patients satisfying an inclusion or exclusion criterion)";
-	class IECAT IETEST IEORRES;
-	table IECAT * IETEST, IEORRES * (n);
-run;
-
-proc report data=IE spanrows;
-	%title(type="listing",label='Ineligible Samples');
-	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
-	column USUBJID IECAT IETEST IEORRES EC_CHECK;
-	define USUBJID/order;
-	define IECAT/order;
-run;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: protocol deviations   * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- protocol deviations ---;
-
-proc tabulate data=DV;
-	%title(type="table",label="Protocol Deviations");
-	title2 "(number and percentage by treatment)";
-	class treatment DVCAT;
-	table DVCAT * (n rowpctn='%'),
-		treatment all="total";
-run;
-
-data DV_sub;
-	retain USUBJID VISIT FORM DVTERM DVCAT;
-	set DV(keep=USUBJID VISIT FORM DVTERM DVCAT);
-run;
-
-%report(data=DV_sub,title='Protocol Deviations',title2='(sorted by patient and visit)',name=DV);
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: demographics  * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- demographics ---;
-
-%as_numeric(code=DM,var=vsorres_weight);
-%as_numeric(code=DM,var=vsorres_height);
-%as_numeric(code=DM,var=vsorres_bmi);
-%as_numeric(code=DM,var=age);
-
-data DM;
-	set DM;
-	weight=vsorres_weight;
-	height=vsorres_height;
-	bmi=vsorres_bmi;
-run;
-
-proc tabulate data=DM;
-	%title(type="listing",label='Demographics by Treatment');
-	title2 "(top: summary statistics for numerical variables,";
-	title3 "bottom: counts and percentages for categorical variables)";
-	class treatment sex race;
-	var age weight height bmi;
-	table 	(age weight height bmi)*(mean median std min max n)
-			(sex race)*(n colpctn='%'),
-			treatment all='total';
-run;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: alcohol and smoking * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/*
-%order_levels(code=SU,var=SUOCCUR);
-%order_levels(code=SU,var=SUTRT);
-%as_numeric(code=SU,var=SUDOSE);
-
-proc tabulate data=SU;
-    %title(type="listing",label='alcohol and smoking by sequence');
-	class treatment SUTRT SUOCCUR / order=internal;
-    var SUDOSE;
-    table SUTRT * SUOCCUR * (n pctn<SUOCCUR>='%')
-          SUTRT * SUDOSE *(mean std median min max n),
-          treatment all='total';
-run;
-*/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: medical history * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- medical history ---;
-
-%order_levels(code=MH,var=MHTERMPREP);
-
-proc tabulate data=MH;
-	%title(type="table",label="Medical History");
-	title2 '(number and percentage of patients by treatment)';
-	class MHTERMPREP MHTERM_YN treatment /order=internal;
-	table MHTERMPREP * MHTERM_YN='' * (n pctn<MHTERM_YN>='%'), treatment all='total';
-run;
-
-proc report data=MH spanrows;
-	%title(type="listing",label='Medical History By Patient');
-	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
-	column USUBJID MHTERMPREP MHTERM_YN MHTERM MHSTDAT MHENDAT MHONGO;
-	define USUBJID/order;
-	*define treatment/order;
-run;
-
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- adverse events ---;
-
-%order_levels(code=AE,var=AESEV);
-
-data AE;
-	set AE;
-	if AEREL in ('A') then AEREL='';
-	if AEREL1 in ('A') then AEREL1='';
-run;
-
-proc tabulate data=AE;
-	%title(type="table",label="Number Adverse Events");
-	title2 '(by type and treatment)';
-	class treatment AETERM;
-	table AETERM='' * (n),
-		treatment all='total';
-run;
-
-proc tabulate data=AE;
-	%title(type="table",label="Number of Adverse Events");
-	title2 '(by severity and treatment)';
-	class AESEV treatment/order=internal;
-	table AESEV * (n rowpctn='%'), treatment all='total';
-run;
-
-proc report data=AE spanrows;
-	where AESEV_ not in ('Mild','Moderate');
-	%title(type="listing",label='Severe or Life-Threatening Adverse Events');
-	%color(name=AE);
-	column USUBJID AETERM AESEV_ AEACN1 AEOUT AEREL AEREL1 treatment;
-	define USUBJID/order;
-run;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: drug accountability * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-/* empty data set*
-proc report data=DA;
-run;
-*/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: quality of life * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- quality of life ---;
-
-proc report data=EQ;
-	%title(type="listing",label="Quality of Life (EQ-5D-3L)");
-	column USUBJID VISIT treatment MOBILITY SELFCARE USUALACTIVITIES PAINDISCOMFORT ANXIETYDEPRESSION SCALE;
-	where not missing(MOBILITY) or not missing(SELFCARE) or not missing(USUALACTIVITIES) or not missing(PAINDISCOMFORT) or not missing(ANXIETYDEPRESSION) or not missing (SCALE);
-run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: pharmacokinetics * * * * * * * * * * * * * * * * * * * * */
@@ -2289,7 +2275,6 @@ proc report data=PC;
 run;
 */
 
-
 /*
 TO-DO-LIST
 - continue discussion on data corrections
@@ -2297,9 +2282,7 @@ TO-DO-LIST
 - improve listings
 */
 
-
 ods pdf close;
-
 
 %macro ignore;
 
