@@ -265,6 +265,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%else %do;
 		%put ERROR;
 	%end;
+	/*
 	%put label=&label.;
 	%put var_test=&var_test.;
 	%put var_test_=&var_test_.;
@@ -273,6 +274,7 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%put var_judge=&var_judge.;
 	%put var_judge_=&var_judge_.;
 	%put var_unit=&var_unit.;
+	*/
 %mend getvars;
 
 
