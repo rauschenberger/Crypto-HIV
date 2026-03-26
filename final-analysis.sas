@@ -1617,6 +1617,15 @@ data random;
 	rename temp=treatment;
 run;
 
+
+/* Run the following code chunk to mask the treatment. */ 
+/*
+data random;
+	set random;
+	treatment = 'masked';
+run;
+*/
+
 %prepare;
 
 %let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
@@ -1711,8 +1720,6 @@ run;
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 %put --- prior medications ---;
-
-%prepare;
 
 %label_vars(code=PM);
 
@@ -2011,8 +2018,6 @@ run;
 /* * Subsection 4.X: vital signs * * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%prepare;
-
 %put --- vital signs ---;
 
 data VS;
@@ -2211,8 +2216,6 @@ run;
 /* * * Subsection 4.X: laboratory* * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-%prepare;
-
 %put --- laboratory ---;
 
 data LB;
@@ -2326,6 +2329,18 @@ data LB;
 		if LBORRESU = 'g/dL' then do;
 			LBORRES = 10*LBORRES;
 			LBORRESU = 'g/L';
+		end;
+	end;
+	else if LBTEST = 'Neutrophils' then do;
+		if LBORRESU = '109/L' then do;
+			LBORRES = LBORRES * 1000;
+			LBORRESU = 'cells/uL';
+		end;
+	end;
+	else if LBTEST = 'Leucocytes' then do;
+		if LBORRESU = '109/L' then do;
+			LBORRES = LBORRES * 1000;
+			LBORRESU = 'cells/uL';
 		end;
 	end;
 run;
