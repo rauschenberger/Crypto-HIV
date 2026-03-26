@@ -807,7 +807,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		if RID in (&ids_abnormal.);
 	run;
 	proc sort data=temp;
-		by RID; /*included VSDTC*/  /* ALSO SORT BY VISIT? by RID VISIT */ 
+		by RID VISIT;
 	run;
 	data temp;
 		set temp;
@@ -1650,6 +1650,21 @@ proc odstext;
 run;
 
 ods text="Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
+
+ods pdf startpage=now;
+
+proc odstext;
+	h1 "Data Issues";
+	p  "Leucocytes has either LBORRESU equal to 109/L or cells/uL or a free-text comment in LBCO (multiple variants of 10e3/uL).";
+	p  "One entry in LBCO is not 10E3/UL but 10E3/L. This is probably a data entry error.";
+	p  "Magnesium has LBORRESU5 equal to mg/dL or nmol/L, but sometimes there is no unit.";
+	p  "Neutrophils has LBORREESU equal to 109/L or cells/uL, but sometimes there is no unit.";
+	p  "Laboratory values are always judged NCS Abnormal or CS Abnormal, but never Normal."; /* Replace missing by normal in code! */ 
+	p  "PC_DEVIATION is often equal to Yes even if there is no delay.";
+	p  "PC_DELAY does not take into account the date. So time differences between two different days are wrong.";
+	p  "PC_DEVIATION is someting equal to No even if sampling was done several hours earlier.";
+	p  "PC_DEVIATION seems to suffer from a confusion between AM and PM in one case. The deviation is 12 x 60 = 720.";
+run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: demographics  * * * * * * * * * * * * * * * * * * * * * */
