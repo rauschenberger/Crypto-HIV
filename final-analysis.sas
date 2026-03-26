@@ -1623,14 +1623,7 @@ run;
 %let post_weeks='Week 4' 'Week 6' 'Week 10';
  
 /*
-- normal ranges for vital signs (supine/sitting/standing), electro-cardiogram, and haematology
-- LB results are always juged NCS or CS (never normal). Do we expect this? (This is different for VS and ECG.)
 - data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
-- LB: different units, missing units
-- data dictionary?
-*/
-/*
-ods pdf file="&pathOut.\myfile.pdf" style=printer startpage=yes author="Armin Rauschenberger";
 */
 
 options nodate nonumber;
@@ -1644,9 +1637,9 @@ ods pdf text="^S={just=c font_size=14pt} ^5n ";
 
 proc odstext;
 	h1 "Disclaimer";
-	p  "^{style [color=red fontweight=bold] Problems in the datasets have not yet been fixed.}";
-	p  "^{style [color=red fontweight=bold] Reference ranges and conversion factors have not yet been provided.}";
-	p  "^{style [color=red fontweight=bold] The programming code has not yet been double-checked.}";
+	p  "^{style [color=red fontweight=bold] Problems in the datasets (see below) have not yet been fixed.}";
+	p  "^{style [color=red fontweight=bold] Reference ranges (VS, EG, and LB) and conversion factors (LB) have not yet been provided.}";
+	p  "^{style [color=red fontweight=bold] The SAS code has not yet been double-checked.}";
 run;
 
 ods text="Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
@@ -1659,11 +1652,12 @@ proc odstext;
 	p  "One entry in LBCO is not 10E3/UL but 10E3/L. This is probably a data entry error.";
 	p  "Magnesium has LBORRESU5 equal to mg/dL or nmol/L, but sometimes there is no unit.";
 	p  "Neutrophils has LBORREESU equal to 109/L or cells/uL, but sometimes there is no unit.";
-	p  "Laboratory values are always judged NCS Abnormal or CS Abnormal, but never Normal."; /* Replace missing by normal in code! */ 
+	p  "Laboratory values are always judged NCS Abnormal or CS Abnormal, but never Normal.";
 	p  "PC_DEVIATION is often equal to Yes even if there is no delay.";
 	p  "PC_DELAY does not take into account the date. So time differences between two different days are wrong.";
-	p  "PC_DEVIATION is someting equal to No even if sampling was done several hours earlier.";
-	p  "PC_DEVIATION seems to suffer from a confusion between AM and PM in one case. The deviation is 12 x 60 = 720.";
+	p  "PC_DEVIATION is sometimes equal to No even if sampling was done several hours earlier.";
+	p  "PC_DEVIATION seems to suffer from a confusion between AM and PM in one case (as the deviation is 12 x 60 = 720 min).";
+	p 	"U-Leucocytes always has the unit Leu/uL. However, its values are not always numerical but also +, NEG, N. Once, the value is in the free-text LCBO (NEGATIVE).";
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1677,15 +1671,6 @@ run;
 %as_numeric(code=DM,var=vsorres_bmi);
 %as_numeric(code=DM,var=age);
 %label_vars(code=DM);
-
-/*
-data DM;
-	set DM;
-	weight=vsorres_weight;
-	height=vsorres_height;
-	bmi=vsorres_bmi;
-run;
-*/
 
 proc tabulate data=DM;
 	%title(type="table",label='Demographics by Treatment');
@@ -1719,7 +1704,6 @@ proc report data=MH spanrows;
 	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
 	column USUBJID MHTERMPREP MHTERM_YN MHTERM MHSTDAT MHENDAT MHONGO;
 	define USUBJID/order;
-	*define treatment/order;
 run;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -1730,7 +1714,6 @@ run;
 
 %prepare;
 
-/*%order_levels(code=PM,var=CMROUTE);*/
 %label_vars(code=PM);
 
 data PM;
@@ -2232,19 +2215,18 @@ run;
 
 %put --- laboratory ---;
 
-/*
-To discuss with Aljosa: Rows with value but without unit. Consider LBCO? But some rows have no free-text comment. And at least one comment is 10E3/L but should be 10E3/UL.
-
-proc report data=LB;
-	where not missing(LBORRES) and missing(LBORRESU) and LBTEST in ('Leucocytes','Magnesium','Neutrophils');
+data LB;
+	set LB;
+	length temp $60;
+	if missing(LBCLSIG) then do;
+		temp = 'Normal';
+	end;
+	else do
+		temp = LBCLSIG;
+	end;
+	drop LBCLSIG;
+	rename temp=LBCLSIG;
 run;
-
-Leucocytes has either LBORRESU equal to 109/L or cells/uL or a free-text comment in LBCO (multiple variants of 10e3/uL).
-Magnesium has LBORRESU5 equal to mg/dL or nmol/L, but sometimes there is no unit.
-Neutrophils has LBORREESU equal to 109/L or cells/uL, but sometimes there is no unit.
-U-Leucocytes always has the unit Leu/uL. However, its values are not always numerical but also +, NEG, N. Once, the value is in the free-text LCBO ("NEGATIVE").
-(Similar problems also occur for other variables.)
- */
 
 %order_levels(code=LB,var=VISIT);
 %order_levels(code=LB,var=LBCLSIG);
@@ -2266,7 +2248,6 @@ data LB;
 	if LBORRES='.' and LBSTNRC='Positive' then LBORRES='Positive';
 	else if LBORRES='.' and LBSTNRC='Negative' then LBORRES='Negative';
 run;
-
 
 data LB;
 	set LB;
@@ -2439,7 +2420,6 @@ proc tabulate data=LB;
     table LBTEST * LBSTNRC * (n pctn<LBSTNRC>='%'),
           treatment all='Total';
 run;
-
 
 /* Switch to showing those with CS only?*/ 
 
