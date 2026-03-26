@@ -310,8 +310,8 @@ sorting the datasets by random identifiers and adding information on the treatme
 			label
 				VISIT = "Visit"
 				LBTEST = "Laboratory Test"
-				LBORRES = "Results"
-				LBSTNRC = "Result"
+				/*LBORRES = "Result"*/
+				/*LBSTNRC = "Result"*/
 				LBCLSIG = "Clinically Significant, Collected";
 		quit;
 	%end;
@@ -624,7 +624,7 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 	run;
 	*/
 	proc report data=&data. spanrows
-	    style(report)=[width=100%]
+	    /*style(report)=[width=100%]*/
         %if %length(&width.) > 0 %then %do;
             style(column)=[cellwidth=&width.]
             style(header)=[cellwidth=&width.]
@@ -823,7 +823,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 		title2 '(for those abnormal at' &check_visit. ')';
     	xaxis label='time'; 
     	yaxis label='value';
-   		keylegend / title='USUBJID';
+   		keylegend / title='Subject';
 		%if %bquote(&test.)=%bquote("Systolic Blood Pressure (mmHg)") %then %do;
 			refline 90 140 / axis=y lineattrs=(thickness=2);
 		%end;
@@ -2339,7 +2339,7 @@ run;
 %label_vars(code=LB);
 
 %macro process_LB(types=,visits=);
-	%local i type j visit;
+	%local i type j visit width;
 	%do j = 1 %to %sysfunc(countw(&visits, |));
         %let visit = %scan(&visits, &j, |);
 		%do i = 1 %to %sysfunc(countw(&types, |));
@@ -2349,7 +2349,9 @@ run;
 	%end;
 	%do i = 1 %to %sysfunc(countw(&types, |));
 		%let type = %scan(&types, &i, |);
-		%list_abnormal(code=LB,type="&type",check_visit='Screening',show_visit='Screening' 'Unscheduled',width=8.9%);
+		%if &type. = Clinical Chemistry %then %let width = 8.3%;
+        %else %if &type. = Hematology   %then %let width = 9.9%;
+		%list_abnormal(code=LB,type="&type",check_visit='Screening',show_visit='Screening' 'Unscheduled',width=&width.);
 	%end;
 %mend process_LB;
 
