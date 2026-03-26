@@ -593,12 +593,18 @@ and saves their randomisation identifers in the macro variable 'ids_abnormal'.
 		by &state_by.;
 	run;
 	options validvarname=any;
-	proc transpose data=long out=wide(drop=_name_ _label_);
+	proc transpose data=long out=wide(drop=_name_); /* _label_*/ 
 		by &state_by.;
 		id &var_test.;
 		/*idlabel &var_test_.;*/
 		var &var_score.;
 	run;
+	/*
+	data wide;
+		set wide;
+		drop _label_;
+	run;
+	*/
 	options validvarname=v7;
 	proc datasets lib=work nolist;
         delete long;
@@ -610,14 +616,20 @@ and one or more visits (e.g., visit='Screening Visit' 'Unscheduled').
 */
 
 /* report with colour for extreme values */ 
-%macro report(data=,title=,title2=,name=none);
+%macro report(data=,title=,title2=,name=none,width=);
 	options validvarname=any;
 	/*
 	proc sort data=&data.;
 		by RID VISIT;
 	run;
 	*/
-	proc report data=&data. spanrows;
+	proc report data=&data. spanrows
+	    style(report)=[width=100%]
+        %if %length(&width.) > 0 %then %do;
+            style(column)=[cellwidth=&width.]
+            style(header)=[cellwidth=&width.]
+        %end;
+        ;
 		%color(name=&name.);
 		/*define RID/order order=internal;*/
 		define USUBJID/order;
@@ -640,7 +652,7 @@ Description: Adds colour for extreme values (see format section). Defines order 
 */
 
 /* report patients with abnormal values*/ 
-%macro list_abnormal(code=,type=,check_visit=,show_visit=);
+%macro list_abnormal(code=,type=,check_visit=,show_visit=,width=);
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit ids_abnormal title;
 	%getvars(code=&code.);
 	%extract_ids_abnormal(code=&code.,type=&type.,visit=&check_visit.);
@@ -653,7 +665,7 @@ Description: Adds colour for extreme values (see format section). Defines order 
 	%else %do;
 		%let title = "%sysfunc(dequote(&label.)) Data at Visit &show_visit., if any Abnormal at Visit &check_visit.";
 	%end;
-	%report(data=wide,title=&title.,name=&code.);
+	%report(data=wide,title=&title.,name=&code.,width=&width.);
 	proc datasets lib=work nolist;
         delete wide;
     quit;
@@ -1862,7 +1874,7 @@ run;
 
 %label_vars(code=ARTT);
 
-proc report data=ARTT;
+proc report data=ARTT style(report)=[width=100%] style(column)=[cellwidth=8.33%] style(header)=[cellwidth=8.33%];;
 	%title(type="listing",label='ART Treatment');
 	column USUBJID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
 	define USUBJID/order;
@@ -2062,7 +2074,7 @@ options validvarname=v7;
 end trial */ 
 
 /* listing: abnormal at screening */
-%list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled');
+%list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled',width=8%);
 
 /* tables: values of and change in vital signs*/ 
 %process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%)); /* per */
@@ -2201,6 +2213,8 @@ run;
 /* * * Subsection 4.X: laboratory* * * * * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+%prepare;
+
 %put --- laboratory ---;
 
 /*
@@ -2335,7 +2349,7 @@ run;
 	%end;
 	%do i = 1 %to %sysfunc(countw(&types, |));
 		%let type = %scan(&types, &i, |);
-		%list_abnormal(code=LB,type="&type",check_visit='Screening',show_visit='Screening' 'Unscheduled');
+		%list_abnormal(code=LB,type="&type",check_visit='Screening',show_visit='Screening' 'Unscheduled',width=8.9%);
 	%end;
 %mend process_LB;
 
@@ -2360,7 +2374,7 @@ data LB_temp;
 	*/
 run;
 
-%list_abnormal(code=LB_temp,type="Urianalysis",check_visit='Screening',show_visit='Screening' 'Unscheduled');
+%list_abnormal(code=LB_temp,type="Urianalysis",check_visit='Screening',show_visit='Screening' 'Unscheduled',width=8.1%);
 
 %macro tabulate_urine(visit=);
 	proc tabulate data=LB;
