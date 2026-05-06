@@ -1635,39 +1635,12 @@ run;
 - data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
 */
 
-options nodate nonumber;
-ods escapechar='^';
-ods pdf file="&pathOut.\\myfile.pdf" style=printer startpage=yes;
-ods pdf text="^S={just=c font_size=24pt font_weight=bold} ^10n 5FC HIV-Crypto";
-ods pdf text="^S={just=c font_size=24pt} ^1n Tables, Listings, and Figures";
-ods pdf text="^S={just=c font_size=14pt} ^10n Armin Rauschenberger";
-ods pdf text="^S={just=c font_size=14pt} ^1n %sysfunc(today(), worddate.)";
-ods pdf text="^S={just=c font_size=14pt} ^5n ";
-
-proc odstext;
-	h1 "Disclaimer";
-	p  "^{style [color=red fontweight=bold] Problems in the datasets (see below) have not yet been fixed.}";
-	p  "^{style [color=red fontweight=bold] Reference ranges (VS, EG, and LB) and conversion factors (LB) have not yet been provided.}";
-	p  "^{style [color=red fontweight=bold] The SAS code has not yet been double-checked.}";
-run;
-
-ods text="Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
-
-ods pdf startpage=now;
-
-proc odstext;
-	h1 "Data Issues";
-	p  "Leucocytes has either LBORRESU equal to 109/L or cells/uL or a free-text comment in LBCO (multiple variants of 10e3/uL).";
-	p  "One entry in LBCO is not 10E3/UL but 10E3/L. This is probably a data entry error.";
-	p  "Magnesium has LBORRESU5 equal to mg/dL or nmol/L, but sometimes there is no unit.";
-	p  "Neutrophils has LBORREESU equal to 109/L or cells/uL, but sometimes there is no unit.";
-	p  "Laboratory values are always judged NCS Abnormal or CS Abnormal, but never Normal.";
-	p  "PC_DEVIATION is often equal to Yes even if there is no delay.";
-	p  "PC_DELAY does not take into account the date. So time differences between two different days are wrong.";
-	p  "PC_DEVIATION is sometimes equal to No even if sampling was done several hours earlier.";
-	p  "PC_DEVIATION seems to suffer from a confusion between AM and PM in one case (as the deviation is 12 x 60 = 720 min).";
-	p 	"U-Leucocytes always has the unit Leu/uL. However, its values are not always numerical but also +, NEG, N. Once, the value is in the free-text LCBO (NEGATIVE).";
-run;
+ods document name=tables(write);
+ods document close;
+ods document name=figures(write);
+ods document close;
+ods document name=listings(write);
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: demographics  * * * * * * * * * * * * * * * * * * * * * */
@@ -1681,6 +1654,7 @@ run;
 %as_numeric(code=DM,var=age);
 %label_vars(code=DM);
 
+ods document name=tables(update);
 proc tabulate data=DM;
 	%title(type="table",label='Demographics by Treatment');
 	title2 "(top: summary statistics for numerical variables,";
@@ -1691,6 +1665,7 @@ proc tabulate data=DM;
 			(sex race)*(n colpctn='%'),
 			treatment all='Total';
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: medical history * * * * * * * * * * * * * * * * * * * * */
@@ -1701,19 +1676,23 @@ run;
 %order_levels(code=MH,var=MHTERMPREP);
 %label_vars(code=MH);
 
+ods document name=tables(update);
 proc tabulate data=MH;
 	%title(type="table",label="Medical History");
 	title2 '(number and percentage of patients by treatment)';
 	class MHTERMPREP MHTERM_YN treatment /order=internal;
 	table MHTERMPREP * MHTERM_YN='' * (n pctn<MHTERM_YN>='%'), treatment all='Total';
 run;
+ods document close;
 
+ods document name=listings(update);
 proc report data=MH spanrows;
 	%title(type="listing",label='Medical History By Patient');
 	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
 	column USUBJID MHTERMPREP MHTERM_YN MHTERM MHSTDAT MHENDAT MHONGO;
 	define USUBJID/order;
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: prior medications * * * * * * * * * * * * * * * * * * * */
@@ -1752,11 +1731,13 @@ data PM;
 run;
 
 
+ods document name=listings(update);
 proc report data=PM spanrows;
 	%title(type="listing",label='Prior Medications');
 	column USUBJID CMTRT Dosing CMINDCREF;
 	define USUBJID/order;
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: ineligibility * * * * * * * * * * * * * * * * * * * * * */
@@ -1766,13 +1747,16 @@ run;
 
 %label_vars(code=IE);
 
+ods document name=tables(update);
 proc tabulate data=IE;
 	%title(type="table",label="Ineligibility");
 	title2 "(number of patients satisfying an inclusion or exclusion criterion)";
 	class IECAT IETEST IEORRES;
 	table IECAT * IETEST, IEORRES * (n);
 run;
+ods document close;
 
+ods document name=listings(update);
 proc report data=IE spanrows;
 	%title(type="listing",label='Ineligible Samples');
 	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
@@ -1780,6 +1764,7 @@ proc report data=IE spanrows;
 	define USUBJID/order;
 	define IECAT/order;
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: protocol deviations   * * * * * * * * * * * * * * * * * */
@@ -1789,6 +1774,7 @@ run;
 
 %label_vars(code=DV);
 
+ods document name=tables(update);
 proc tabulate data=DV;
 	%title(type="table",label="Protocol Deviations");
 	title2 "(number and percentage by treatment)";
@@ -1796,13 +1782,16 @@ proc tabulate data=DV;
 	table DVCAT * (n rowpctn='%'),
 		treatment all="total";
 run;
+ods document close;
 
 data DV_sub;
 	retain USUBJID VISIT FORM DVTERM DVCAT;
 	set DV(keep=USUBJID VISIT FORM DVTERM DVCAT);
 run;
 
+ods document name=listings(update);
 %report(data=DV_sub,title='Protocol Deviations',title2='(sorted by patient and visit)',name=DV);
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: disposition milestones* * * * * * * * * * * * * * * * * */
@@ -1829,12 +1818,14 @@ proc report data=DS_wide;
 run;
 */
 
+ods document name=tables(update);
 proc tabulate data=DS;
 	%title(type="table",label='Disposition Milestones');
 	title2 '(number of patients)';
 	class DSDECOD / order=internal;
 	table DSDECOD='' * (n);
 run;
+ods document close;
 
 /*
 proc report data=DS spanrows;
@@ -1852,10 +1843,12 @@ run;
 
 %label_vars(code=DI);
 
+ods document name=listings(update);
 proc report data=DI;
 	%title(type="listing",label='discharge');
 	*column USUBJID LPPERF DISCHARGED;
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: ART initiation* * * * * * * * * * * * * * * * * * * * * */
@@ -1865,11 +1858,13 @@ run;
 
 %label_vars(code=ART);
 
+ods document name=listings(update);
 proc report data=ART spanrows;
 	%title(type="listing",label='ART Initiation');
 	column USUBJID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
 	define USUBJID/order;
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: ART treatment * * * * * * * * * * * * * * * * * * * * * */
@@ -1879,11 +1874,13 @@ run;
 
 %label_vars(code=ARTT);
 
+ods document name=listings(update);
 proc report data=ARTT style(report)=[width=100%] style(column)=[cellwidth=8.33%] style(header)=[cellwidth=8.33%];;
 	%title(type="listing",label='ART Treatment');
 	column USUBJID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
 	define USUBJID/order;
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: treatment exposure* * * * * * * * * * * * * * * * * * * */
@@ -1900,12 +1897,14 @@ data EX;
 	dose = EXTRT || EXDOSNB;
 run;
 
+ods document name=tables(update);
 proc tabulate data=EX missing;
 	%title(type="table",label="Treatment Exposure");
 	title2 '(by visit and treatment)';
 	class VISIT dose treatment EXDOSNB EXTRT /order=internal;
 	table VISIT * (EXDOSNB * EXTRT) * (n), treatment;
 run;
+ods document close;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
 
@@ -1936,11 +1935,13 @@ data CM;
 	Dosing = catx('',CMDOSE,CMDOSU_LIB) || ' (' || strip(CMDOSFRQ) || ', ' || strip(CMROUTE_LIB) || ')';
 run;
 
+ods document name=listings(update);
 proc report data=CM spanrows;
 	%title(type="listing",label='Concomitant Medications');
 	column USUBJID CMINDC CMTRT Dosing CMSTDTC CMENDTC CMONGO;
 	define USUBJID/order;
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: current symptoms* * * * * * * * * * * * * * * * * * * * */
@@ -1951,6 +1952,7 @@ run;
 %order_levels(code=CE,var=VISIT);
 %label_vars(code=CE);
 
+ods document name=tables(update);
 proc tabulate data=CE;
 	%title(type="table",label="Current Symptoms");
 	title2 '(number of patients by visit and treatment)';
@@ -1958,6 +1960,7 @@ proc tabulate data=CE;
 	table VISIT * CETERM * (n rowpctn='%'),
 			treatment all='Total';
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
@@ -1974,6 +1977,7 @@ data AE;
 	if AEREL1 in ('A') then AEREL1='';
 run;
 
+ods document name=tables(update);
 proc tabulate data=AE;
 	%title(type="table",label="Number Adverse Events");
 	title2 '(by type and treatment)';
@@ -1981,14 +1985,18 @@ proc tabulate data=AE;
 	table AETERM='' * (n),
 		treatment all='Total';
 run;
+ods document close;
 
+ods document name=tables(update);
 proc tabulate data=AE;
 	%title(type="table",label="Number of Adverse Events");
 	title2 '(by severity and treatment)';
 	class AESEV treatment/order=internal;
 	table AESEV * (n rowpctn='%'), treatment all='Total';
 run;
+ods document close;
 
+ods document name=listings(update);
 proc report data=AE spanrows;
 	where AESEV_ not in ('Mild','Moderate');
 	%title(type="listing",label='Severe or Life-Threatening Adverse Events');
@@ -1996,6 +2004,7 @@ proc report data=AE spanrows;
 	column USUBJID AETERM AESEV_ AEACN1 AEOUT AEREL AEREL1 treatment;
 	define USUBJID/order;
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: physical examination* * * * * * * * * * * * * * * * * * */
@@ -2012,7 +2021,9 @@ data PE_sub;
 	where not missing(PEORRES) and PEORRES not in ('Normal','','D');
 run;
 
+ods document name=listings(update);
 %report(data=PE_sub,title='Physical Examination with Abnormal Results',name=PE);
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: vital signs * * * * * * * * * * * * * * * * * * * * * * */
@@ -2036,7 +2047,9 @@ run;
 %label_vars(code=VS);
 
 /* table: vital signs at screening visit by treatment */ 
+ods document name=tables(update);
 %tabulate(code=VS,visit="Screening");
+ods document close;
 
 /* try report with colour
 
@@ -2077,10 +2090,14 @@ options validvarname=v7;
 end trial */ 
 
 /* listing: abnormal at screening */
+ods document name=listings(update);
 %list_abnormal(code=VS,check_visit='Screening',show_visit='Screening' 'Unscheduled',width=8%);
+ods document close;
 
-/* tables: values of and change in vital signs*/ 
+/* tables: values of and change in vital signs*/
+ods document name=tables(update);
 %process_table(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)|Respiratory Rate (beats/min)|Oxygen Saturation (%)); /* per */
+ods document close;
 
 /*table: count of abnormal values */
 
@@ -2090,6 +2107,7 @@ proc summary data=VS nway;
 	output out=temp;
 run;
 
+ods document name=tables(update);
 proc tabulate data=temp;
 	%title(type="table",label='Count and Percentage of Normal, NCS or CS Abnormal Vital Signs');
 	title2 '(by visit, vital sign, and treatment)';
@@ -2098,18 +2116,27 @@ proc tabulate data=temp;
 	table VISIT * VSTEST * VSSTRESC * (n pctn<VSSTRESC>='%'),
 		  treatment;
 run;
+ods document close;
 
-/* listing: abnormal during treatment */ 
+/* listing: abnormal during treatment */
+ods document name=listings(update);
 %list_abnormal(code=VS,check_visit=&treat_days.,show_visit=&treat_days. &post_weeks.);
+ods document close;
 
-/* figures: trajectories of patients with abnormal values */ 
+/* figures: trajectories of patients with abnormal values */
+ods document name=figures(update);
 %process_traject(code=VS,check_visit=&treat_days.,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg))
+ods document close;
 
-/* figures: mean values and mean change */ 
+/* figures: mean values and mean change */
+ods document name=figures(update);
 %process_trend(code=VS,tests=Systolic Blood Pressure (mmHg)|Diastolic Blood Pressure (mmHg)|Pulse Rate (beats/min)) /* per */
+ods document close;
 
 /* vital signs post study, by treatment */
+ods document name=tables(update);
 %tabulate(code=VS,visit="Week 10");
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: Glasgow coma score* * * * * * * * * * * * * * * * * * * */
@@ -2133,6 +2160,7 @@ data GC;
 	end;
 run;
 
+ods document name=tables(update);
 proc tabulate data=GC;
 	%title(type="table",label="Glasgow Coma Scale - Fully Awake Patients");
 	title2 '(by visit and treatment)';
@@ -2140,6 +2168,7 @@ proc tabulate data=GC;
 	table VISIT * GCS * (n pctn<GCS>='%'),
 			treatment all='Total';
 run;
+ods document close;
 
 data GC_sub;
   	retain USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
@@ -2148,7 +2177,9 @@ data GC_sub;
 	drop GCSPERF;
 run;
 
+ods document name=listings(update);
 %report(data=GC_sub,title='Glasgow coma scale - patients with a total score below 15',name=GC);
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: lumbar punctures* * * * * * * * * * * * * * * * * * * * */
@@ -2210,7 +2241,9 @@ run;
     %end;
 %mend processLP;
 
+ods document name=tables(update);
 %processLP(visits=Day 1|Day 3|Day 7|Day 15);
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * * Subsection 4.X: laboratory* * * * * * * * * * * * * * * * * * * * * * */
@@ -2355,14 +2388,18 @@ run;
         %let visit = %scan(&visits, &j, |);
 		%do i = 1 %to %sysfunc(countw(&types, |));
   			%let type = %scan(&types, &i, |);
+			ods document name=tables(update);
   			%tabulate(code=LB,type="&type",visit="&visit");
+			ods document close;
 		%end;
 	%end;
 	%do i = 1 %to %sysfunc(countw(&types, |));
 		%let type = %scan(&types, &i, |);
 		%if &type. = Clinical Chemistry %then %let width = 8.3%;
         %else %if &type. = Hematology   %then %let width = 9.9%;
+		ods document name=listings(update);
 		%list_abnormal(code=LB,type="&type",check_visit='Screening',show_visit='Screening' 'Unscheduled',width=&width.);
+		ods document close;
 	%end;
 %mend process_LB;
 
@@ -2387,7 +2424,9 @@ data LB_temp;
 	*/
 run;
 
+ods document name=listings(update);
 %list_abnormal(code=LB_temp,type="Urianalysis",check_visit='Screening',show_visit='Screening' 'Unscheduled',width=8.1%);
+ods document close;
 
 %macro tabulate_urine(visit=);
 	proc tabulate data=LB;
@@ -2413,11 +2452,14 @@ run;
 	run;
 %mend tabulate_urine;
 
+ods document name=tables(update);
 %tabulate_urine(visit='Screening');
 %tabulate_urine(visit='Day 15');
+ods document close;
 
 /* infection tests*/ 
 
+ods document name=tables(update);
 proc tabulate data=LB;
 	%title(type="table",label='Infection Tests at Screening Visit');
 	title2 "(summary statistics for numerical variables)";
@@ -2435,18 +2477,25 @@ proc tabulate data=LB;
     table LBTEST * LBSTNRC * (n pctn<LBSTNRC>='%'),
           treatment all='Total';
 run;
+ods document close;
 
 /* Switch to showing those with CS only?*/ 
 
 /* tables: */ 
 
+ods document name=tables(update);
 %process_table(code=LB,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
+ods document close;
 
 /* */ 
+ods document name=figures(update);
 %process_trend(code=LB,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
+ods document close;
 
 /* */ 
+ods document name=figures(update);
 %process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: electrocardiogram * * * * * * * * * * * * * * * * * * * */
@@ -2463,10 +2512,14 @@ run;
 %label_vars(code=EG);
 
 /* table: electrocardiogram, at day 1*/ 
+ods document name=tables(update);
 %tabulate(code=EG,visit="Day 1");
+ods document close;
 
-/* listing: abnormal EG at day 1*/ 
+/* listing: abnormal EG at day 1*/
+ods document name=listings(update);
 %list_abnormal(code=EG,check_visit='Day 1',show_visit='Day 1');
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: Rankin disability questionnaire * * * * * * * * * * * * */
@@ -2478,6 +2531,7 @@ run;
 %label_vars(code=RANKIN);
 %as_numeric(code=RANKIN,var=RANKIN_GRADE);
 
+ods document name=tables(update);
 proc tabulate data=RANKIN;
 	%title(type="table",label="Rankin Disability Questionnaire");
 	title2 '(top: categorical variables, bottom: ordinal variable)';
@@ -2487,6 +2541,7 @@ proc tabulate data=RANKIN;
 			VISIT * RANKIN_GRADE='grade' * (mean median std min max n),
 			treatment all='Total';
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: death details * * * * * * * * * * * * * * * * * * * * * */
@@ -2497,16 +2552,20 @@ run;
 %order_levels(code=DD,var=VISIT);
 %label_vars(code=DD);
 
+ods document name=tables(update);
 proc tabulate data=DD;
 	%title(type="table",label="Death Details");
 	class VISIT treatment DSSTATUS / order=internal;
 	table VISIT * DSSTATUS * (n pctn<DSSTATUS>='%'), treatment all='Total';
 run;
+ods document close;
 
+ods document name=listings(update);
 proc report data=DD;
 	%title(type="listing",label='Death Details');
 	where not missing(DSSTATUS) and DSSTATUS ne "Alive";
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: pregnancy * * * * * * * * * * * * * * * * * * * * * * * */
@@ -2517,6 +2576,7 @@ run;
 %order_levels(code=PR,var=VISIT);
 %label_vars(code=PR);
 
+ods document name=tables(update);
 proc tabulate data=PR;
 	%title(type="table",label="Pregnancy Rapid Urine Test");
 	title2 '(by visit and treatment)';
@@ -2524,6 +2584,7 @@ proc tabulate data=PR;
 	table VISIT * PREGORRES * (n pctn<PREGORRES>='%'),
 			treatment all='Total';
 run;
+ods document close;
 
 /*
 data PR_sub;
@@ -2542,11 +2603,13 @@ run;
 
 %label_vars(code=EQ);
 
+ods document name=listings(update);
 proc report data=EQ;
 	%title(type="listing",label="Quality of Life (EQ-5D-3L)");
 	column USUBJID VISIT treatment MOBILITY SELFCARE USUALACTIVITIES PAINDISCOMFORT ANXIETYDEPRESSION SCALE;
 	where not missing(MOBILITY) or not missing(SELFCARE) or not missing(USUALACTIVITIES) or not missing(PAINDISCOMFORT) or not missing(ANXIETYDEPRESSION) or not missing (SCALE);
 run;
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: palatability acceptability* * * * * * * * * * * * * * * */
@@ -2582,6 +2645,7 @@ run;
 %label_vars(code=PC);
 %as_numeric(code=PC,var=PC_DELAY);
 
+ods document name=tables(update);
 proc tabulate data=PC;
 	%title(type="table",label="Calculated Delay in Blood Sampling for Pharmacokinetics");
 	title2 '(in minutes, by visit and treatment)';
@@ -2589,6 +2653,7 @@ proc tabulate data=PC;
 	var PC_DELAY;
 	table VISIT * PC_SAMPLING_TIME * PC_DELAY='' * (mean median std min max n), treatment all="total";
 run;
+ods document close;
 
 data PC;
 	set PC;
@@ -2611,15 +2676,17 @@ proc sql noprint;
 	from temp;
 quit;
 
+ods document name=listings(update);
 proc report data=PC spanrows;
 	%color(name=PC);
-	%title(type="table",label="Patients with a PK Blood Sampling Deviation");
+	%title(type="listing",label="Patients with a PK Blood Sampling Deviation");
 	title2 '(patients on days 1/2 or 6/7 with <-20 or >20 minutes)'; 
 	columns USUBJID VISIT PC_SAMPLING_TIME PCTPTREF PCDTC PC_DEVIATION PC_DELAY PC_DELAY_RSN ;
 	where idv in (&idv_delay.);
 	define USUBJID/order;
 	define VISIT/order;
 run;
+ods document close;
 
 /*
 Combine two columns on reasons! The second one is currently empty but might contain data in the future.
@@ -2639,6 +2706,45 @@ TO-DO-LIST
 - check NCS and CS in LB_LABORATORY
 - check discharge listing
 */
+
+title ' ';
+options nodate nonumber;
+ods escapechar='^';
+ods pdf file="&pathOut.\\myfile.pdf" style=printer startpage=yes;
+ods pdf text="^S={just=c font_size=24pt font_weight=bold} ^10n 5FC HIV-Crypto";
+ods pdf text="^S={just=c font_size=24pt} ^1n Tables, Figures, and Listings";
+ods pdf text="^S={just=c font_size=14pt} ^10n Armin Rauschenberger";
+ods pdf text="^S={just=c font_size=14pt} ^1n %sysfunc(today(), worddate.)";
+ods pdf text="^S={just=c font_size=14pt} ^5n ";
+
+proc odstext;
+	h1 "Disclaimer";
+	p  "^{style [color=red fontweight=bold] Problems in the datasets (see below) have not yet been fixed.}";
+	p  "^{style [color=red fontweight=bold] Reference ranges (VS, EG, and LB) and conversion factors (LB) have not yet been provided.}";
+	p  "^{style [color=red fontweight=bold] The SAS code has not yet been double-checked.}";
+run;
+
+ods text="Please add text directly to the source code (.sas) and not to the compiled document (.pdf or .docx). Otherwise each update in the data or the code will erase the text.";
+
+ods pdf startpage=now;
+
+proc odstext;
+	h1 "Data Issues";
+	p  "Leucocytes has either LBORRESU equal to 109/L or cells/uL or a free-text comment in LBCO (multiple variants of 10e3/uL).";
+	p  "One entry in LBCO is not 10E3/UL but 10E3/L. This is probably a data entry error.";
+	p  "Magnesium has LBORRESU5 equal to mg/dL or nmol/L, but sometimes there is no unit.";
+	p  "Neutrophils has LBORREESU equal to 109/L or cells/uL, but sometimes there is no unit.";
+	p  "Laboratory values are always judged NCS Abnormal or CS Abnormal, but never Normal.";
+	p  "PC_DEVIATION is often equal to Yes even if there is no delay.";
+	p  "PC_DELAY does not take into account the date. So time differences between two different days are wrong.";
+	p  "PC_DEVIATION is sometimes equal to No even if sampling was done several hours earlier.";
+	p  "PC_DEVIATION seems to suffer from a confusion between AM and PM in one case (as the deviation is 12 x 60 = 720 min).";
+	p 	"U-Leucocytes always has the unit Leu/uL. However, its values are not always numerical but also +, NEG, N. Once, the value is in the free-text LCBO (NEGATIVE).";
+run;
+
+proc document name=tables;   replay; quit;
+proc document name=figures;  replay; quit;
+proc document name=listings; replay; quit;
 
 ods pdf close;
 
