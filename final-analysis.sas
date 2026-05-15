@@ -1628,6 +1628,25 @@ run;
 
 %prepare;
 
+/* add verbatim terms */ 
+
+%macro add_verbatim(path=,code=,file=);
+proc import datafile="&path.\&file."
+    out=verbatim
+    dbms=xlsx
+	REPLACE;
+run;
+
+data &code.;
+	merge &code. verbatim;
+run;
+%mend add_verbatim;
+
+%add_verbatim(path=&pathClin,code=MH,file=Verbatims_MedDra_20260511_MH.xlsx);
+%add_verbatim(path=&pathClin,code=AE,file=Verbatims_MedDra_20260805_AE.xlsx);
+%add_verbatim(path=&pathClin,code=CM,file=Verbatims_WHODRUG_20260513_CM.xlsx);
+%add_verbatim(path=&pathClin,code=PM,file=Verbatims_WHODRUG_20260513_PM.xlsx);
+
 %let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
 %let post_weeks='Week 4' 'Week 6' 'Week 10';
  
