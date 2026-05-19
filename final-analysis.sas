@@ -1423,6 +1423,7 @@ proc format;
 						'Not Recovered/Not Resolved' = &high.
 						other = &high.;
 	value $AEREL_one	'Not related with Arm 1' = 'white'
+						'Not Related with Arm 1' = 'white'
 						'Probably not Related with Arm 1' = 'white'
 						'.' = 'white'
 						'' = 'white'
@@ -1432,6 +1433,7 @@ proc format;
 						'Definitely Related with Arm 1' = &high.
 						other = &high.;
 	value $AEREL_two	'Not related with Arm 2' = 'white'
+						'Not Related with Arm 2' = 'white'
 						'Probably not Related with Arm 2' = 'white'
 						'.' = 'white'
 						'' = 'white'
@@ -2033,6 +2035,15 @@ proc tabulate data=AE;
 	title2 '(by severity and treatment)';
 	class AESEV treatment/order=internal;
 	table AESEV * (n rowpctn='%'), treatment all='Total';
+run;
+ods document close;
+
+ods document name=listings(update);
+proc report data=AE spanrows;
+	%title(type="listing",label='All Adverse Events');
+	%color(name=AE);
+	column USUBJID AETERM AESEV_ PT SOC AEACN1 AEOUT AEREL AEREL1 treatment;
+	define USUBJID/order;
 run;
 ods document close;
 
