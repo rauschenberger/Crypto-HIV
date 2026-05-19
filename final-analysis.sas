@@ -2279,9 +2279,16 @@ ods document close;
 
 %put --- lumbar punctures ---;
 
+/*
+%prepare;
+
+proc report data=LP;
+run;
+*/
+
 data LP;
 	set LP;
-	if LPORRES in ('1+') then do;
+	if LPORRES in ('1+') or LPTEST in ('CSF samples','Candida Spp','Cryptococcus neoformans','E. coli','Mycobacterium tuberculosis','Neisseria meningitidis','Streptococcus pneumoniae') then do;
 		LPORRES_numeric = '';
 		LPORRES_ordinal = LPORRES;
 	end;
@@ -2297,18 +2304,18 @@ run;
 %label_vars(code=LP);
 
 %macro tabulateLP(visit=);
-	proc tabulate data=LP;
+	proc tabulate data=LP; /*(where=(VISIT=&visit. and not missing(LPORRES_numeric)))*/
 		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Numerical Variables");
 		var LPORRES_numeric;
 		class VISIT treatment LPTEST;
-		where VISIT=&visit.;
+		where VISIT=&visit. and not missing(LPORRES_numeric);
 		table LPTEST * LPORRES_numeric='' * (mean median std min max n),
 		treatment all='Total';
 	run;
-	proc tabulate data=LP;
+	proc tabulate data=LP; /*(where=(VISIT=&visit. and not missing(LPORRES_ordinal)))*/
 		%title(type="table",label="Lumbar Punctures at %sysfunc(dequote(&visit.)) Visit - Ordinal Variables");
 		class VISIT treatment LPTEST LPORRES_ordinal;
-		where VISIT=&visit.;
+		where VISIT=&visit. and not missing(LPORRES_ordinal);
 		table LPTEST * LPORRES_ordinal='' * (n),
 			treatment all='Total';
 	run;
@@ -2620,8 +2627,8 @@ ods document close;
 %put --- disability ---;
 
 %order_levels(code=RANKIN,var=VISIT);
-%label_vars(code=RANKIN);
 %as_numeric(code=RANKIN,var=RANKIN_GRADE);
+%label_vars(code=RANKIN);
 
 ods document name=tables(update);
 proc tabulate data=RANKIN;
