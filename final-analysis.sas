@@ -2637,14 +2637,12 @@ proc tabulate data=PR;
 run;
 ods document close;
 
-/*
 data PR_sub;
 	retain USUBJID VISIT PREGPERF PREGORRES;
 	set PR(keep=USUBJID VISIT PREGPERF PREGORRES);
 run;
 
 %report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
-*/
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: quality of life * * * * * * * * * * * * * * * * * * * * */
