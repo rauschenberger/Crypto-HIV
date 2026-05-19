@@ -4,7 +4,8 @@ Remaining issues from Franck's review from 2026-05-18:
 - Tables with Yes/No should only show the counts for 'YES' and indicate in a footnote that there a no missing values.
 - Similarly, tables with Normal/Abnormal should only show the counts for 'Abnormal' and include a footnote.
 - Tables with separate blocks for numerical and categorical variables should be split into two tables.
-- Medical history: Reported term and other term should be combined into a single column.
+- Medical history: Reported term and other term should be combined into one column.
+- Adverse events: Relation to arm 1 and to arm 2 should be combined into one column.
 - Concomitant medication: Ongoing='Yes' could be moved to the enddate column (i.e., enddate = 'ongoing').
 - Physical examination: Define abbreviations in a footnote (e.g., HEENT).
 - Clinical chemistry (and others): Show unscheduled visit only if there is at least one non-missing value.
