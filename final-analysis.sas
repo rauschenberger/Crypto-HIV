@@ -2224,12 +2224,12 @@ ods document close;
 data GC_sub;
   	retain USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL;
 	set GC(keep=USUBJID VISIT GCSPERF BESTEYERESPONSE BESTVERBALRESPONSE BESTMOTORRESPONSE GCS_TOTAL);
-	where GCSPERF="Yes" and GCS_TOTAL < 15;
+	where GCSPERF="Yes"; /*and GCS_TOTAL < 15*/
 	drop GCSPERF;
 run;
 
 ods document name=listings(update);
-%report(data=GC_sub,title='Glasgow coma scale - patients with a total score below 15',name=GC);
+%report(data=GC_sub,title='Glasgow Coma Scale',name=GC);
 ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
