@@ -312,7 +312,7 @@ sorting the datasets by random identifiers and adding information on the treatme
 				LBTEST = "Laboratory Test"
 				/*LBORRES = "Result"*/
 				/*LBSTNRC = "Result"*/
-				LBCLSIG = "Clinically Significant, Collected";
+				LBCLSIG = "Result";
 		quit;
 	%end;
 	%else %if &code.=XXX %then %do;
@@ -1637,12 +1637,11 @@ proc import datafile="&path.\&file."
 	REPLACE;
 run;
 %if &code.=CM or &code.=PM %then %do;
-	data &code.;
+	data verbatim;
 		set verbatim;
 		label ATC_CLASSIFICATION_NAME = ATC;
 		rename ATC_CLASSIFICATION_NAME = ATC;
 		rename Patient_code = USUBJID;
-		label USUBJD = ;
 	run;
 %end;
 %if &code.=MH or &code.=AE %then %do;
@@ -1657,7 +1656,7 @@ run;
 %end;
 data &code.;
 	merge &code. verbatim;
-	by SUBJID;
+	/*by USUBJID;*/
 run;
 %mend add_verbatim;
 
@@ -1666,7 +1665,7 @@ run;
 %add_verbatim(path=&pathClin,code=CM,file=Verbatims_WHODRUG_20260513_CM.xlsx);
 %add_verbatim(path=&pathClin,code=PM,file=Verbatims_WHODRUG_20260513_PM.xlsx);
 
-proc report data=MH;
+proc report data=CM;
 run;
 
 %let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
