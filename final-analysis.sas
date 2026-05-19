@@ -1636,31 +1636,38 @@ proc import datafile="&path.\&file."
     dbms=xlsx
 	REPLACE;
 run;
-data &code.;
-	merge &code. verbatim;
-run;
 %if &code.=CM or &code.=PM %then %do;
 	data &code.;
-		set &code.;
+		set verbatim;
 		label ATC_CLASSIFICATION_NAME = ATC;
 		rename ATC_CLASSIFICATION_NAME = ATC;
+		rename Patient_code = USUBJID;
+		label USUBJD = ;
 	run;
 %end;
 %if &code.=MH or &code.=AE %then %do;
-	data &code.;
-		set &code.;
+	data verbatim;
+		set verbatim;
 		label System_Organ_Class = SOC;
 		rename System_Organ_Class = SOC;
 		label Preferred_Term = PT;
 		rename Preferred_Term = PT;
+		rename Patient_code = USUBJID;
 	run;
 %end;
+data &code.;
+	merge &code. verbatim;
+	by SUBJID;
+run;
 %mend add_verbatim;
 
 %add_verbatim(path=&pathClin,code=MH,file=Verbatims_MedDra_20260511_MH.xlsx);
 %add_verbatim(path=&pathClin,code=AE,file=Verbatims_MedDra_20260805_AE.xlsx);
 %add_verbatim(path=&pathClin,code=CM,file=Verbatims_WHODRUG_20260513_CM.xlsx);
 %add_verbatim(path=&pathClin,code=PM,file=Verbatims_WHODRUG_20260513_PM.xlsx);
+
+proc report data=MH;
+run;
 
 %let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
 %let post_weeks='Week 4' 'Week 6' 'Week 10';
