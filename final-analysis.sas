@@ -2734,8 +2734,8 @@ run;
 %put --- pharmacokinetics ---;
 
 %order_levels(code=PC,var=PC_SAMPLING_TIME);
-%label_vars(code=PC);
 %as_numeric(code=PC,var=PC_DELAY);
+%label_vars(code=PC);
 
 ods document name=tables(update);
 proc tabulate data=PC;
