@@ -1792,7 +1792,7 @@ ods document close;
 
 ods document name=listings(update);
 proc report data=IE spanrows;
-	%title(type="listing",label='Ineligible Samples');
+	%title(type="listing",label='Ineligible Patients');
 	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
 	column USUBJID IECAT IETEST IEORRES EC_CHECK;
 	define USUBJID/order;
