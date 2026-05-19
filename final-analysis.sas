@@ -230,7 +230,10 @@ sorting the datasets by random identifiers and adding information on the treatme
 			label
 				VISIT = "Visit"
 				EXDOSNB = "Dose Number"
-				EXTRT = "Other Product";
+				EXTRT = "Other Product"
+				EXSTDAT = "Date"
+				EXSTTIM = "Time"
+				EXROUTE = "Route";
 		quit;
 	%end;
 	%else %if &code.=CM %then %do;
