@@ -383,6 +383,22 @@ sorting the datasets by random identifiers and adding information on the treatme
 				PC_DELAY = "Deviation (Minutes)";
 		quit;
 	%end;
+	%else %if &code.=DI %then %do;
+		proc datasets lib=work nolist;
+			modify &code.;
+			label
+				VISIT = "Visit"
+				LPPERF = "Lumbar Puncture"
+				DISCHARGED = "Discharged"
+ 				DISCHAR_CONTRA = "Counselled for Contraception"
+ 				FLOCO_MAINT = "Maintenance Fluconazole Prescribed"
+ 				PATIENT_ART = "ART"
+ 				REGIMEN_ART = "ART Regimen"
+ 				ART_ADHER = "Enhanced ART Adherence"
+ 				TPT_ADMIN = "TPT Administered"
+ 				REGIMEN_TPT = "TPT Regimen";
+		quit;
+	%end;
 %mend label_vars;
 
 
@@ -1900,9 +1916,10 @@ run;
 %label_vars(code=DI);
 
 ods document name=listings(update);
-proc report data=DI;
+proc report data=DI spanrows style(report)=[width=100%] style(column)=[cellwidth=9.0%] style(header)=[cellwidth=9.0%];
 	%title(type="listing",label='discharge');
-	*column USUBJID LPPERF DISCHARGED;
+	column USUBJID VISIT LPPERF DISCHARGED DISCHAR_CONTRA FLOCO_MAINT PATIENT_ART REGIMEN_ART ART_ADHER TPT_ADMIN REGIMEN_TPT;
+	define USUBJID/order;
 run;
 ods document close;
 
