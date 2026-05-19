@@ -1928,7 +1928,7 @@ ods document close;
 %label_vars(code=ARTT);
 
 ods document name=listings(update);
-proc report data=ARTT style(report)=[width=100%] style(column)=[cellwidth=8.33%] style(header)=[cellwidth=8.33%];;
+proc report data=ARTT style(report)=[width=100%] style(column)=[cellwidth=8.33%] style(header)=[cellwidth=8.33%];
 	%title(type="listing",label='ART Treatment');
 	column USUBJID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
 	define USUBJID/order;
@@ -1998,7 +1998,7 @@ data CM;
 run;
 
 ods document name=listings(update);
-proc report data=CM spanrows;
+proc report data=CM spanrows style(report)=[width=100%] style(column)=[cellwidth=12.4%] style(header)=[cellwidth=12.4%];
 	%title(type="listing",label='Concomitant Medications');
 	column USUBJID CMINDC CMTRT ATC Dosing CMSTDTC CMENDTC CMONGO;
 	define USUBJID/order;
@@ -2059,7 +2059,7 @@ run;
 ods document close;
 
 ods document name=listings(update);
-proc report data=AE spanrows;
+proc report data=AE spanrows style(report)=[width=100%] style(column)=[cellwidth=9.8%] style(header)=[cellwidth=9.8%];
 	%title(type="listing",label='All Adverse Events');
 	%color(name=AE);
 	column USUBJID AETERM AESEV_ PT SOC AEACN1 AEOUT AEREL AEREL1 treatment;
@@ -2068,7 +2068,7 @@ run;
 ods document close;
 
 ods document name=listings(update);
-proc report data=AE spanrows;
+proc report data=AE spanrows style(report)=[width=100%] style(column)=[cellwidth=9.8%] style(header)=[cellwidth=9.8%];
 	where AESEV_ not in ('Mild','Moderate');
 	%title(type="listing",label='Severe or Life-Threatening Adverse Events');
 	%color(name=AE);
