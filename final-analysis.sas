@@ -162,7 +162,9 @@ sorting the datasets by random identifiers and adding information on the treatme
 				MHTERM = "Other Reported Term"
 				MHSTDAT = "Start Date"
 				MHENDAT = "End Date"
-				MHONGO = "Ongoing";
+				MHONGO = "Ongoing"
+				System_Organ_Class = "SOC"
+				Preferred_Term = "PT";
 		quit;
 	%end;
 	%else %if &code.=PM %then %do;
@@ -174,7 +176,8 @@ sorting the datasets by random identifiers and adding information on the treatme
 				CMDOSU = "Dose Units"
 				CMDOSFRQ = "Dosing Frequency per Interval"
 				CMROUTE = "Route of Administration"
-				CMINDCREF = "Reason for Prior Medication Specification";
+				CMINDCREF = "Reason for Prior Medication Specification"
+				ATC_CLASSIFICATION_NAME = "ATC";
 		quit;
 	%end;
 	%else %if &code.=IE %then %do;
@@ -244,7 +247,8 @@ sorting the datasets by random identifiers and adding information on the treatme
 				CMINDC = "Reason"
 				CMSTDTC = "Start Date"
 				CMENDTC = "End Date"
-				CMONGO = "Ongoing";
+				CMONGO = "Ongoing"
+				ATC_CLASSIFICATION_NAME = "ATC";
 		quit;
 	%end;
 	%else %if &code.=CE %then %do;
@@ -265,7 +269,9 @@ sorting the datasets by random identifiers and adding information on the treatme
 				AETERM = "Adverse Event"
 				AEOUT = "Outcome" 
 				AEREL = "Relation A"
-				AEREL1 = "Relation B";
+				AEREL1 = "Relation B"
+				System_Organ_Class = "SOC"
+				Preferred_Term = "PT";
 		quit;
 	%end;
 	%else %if &code.=PE %then %do;
@@ -1649,45 +1655,43 @@ run;
 
 %prepare;
 
-/* add verbatim terms */ 
+/* replace verbatim terms */ 
 
-%macro add_verbatim(path=,code=,file=);
+%macro add_terms(path=,code=,file=);
 proc import datafile="&path.\&file."
     out=verbatim
     dbms=xlsx
 	REPLACE;
 run;
 %if &code.=CM or &code.=PM %then %do;
-	data verbatim;
-		set verbatim;
-		label ATC_CLASSIFICATION_NAME = ATC;
-		rename ATC_CLASSIFICATION_NAME = ATC;
-		rename Patient_code = USUBJID;
-	run;
+	%let var_verb=CMTRT;
 %end;
-%if &code.=MH or &code.=AE %then %do;
-	data verbatim;
-		set verbatim;
-		label System_Organ_Class = SOC;
-		rename System_Organ_Class = SOC;
-		label Preferred_Term = PT;
-		rename Preferred_Term = PT;
-		rename Patient_code = USUBJID;
-	run;
+%else %if &code.=MH %then %do;
+	%let var_verb=MHTERMPREP;
 %end;
+%else %if &code.=AE %then %do;
+	%let var_verb=AETERM;
+%end;
+%else %do;
+	%put ERROR;
+%end;
+data verbatim;
+	set verbatim;
+	rename Verbatim = &var_verb.;
+	rename Patient_code = USUBJID;
+run;
+proc sort data=verbatim; by USUBJID &var_verb.; run;
+proc sort data=&code.; by USUBJID &var_verb.; run;
 data &code.;
 	merge &code. verbatim;
-	/*by USUBJID;*/
+	by USUBJID &var_verb.;
 run;
-%mend add_verbatim;
+%mend add_terms;
 
-%add_verbatim(path=&pathClin,code=MH,file=Verbatims_MedDra_20260511_MH.xlsx);
-%add_verbatim(path=&pathClin,code=AE,file=Verbatims_MedDra_20260805_AE.xlsx);
-%add_verbatim(path=&pathClin,code=CM,file=Verbatims_WHODRUG_20260513_CM.xlsx);
-%add_verbatim(path=&pathClin,code=PM,file=Verbatims_WHODRUG_20260513_PM.xlsx);
-
-proc report data=CM;
-run;
+%add_terms(path=&pathClin,code=MH,file=Verbatims_MedDra_20260511_MH.xlsx);
+%add_terms(path=&pathClin,code=AE,file=Verbatims_MedDra_20260805_AE.xlsx);
+%add_terms(path=&pathClin,code=CM,file=Verbatims_WHODRUG_20260513_CM.xlsx);
+%add_terms(path=&pathClin,code=PM,file=Verbatims_WHODRUG_20260513_PM.xlsx);
 
 %let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
 %let post_weeks='Week 4' 'Week 6' 'Week 10';
@@ -1761,7 +1765,7 @@ ods document name=listings(update);
 proc report data=MH spanrows;
 	%title(type="listing",label='Medical History By Patient');
 	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
-	column USUBJID MHTERMPREP MHTERM_YN MHTERM PT SOC MHSTDAT MHENDAT MHONGO;
+	column USUBJID MHTERMPREP MHTERM_YN MHTERM PT System_Organ_Class MHSTDAT MHENDAT MHONGO;
 	define USUBJID/order;
 run;
 ods document close;
@@ -1806,7 +1810,7 @@ run;
 ods document name=listings(update);
 proc report data=PM spanrows;
 	%title(type="listing",label='Prior Medications');
-	column USUBJID CMTRT ATC Dosing CMINDCREF;
+	column USUBJID CMTRT ATC_CLASSIFICATION_NAME Dosing CMINDCREF;
 	define USUBJID/order;
 run;
 ods document close;
@@ -2020,7 +2024,7 @@ run;
 ods document name=listings(update);
 proc report data=CM spanrows style(report)=[width=100%] style(column)=[cellwidth=12.4%] style(header)=[cellwidth=12.4%];
 	%title(type="listing",label='Concomitant Medications');
-	column USUBJID CMINDC CMTRT ATC Dosing CMSTDTC CMENDTC CMONGO;
+	column USUBJID CMINDC CMTRT ATC_CLASSIFICATION_NAME Dosing CMSTDTC CMENDTC CMONGO;
 	define USUBJID/order;
 run;
 ods document close;
@@ -2082,7 +2086,7 @@ ods document name=listings(update);
 proc report data=AE spanrows style(report)=[width=100%] style(column)=[cellwidth=9.8%] style(header)=[cellwidth=9.8%];
 	%title(type="listing",label='All Adverse Events');
 	%color(name=AE);
-	column USUBJID AETERM AESEV_ PT SOC AEACN1 AEOUT AEREL AEREL1 treatment;
+	column USUBJID AETERM AESEV_ PT System_Organ_Class AEACN1 AEOUT AEREL AEREL1 treatment;
 	define USUBJID/order;
 run;
 ods document close;
@@ -2092,7 +2096,7 @@ proc report data=AE spanrows style(report)=[width=100%] style(column)=[cellwidth
 	where AESEV_ not in ('Mild','Moderate');
 	%title(type="listing",label='Severe or Life-Threatening Adverse Events');
 	%color(name=AE);
-	column USUBJID AETERM AESEV_ PT SOC AEACN1 AEOUT AEREL AEREL1 treatment;
+	column USUBJID AETERM AESEV_ PT System_Organ_Class AEACN1 AEOUT AEREL AEREL1 treatment;
 	define USUBJID/order;
 run;
 ods document close;
