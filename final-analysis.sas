@@ -881,7 +881,7 @@ Plots the measurements against the visit names, with one line for each patient.
 %macro plot_mean_value(code=,test=,position=);
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
-	proc means data=&code. mean clm alpha=0.05 noprint;
+	proc means data=&code. mean clm alpha=0.05 noprint nway;
 		%if &code.=VS and %length(&position.)>0 %then %do;
 			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
 		%end;
@@ -901,7 +901,7 @@ Plots the measurements against the visit names, with one line for each patient.
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
 	%calcdiff(code=&code.,test=&test.,position=&position.);
-	proc means data=DATA_DIFF mean clm alpha=0.05 noprint;
+	proc means data=DATA_DIFF mean clm alpha=0.05 noprint nway;
 		%if &code.=VS and %length(&position.)>0 %then %do;
 			where not missing(RID) and &var_test.=&test. and VSPOS=&position.;
 		%end;
@@ -2106,6 +2106,7 @@ data VS;
 	set VS;
 	if VSPOS in (' ','.') then VSPOS='N/A';
 	if VSSTRESC in (' ','.') then VSSTRESC='N/A';
+	where VSTEST not in ('Weight','Height','Body Mass Index');
 run;
 
 %order_levels(code=VS,var=VISIT);
