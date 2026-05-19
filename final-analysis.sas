@@ -1950,6 +1950,15 @@ ods document close;
 
 /* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
 
+data EX_sub;
+	retain USUBJID VISIT EXDOSNB EXTRT EXSTDAT EXSTTIM EXROUTE;
+	set EX(keep=USUBJID VISIT EXDOSNB EXTRT EXSTDAT EXSTTIM EXROUTE);
+run;
+
+ods document name=listings(update);
+%report(data=EX_sub,title='Treatment Exposure',name=EX);
+ods document close;
+
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: drug accountability * * * * * * * * * * * * * * * * * * */
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
@@ -2642,7 +2651,9 @@ data PR_sub;
 	set PR(keep=USUBJID VISIT PREGPERF PREGORRES);
 run;
 
+ods document name=listings(update);
 %report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
+ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: quality of life * * * * * * * * * * * * * * * * * * * * */
