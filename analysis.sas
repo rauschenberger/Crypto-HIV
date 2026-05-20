@@ -27,7 +27,12 @@ Michel (2026-05-20):
 Armin
 - The entry "D" means "not done" and the entry "A" means "not applicable". Replace both by NA!
 - Data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
-/*
+- PC: Combine two columns on reasons! The second one is currently empty but might contain data in the future.
+- continue discussion on data corrections
+- do not overwrite variables when bringing values to the same unit
+- check NCS and CS in LB_LABORATORY
+- The dataset on drug accountability is empty. It does not contain any information on taken and remaining amounts.
+*/
 
 /* 
 This SAS code is divided into four sections.
@@ -57,300 +62,20 @@ ods document name=tables(write); ods document close;
 ods document name=figures(write); ods document close;
 ods document name=listings(write); ods document close;
 
+%include "code/tlf_dm.sas"; /* demographics */
+%include "code/tlf_mh.sas"; /* medical history */
+%include "code/tlf_pm.sas"; /* prior medications */
+%include "code/tlf_ie.sas"; /* ineligibility */
+%include "code/tlf_dv.sas"; /* protocol deviations */
+%include "code/tlf_ds.sas"; /* disposition milestones */
+%include "code/tlf_di.sas"; /* discharge */
+%include "code/tlf_art.sas"; /* ART initiation */
+%include "code/tlf_artt.sas"; /* ART treatment */
+%include "code/tlf_ex.sas"; /* treatment exposure */
+
 /******************************************************************************/
-/*** Section 4: Analysis ******************************************************/
-/******************************************************************************/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: demographics  * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- demographics ---;
-
-%as_numeric(code=DM,var=vsorres_weight);
-%as_numeric(code=DM,var=vsorres_height);
-%as_numeric(code=DM,var=vsorres_bmi);
-%as_numeric(code=DM,var=age);
-%label_vars(code=DM);
-
-ods document name=tables(update);
-proc tabulate data=DM;
-	%title(type="table",label='Demographics by Treatment');
-	title2 "(top: summary statistics for numerical variables,";
-	title3 "bottom: counts and percentages for categorical variables)";
-	class treatment sex race;
-	var age vsorres_weight vsorres_height vsorres_bmi;
-	where not missing(treatment);
-	table 	(age vsorres_weight vsorres_height vsorres_bmi)*(mean median std min max n)
-			(sex race)*(n colpctn='%'),
-			treatment all='Total';
-run;
-ods document close;
-
-data DM_sub;
-	retain USUBJID treatment age sex vsorres_weight vsorres_height vsorres_bmi race;
-	set DM(keep=USUBJID treatment age sex vsorres_weight vsorres_height vsorres_bmi race);
-	where not missing(treatment);
-run;
-
-ods document name=listings(update);
-%report(data=DM_sub,title='Demographics',name=DM);
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: medical history * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- medical history ---;
-
-%order_levels(code=MH,var=MHTERMPREP);
-%label_vars(code=MH);
-
-ods document name=tables(update);
-proc tabulate data=MH;
-	%title(type="table",label="Medical History");
-	title2 '(number and percentage of patients by treatment)';
-	class MHTERMPREP MHTERM_YN treatment /order=internal;
-	table MHTERMPREP * MHTERM_YN='' * (n pctn<MHTERM_YN>='%'), treatment all='Total';
-run;
-ods document close;
-
-ods document name=listings(update);
-proc report data=MH spanrows;
-	%title(type="listing",label='Medical History By Patient');
-	where not missing(RID) and not missing(MHTERMPREP) or not missing(MHTERM);
-	column USUBJID MHTERMPREP MHTERM_YN MHTERM PT System_Organ_Class MHSTDAT MHENDAT MHONGO;
-	define USUBJID/order;
-run;
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: prior medications * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- prior medications ---;
-
-%label_vars(code=PM);
-
-data PM;
-	set PM;
-	length CMDOSU_LIB $60;
-	if CMDOSU='Milligram' then do;
-		CMDOSU_LIB = 'mg';
-	end;
-	else if CMDOSU = 'Gram' then do;
-		CMDOSU_LIB = 'g';
-	end;
-	else if CMDOSU = 'International Unit' then do;
-		CMDOSU_LIB = 'IU';
-	end;
-	else do;
-		CMDOSU_LIB = CMDOSU;
-	end;
-	length CMROUTE_LIB $60;
-	if CMROUTE = 'Oral Route of Administration' then do;
-		CMROUTE_LIB = 'oral';
-	end;
-	else if CMROUTE = 'Intravenous Route of Administration' then do;
-		CMROUTE_LIB = 'intravenous';
-	end;
-	else do;
-		CMROUTE_LIB = CMROUTE;
-	end;
-	Dosing = catx('',CMDOSE,CMDOSU_LIB) || ' (' || strip(CMDOSFRQ) || ', ' || strip(CMROUTE_LIB) || ')';
-run;
-
-
-ods document name=listings(update);
-proc report data=PM spanrows;
-	%title(type="listing",label='Prior Medications');
-	column USUBJID CMTRT ATC_CLASSIFICATION_NAME Dosing CMINDCREF;
-	define USUBJID/order;
-run;
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: ineligibility * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- ineligibility ---;
-
-%label_vars(code=IE);
-
-ods document name=tables(update);
-proc tabulate data=IE;
-	%title(type="table",label="Ineligibility");
-	title2 "(number of patients satisfying an inclusion or exclusion criterion)";
-	class IECAT IETEST IEORRES;
-	table IECAT * IETEST, IEORRES * (n);
-run;
-ods document close;
-
-ods document name=listings(update);
-proc report data=IE spanrows;
-	%title(type="listing",label='Ineligible Patients');
-	where (IECAT='INCLUSION' and IEORRES='No') or (IECAT='EXCLUSION' and IEORRES='Yes');
-	column USUBJID IECAT IETEST IEORRES EC_CHECK;
-	define USUBJID/order;
-	define IECAT/order;
-run;
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: protocol deviations   * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- protocol deviations ---;
-
-%label_vars(code=DV);
-
-ods document name=tables(update);
-proc tabulate data=DV;
-	%title(type="table",label="Protocol Deviations");
-	title2 "(number and percentage by treatment)";
-	class treatment DVCAT;
-	table DVCAT * (n rowpctn='%'),
-		treatment all="total";
-run;
-ods document close;
-
-data DV_sub;
-	retain USUBJID VISIT FORM DVTERM DVCAT;
-	set DV(keep=USUBJID VISIT FORM DVTERM DVCAT);
-run;
-
-ods document name=listings(update);
-%report(data=DV_sub,title='Protocol Deviations',title2='(sorted by patient and visit)',name=DV);
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: disposition milestones* * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- disposition milestones ---;
-
-%order_levels(code=DS,var=DSDECOD);
-%label_vars(code=DS);
-
-/*
-proc sort data=DS;
-	by USUBJID;
-run;
-
-proc transpose data=DS out=DS_wide;
-	by USUBJID;
-	id DSSEQ;
-	idlabel DSDECOD;
-	var DSTERM;
-run;
-
-proc report data=DS_wide;
-run;
-*/
-
-ods document name=tables(update);
-proc tabulate data=DS;
-	%title(type="table",label='Disposition Milestones');
-	title2 '(number of patients)';
-	class DSDECOD / order=internal;
-	table DSDECOD='' * (n);
-run;
-ods document close;
-
-/*
-proc report data=DS spanrows;
-	%title(type="listing",label='disposition milestones');
-	*column USUBJID VISIT DSDECOD;
-	define USUBJID/order;
-run;
-*/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: discharge * * * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- discharge ---;
-
-%label_vars(code=DI);
-
-ods document name=listings(update);
-proc report data=DI spanrows style(report)=[width=100%] style(column)=[cellwidth=9.0%] style(header)=[cellwidth=9.0%];
-	%title(type="listing",label='discharge');
-	column USUBJID VISIT LPPERF DISCHARGED DISCHAR_CONTRA FLOCO_MAINT PATIENT_ART REGIMEN_ART ART_ADHER TPT_ADMIN REGIMEN_TPT;
-	define USUBJID/order;
-run;
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: ART initiation* * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- ART initiation ---;
-
-%label_vars(code=ART);
-
-ods document name=listings(update);
-proc report data=ART spanrows;
-	%title(type="listing",label='ART Initiation');
-	column USUBJID VISIT ARTINITDAT ARTREGIMEN ENHANCEDART;
-	define USUBJID/order;
-run;
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: ART treatment * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- ART treatment ---;
-
-%label_vars(code=ARTT);
-
-ods document name=listings(update);
-proc report data=ARTT style(report)=[width=100%] style(column)=[cellwidth=8.33%] style(header)=[cellwidth=8.33%];
-	%title(type="listing",label='ART Treatment');
-	column USUBJID ARTSTDAT ART_FIRST_REGIMEN ART_SWITCH ARTSTDAT2 ART_CURRENT_REGIMEN ADHERENT_ART NB_MISSED_DOSES ART_DECISION VIRAL_LOAD_AVAILABLE VIRAL_LOAD_RESULT VIRALDAT;
-	define USUBJID/order;
-run;
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: treatment exposure* * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%put --- treatment exposure ---;
-
-%order_levels(code=EX,var=VISIT);
-%order_levels(code=EX,var=EXDOSNB);
-%label_vars(code=EX);
-
-data EX;
-	set EX;
-	dose = EXTRT || EXDOSNB;
-run;
-
-ods document name=tables(update);
-proc tabulate data=EX missing;
-	%title(type="table",label="Treatment Exposure");
-	title2 '(by visit and treatment)';
-	class VISIT dose treatment EXDOSNB EXTRT /order=internal;
-	table VISIT * (EXDOSNB * EXTRT) * (n), treatment;
-run;
-ods document close;
-
-/* VERIFY HERE WHETHER TREATMENT MATCHES WITH RELATED WITH ARM 1 / ARM 2 IN VARIABLE EXARM!*/ 
-
-data EX_sub;
-	retain USUBJID VISIT EXDOSNB EXTRT EXSTDAT EXSTTIM EXROUTE;
-	set EX(keep=USUBJID VISIT EXDOSNB EXTRT EXSTDAT EXSTTIM EXROUTE);
-run;
-
-ods document name=listings(update);
-%report(data=EX_sub,title='Treatment Exposure',name=EX);
-ods document close;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: drug accountability * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 /*
 The dataset on drug accountability is empty.
@@ -362,9 +87,9 @@ proc report data=DA;
 run;
 */
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: concomitant medications * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- concomitant medications ---;
 
@@ -383,9 +108,9 @@ proc report data=CM spanrows style(report)=[width=100%] style(column)=[cellwidth
 run;
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: current symptoms* * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- current symptoms ---;
 
@@ -402,9 +127,9 @@ proc tabulate data=CE;
 run;
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: adverse events * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- adverse events ---;
 
@@ -455,9 +180,9 @@ proc report data=AE spanrows style(report)=[width=100%] style(column)=[cellwidth
 run;
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: physical examination* * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- physical examination ---;
 
@@ -474,9 +199,9 @@ ods document name=listings(update);
 %report(data=PE_sub,title='Physical Examination with Abnormal Results',name=PE);
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: vital signs * * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- vital signs ---;
 
@@ -588,9 +313,9 @@ ods document name=tables(update);
 %tabulate(code=VS,visit="Week 10");
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: Glasgow coma score* * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- coma score ---;
 
@@ -631,9 +356,9 @@ ods document name=listings(update);
 %report(data=GC_sub,title='Glasgow Coma Scale',name=GC);
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: lumbar punctures* * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- lumbar punctures ---;
 
@@ -702,9 +427,9 @@ ods document name=tables(update);
 %processLP(visits=Day 1|Day 3|Day 7|Day 15);
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * * Subsection 4.X: laboratory* * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- laboratory ---;
 
@@ -967,9 +692,9 @@ proc freq data=temp;
 run;
 */
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: electrocardiogram * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- electrocardiogram ---;
 
@@ -991,9 +716,9 @@ ods document name=listings(update);
 %list_abnormal(code=EG,check_visit='Day 1',show_visit='Day 1');
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: Rankin disability questionnaire * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- disability ---;
 
@@ -1013,9 +738,9 @@ proc tabulate data=RANKIN;
 run;
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: death details * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- death details ---;
 
@@ -1037,9 +762,9 @@ proc report data=DD;
 run;
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: pregnancy * * * * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- pregnancy ---;
 
@@ -1065,9 +790,9 @@ ods document name=listings(update);
 %report(data=PR_sub,title='Pregnancy Tests and Results',name=PR);
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: quality of life * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- quality of life ---;
 
@@ -1081,9 +806,9 @@ proc report data=EQ;
 run;
 ods document close;
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: palatability acceptability* * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
  
 %put --- palatability ---;
 
@@ -1105,9 +830,9 @@ run;
 	
 /* CONTINUE HERE: tabulate with different levels for each variable? */ 
 
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 /* * Subsection 4.X: pharmacokinetics * * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+/******************************************************************************/
 
 %put --- pharmacokinetics ---;
 
@@ -1158,24 +883,6 @@ proc report data=PC spanrows;
 run;
 ods document close;
 
-/*
-Combine two columns on reasons! The second one is currently empty but might contain data in the future.
-*/
-
-/*
-proc report data=PC;
-	where PC_DEVIATION='Yes';
-run;
-*/
-
-/*
-TO-DO-LIST
-- continue discussion on data corrections
-- do not overwrite variables when bringing values to the same unit
-- improve listings
-- check NCS and CS in LB_LABORATORY
-- check discharge listing
-*/
 
 title ' ';
 options nodate nonumber;
@@ -1217,300 +924,3 @@ proc document name=figures;  replay; quit;
 proc document name=listings; replay; quit;
 
 ods pdf close;
-
-%macro ignore;
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.X: pharmacokinetics * * * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-filename temp "&pathPhar.\0131FRM18_Flucytosine_20230314.csv";
-proc import datafile=temp
-		out=PK
-		dbms=csv;
-run;
-
-
-data PK;
-	set PK;
-	rename SUBJECTID=RID;
-	if SAMPLETIME__HR_='Pre-dose (0)' then SAMPLETIME__HR_=0;
-	if CONCENTRATION='BLQ' then CONCENTRATION=0;
-	if CONCENTRATION='NS' then CONCENTRATION=.; /* verify this */
-	rename SAMPLETIME__HR_=SAMPLETIME;
-run;
-
-%add_random(code=PK);
-
-%as_numeric(code=PK,var=SAMPLETIME);
-%as_numeric(code=PK,var=CONCENTRATION);
-
-/* one separate scatterplot for each sample */
-
-proc sgpanel data=PK noautolegend;
-	title 'concentration against time by treatment';
-	panelby RID/columns=3 rows=4;
-	series x=SAMPLETIME y=CONCENTRATION/group=treatment markers;
-run;
-
-/* one common scatterplot for all samples */
-
-proc means data=PK noprint;
-	var CONCENTRATION;
-	class SAMPLETIME treatment;
-	output out=PK_mean mean=mean std=std;
-run;
-
-data PK_mean;
-	set PK_mean;
-	if not missing(SAMPLETIME) and not missing (treatment);
-	lower=mean-std;
-	upper=mean+std;
-run;
-
-proc sgplot data=PK_mean;
-	title 'concentration against time by treatment';
-	series x=SAMPLETIME y=mean / group=treatment markers markerattrs=(symbol=CircleFilled);
-    xaxis label='time';
-    yaxis label='concentration';
-    keylegend / title='treatment';
-	scatter x=SAMPLETIME y=mean/yerrorlower=lower yerrorupper=upper group=treatment;
-run;
-
-/* prepare data for WinNonLin */ 
-
-%as_numeric(code=PC,var=PC_DELAY);
-
-data PC;
-	set PC;
-	if VISIT='Treatment Period 1: 30 hrs PD' then
-		period=1;
-	else if VISIT='Treatment Period 2: 30 hrs PD' then
-		period=2;
-	if PC_SAMPLING_TIME='Pre-dose' then
-		SAMPLETIME=0;
-	else if PC_SAMPLING_TIME='0,5' then
-		SAMPLETIME=0.5;
-	else
-	SAMPLETIME=input(PC_SAMPLING_TIME,best32.);
-run;
-
-data PK;
-	set PK;
-	where not missing(CONCENTRATION);
-run;
-
-data merged;
-	merge PC(in=a) PK(in=b);
-	by RID period SAMPLETIME;
-run;
-
-data temp;
-	set merged;
-	time = SAMPLETIME - PC_DELAY/60; /* double-check unit and sign in R */
-	conc = CONCENTRATION;
-	keep RID period treatment time conc seqence;
-run;
-
-%let version=2024-01-03_T09-45; /* Adapt this line (see below) */ 
-
-proc export data=temp
-	outfile="&pathOut.\concentration-data_&version..csv"
-	dbms=csv
-	replace;
-run;
-
-%put Note: Execute intermediate analysis in Phoenix WinNonlin! See details in SAS file.;
-
-/*
-1. 	Run the SAS code above here (i.e., ending with proc export),
-	which exports the file "concentration-data_XXX.csv" to Phoenix WinNonlin.
-
-	NB: After choosing a meaningful version identififier (e.g., current date),
-	define this identifier some lines above ("%let version=XXX;"),
-	and use this identifier below ("_XXX.csv").
-
-2. 	Phoenix WinNonlin:
-
-	- 	Import data set: Click on 'file' (in the menu), click on 'import', select "concentration-data_XXX.csv", click on 'open', click on 'finish'.
-		You should now see a table with the columns RID, seqence, period, treatment, time and conc.
-
-	- 	Perform analysis: Click on 'send to' (in the menu), click on 'NonCompartmental Analysis', click on 'NCA'.
-		In the mappings, select 'sort' for the columns RID, seqence, period and treatment,
-		select 'time' for time, and select 'concentration' for conc.
-		In the options, select the calculation method 'linear up - log down'.
-		Execute the workflow by clicking on the green arrow (below the menu).
-
-	- 	Export data set: Go to 'results - output data - final parameters pivoted', right-click 'final parameters pivoded',
-		select export, and save as "final-parameters-pivoted_XXX.csv"
-
-3. 	Run the SAS code below here (i.e., starting with proc import),
-	which imports the file "final-parameters-pivoted_XXX.csv" from Phoenix WinNonlin.
-*/
-
-filename temp "&pathOut.\final-parameters-pivoted_&version..csv";
-proc import datafile=temp
-	out=PKpars
-	dbms=csv;
-run;
-
-data PKpars;
-	set PKpars;
-	if seqence=1 then
-        treat='1 (AB)';
-    else if seqence=2 then
-        treat='2 (BA)';
-    else
-        treat='';
-run;
-
-data PKpars;
- 	set PKpars;
-	logCmax = log(Cmax);
-	logAUClast = log(AUClast); /* Note difference between AUClast (last positive measurement) and AUCall (last measurement) */
-	logAUCinf = log(AUCINF_obs); 
-run;
-
-/* mixed model */
-
-%mixmod(outcome=logCmax);
-%mixmod(outcome=logAUClast);
-%mixmod(outcome=logAUCinf);
-
-%mend ignore;
-
-
-/* ---------------------- */
-/* --- PHASE II STUDY --- */
-/* ---------------------- */
-
-/* Mann-Whitney U test */
-
-/*
-proc npar1way data=PKpars wilcoxon;
-	class treat;
-	var Cmax Tmax Lambda_z;
-run;
-*/
-
-/* ------------- */
-/* --- NOTES --- */
-/* ------------- */
-
-/*
-Things to do:
-
-- mixed models: combine tables
-- vital signs: solve date/time formatting
-- security analysis
-- integration with WinNonlin
-- use vertical column labels for wide tables
-
-Consider computing PK parameters in SAS:
-- https://www.lexjansen.com/pharmasug-cn/2019/SP/Pharmasug-China-2019-SP63.pdf
-- https://www.lexjansen.com/pharmasug/2005/StatisticsPharmacokinetics/sp07.pdf
-- https://www.pharmasug.org/proceedings/2023/SA/PharmaSUG-2023-SA-284.pdf
-
-Consider using WinNonLin with SAS:
-- https://www.lexjansen.com/pharmasug/2001/Proceed/Posters/P06_russell.pdf
-
-Saving output to PDF or RTF:
-
-ods pdf file="&pathOut.\myfile.pdf" style=journal startpage=no;
-SOME CODE
-ods pdf close;
-
-Exporting tables to LaTeX:
-
-ods tagsets.TablesOnlyLaTeX file="&pathOut./table_example.tex" stylesheet="pathOut./sas.sty"(url="sas");
-SOME CODE
-ods tagsets.TablesOnlyLaTeX close;
-*/ 
-
-/*
-integration of WinNonLin and SAS:
-
-- invoke system command from SAS:
-  X <'command'>;
-
-- run WinNonLin from command line:
-  https://onlinehelp.certara.com/phoenix/8.2/topics/nlmecliusage.htm
-
-This code does not work:
-
-X<'cd C:\Program Files\R\R-4.3.1\bin'>
-X<'R'>
-X<'x <- rnorm(100)'>
-X<'save(x=x,file="P:\\temporary.RData")'>
-
-Consider running a script (i.e., save code in file, then source this file in R).
-
-%let PhoenixPath = "C:\Program Files (x86)\Certara\Phoenix\application";
-%let PhoenixCommand = 
-
-X<'"C:\Program Files\R\R-4.3.1\bin\Rscript.exe" C:\Users\arauschenberger\Desktop\Crypto-HIV\trial.R'>
-
-%let RCommand = "C:\Program Files\R\R-4.3.1\bin\Rscript.exe" "C:\Users\arauschenberger\Desktop\Crypto-HIV\trial.R";
-x "&RCommand";
-
-Run everything with a single script from the command line (first SAS, then WinNonLin, then SAS, then LaTeX)?
-
-Start-Process -FilePath "C:\Program Files (x86)\Certara\Phoenix\application\phoenix.exe"
-*/
-
-
-/* vital signs - trajectory */
-
-/* time formatting (keep this code)
-
-data VS;
-	set VS;
-	temp = input(VSDAT, ddmmyy10.);
-	date = put(temp, yymmdd10.);
-	VSDTC = catx("T",date,VSTIM);
-	/* datetime = input(VSDTC, E8601DT.);
-	drop temp;
-run;
-
-data VS;
-	set VS;
-	before = lag(time);
-	if time='other' then do;
-		time = before || " - us";
-	end;
-	drop before;
-run;
-
-data VS;
-	set VS;
-	if length(datetime)<10 then do;
-		date_time=.;
-	end;
-	else do;
-		date_time = input(datetime, E8601DT.);
-	end;
-	format date_time E8601DT.;
-run;
-
-%macro plotvs(test);
-	data temp;
-		set VS;
-		where VSTEST=&test. and VSPOS='Supine';
-		if RID in (&ids_abnormal.);
-	run;
-	proc sort data=temp;
-		by VSDTC RID;
-	run;
-	proc sgplot data=temp;
-		series x=VSDTC y=VSORRES / group=RID markers datalabel=time; 
-    	title "Supine &test.";
-    	xaxis label='time';
-    	yaxis label='value';
-   		keylegend / title='RID';
-	run;
-%mend plotvs;
-
-%plotvs('Systolic Blood Pressure');
-%plotvs('Diastolic Blood Pressure');
-*/
-
