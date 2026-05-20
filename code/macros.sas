@@ -11,7 +11,7 @@ proc import datafile="&path.\&code._*"
 run;
 %mend import;
 /*
-Arguments: Expects a directory (e.g., path="C:\Users\myname\Desktop")
+Arguments: Expects a directory (e.g., 'path="C:\Users\myname\Desktop"')
 and a CDISC abbreviation (e.g., 'code=VS' for vital signs).
 Description: Imports the file starting with 'code_' and ending with 'xlsx',
 and stores it in the data set 'code'.
@@ -21,12 +21,11 @@ and stores it in the data set 'code'.
 %macro add_rid(code=); 
 data &code;
  	set &code;
- 	/*RID = input(substr(USUBJID,index(USUBJID,'/')+1),best.);*/ /* original */ 
 	RID = input(scan(USUBJID,2,'/'),8.);
 run;
 %mend add_rid;
 /*
-Arguments: Expects a CDISC abbreviation (e.g., code=VS for vital signs).
+Arguments: Expects a CDISC abbreviation (e.g., 'code=VS' for vital signs).
 Description: Splits USUBJID (formatted as ABC/XYZ)
 into two parts, extracts the second part (formatted as XYZ),
 and adds this part to the dataset 'code' in the column 'RID'.
@@ -74,8 +73,10 @@ Arguments: -
 Note: Loops through a list of abbreviations (e.g., 'code = VS DM' for vital signs and demographics).
 Description: Prepares the datasets by importing the datasets, adding the random identifiers,
 sorting the datasets by random identifiers and adding information on the treatment sequence.
+NB: Consider adding the argument 'code' and call this macro once for each CDISC domain.
 */
 
+/* assign labels to variables */
 %macro label_vars(code=);
 	proc datasets lib=work nolist;
 		modify &code.;
@@ -348,7 +349,10 @@ sorting the datasets by random identifiers and adding information on the treatme
 		quit;
 	%end;
 %mend label_vars;
-
+/*
+Arguments: Expects an abbreviation (e.g., 'code=VS' for vital signs).
+Description: Assigns interpretable labels to variables.
+*/
 
 /* convert character to numeric */
 %macro as_numeric(code=,var=);
@@ -389,21 +393,7 @@ Both variables have the specified order of the category levels,
 and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne baseline')
 */
 
-/*
-%macro add_unit(code=);
-	%local var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
-	%getvars(code=&code.);
-	data &code.;
-		length &var_test_. $60;
-		length measure $60;
-		set &code.;
-		if missing(&var_unit.) then measure = &var_test_.;
-		else measure = cat(strip(&var_test_.),' (',strip(&var_unit.),')');
-		&var_test_. = measure;
-	run;
-%mend add_unit;
-*/
-
+/* replace special sign in units */
 %macro sub_per(code=);
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
@@ -416,8 +406,12 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		rename temp = &var_unit.;
 	run;
 %mend sub_per;
-/* Replace "/" by " per ". */ 
+/*
+Arguments: Expects an abbreviation (e.g., 'code=VS' for vital signs).
+Description: Replaces "/" by " per " in the variable indicating the units.
+*/ 
 
+/* add unit to test name */
 %macro add_unit(code=);
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
@@ -431,8 +425,13 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 		rename temp = &var_test.;
 	run;
 %mend add_unit;
+/*
+Arguments: Expects an abbreviation (e.g., 'code=VS' for vital signs).
+Description: Adds the unit to the name of the test
+(e.g., 'temperature' becomes 'temperature (celcius)'). 
+*/
 
-/* define variable names TEST and SCORE */ 
+/* define variable names */ 
 %macro getvars(code=);
 	%if &code.=VS %then %do;
 		%let label='Vital Sign';
@@ -493,7 +492,10 @@ and 'XXX_' can be used for subsetting with the labels (e.g., 'where XXX ne basel
 	%put var_unit=&var_unit.;
 	*/
 %mend getvars;
-
+/*
+Argument: Expects an abbreviation (e.g., 'code=VS' for vital signs).
+Description: Sets the label and defines various variables.
+*/
 
 /* find patients with abnormal results */ 
 %macro extract_ids_abnormal(code=,type=,visit=,test=,position=);
@@ -682,6 +684,7 @@ and a position (default 'Supine' or 'Standing').
 Description: Summarises measurements for each time point (rows) and treatment (columns).
 */ 
 
+/* make tables of values and change in values */
 %macro process_table(code=,tests=,position=);
 	%local i test;
 	%do i = 1 %to %sysfunc(countw(&tests, |));
@@ -691,6 +694,12 @@ Description: Summarises measurements for each time point (rows) and treatment (c
   		%table_change(code=&code.,test="&test",position=&position.);
 	%end;
 %mend process_table;
+/*
+Arguments: Expects an abbreviation (e.g., 'code=VS' for vital signs),
+a test (e.g., 'test=Systolic Blood Pressure (mmHg)'),
+and a position (e.g., 'position=Standing').
+Description: Makes the corresponding tables.
+*/
 
 /* calculate change */
 %macro calcdiff(code=,test=,position=);
@@ -895,6 +904,7 @@ as well as the lower and upper confidence limits for these means.
 Plots the results.
 */
 
+/* plot mean values and mean change */
 %macro process_trend(code=,tests=,position=);
 	%local i test;
 	%do i = 1 %to %sysfunc(countw(&tests, |));
@@ -903,7 +913,14 @@ Plots the results.
   		%plot_mean_change(code=&code.,test="&test",position=&position.);
 	%end;
 %mend process_trend;
+/*
+Arguments: Expects an abbreviation (e.g., 'code=VS' for vital signs),
+a test (e.g., test='Systolic Blood Pressure (mmHg)'),
+and a position (e.g. 'position=Standing')
+Description: Plots the mean values and the mean change.
+*/
 
+/* plot trajectories of multiple tests */
 %macro process_traject(code=,check_visit=,tests=,position=);
 	%local i test;
 	%do i=1 %to %sysfunc(countw(&tests, |));
@@ -911,8 +928,14 @@ Plots the results.
 		%plot_traject(code=&code.,check_visit=&check_visit.,test="&test",position=&position.);
 	%end;
 %mend process_traject;
+/*
+Arguments: Expects an abbreviation (e.g., code=VS),
+the visit where patients are checked for abnormalities (e.g., check_visit=baseline),
+the tests, and the position (if applicable).
+Description: Plots trajectories of multiple tests.
+*/
 
-
+/* make table of normal/abnormal counts and summary statistics */
 %macro tabulate(code=,type=,visit=);
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit;
 	%getvars(code=&code.);
@@ -938,6 +961,12 @@ Plots the results.
 				treatment all='Total';
 	run;
 %mend tabulate;
+/*
+Arguments: Expects an abbreviation,
+a type if there are multiple types of values for a visit,
+and a visit.
+Description: Makes the corresponding tables.
+*/
 
 /* perform mixed modelling */ 
 %macro mixmod(outcome=,data=PKpars,class=rid treatment period,fixed=treatment period treat,random=rid(treat),lsmeans=treat,alpha=0.10);
