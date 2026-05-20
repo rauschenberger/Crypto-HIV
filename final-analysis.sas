@@ -1,6 +1,8 @@
 
 /*
-Remaining issues from Franck's review from 2026-05-18:
+Remaining issues
+
+Franck (2026-05-18):
 - Tables with Yes/No should only show the counts for 'YES' and indicate in a footnote that there a no missing values.
 - Similarly, tables with Normal/Abnormal should only show the counts for 'Abnormal' and include a footnote.
 - Tables with separate blocks for numerical and categorical variables should be split into two tables.
@@ -9,6 +11,13 @@ Remaining issues from Franck's review from 2026-05-18:
 - Concomitant medication: Ongoing='Yes' could be moved to the enddate column (i.e., enddate = 'ongoing').
 - Physical examination: Define abbreviations in a footnote (e.g., HEENT).
 - Clinical chemistry (and others): Show unscheduled visit only if there is at least one non-missing value.
+
+Michel (2026-05-20):
+•	Symptoms: medical coding and table per system organ class and preferred term?
+•	Adverse events: idem and maybe one table of “at least one AE per patient” but let’s see if they request it
+•	Vital signs: body temp has only the “N” line
+•	Urinalysis: Variable name appear in the column “Result” sometimes i.e. “Laboratory Test”, 
+•	Figures: the unit is missing in the X-axis title
 */ 
 
 
