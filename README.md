@@ -22,4 +22,5 @@ In addition, this repository also contains the SAS script for the randomisation 
 
 This repository is hosted on a personal GitHub account (https://github.com/rauschenberger/Crypto-HIV), but it has a mirror on an institutional GitLab account (https://gitlab.lih.lu/arauschenberger/Crypto-HIV). This SAS code is still under development and has not yet been reviewed.
 
-**Copyright** &copy; 2023 Armin Rauschenberger; Luxembourg Institute of Health (LIH), Department of Medical Informatics (DMI), Bioinformatics and Artificial Intelligence (BioAI) and Competence Centre for Methodology and Statistics (CCMS). **All rights reserved.** (The SAS code will have an open-source license at a later stage.)
+**Copyright** &copy; 2023 Armin Rauschenberger
+[![AR](https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png)](https://orcid.org/0000-0001-6498-4801); Luxembourg Institute of Health (LIH), Department of Medical Informatics (DMI), Bioinformatics and Artificial Intelligence (BioAI) and Competence Centre for Methodology and Statistics (CCMS). **All rights reserved.** (The SAS code will have an open-source license at a later stage.)
