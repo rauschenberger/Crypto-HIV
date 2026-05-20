@@ -1,4 +1,9 @@
 
+/******************************************************************************/
+/*** Crypto-HIV phase II study  ***********************************************/
+/*** Armin Rauschenberger *****************************************************/
+/******************************************************************************/
+
 /*
 Remaining issues
 
@@ -13,19 +18,16 @@ Franck (2026-05-18):
 - Clinical chemistry (and others): Show unscheduled visit only if there is at least one non-missing value.
 
 Michel (2026-05-20):
-•	Symptoms: medical coding and table per system organ class and preferred term?
-•	Adverse events: idem and maybe one table of “at least one AE per patient” but let’s see if they request it
-•	Vital signs: body temp has only the “N” line
-•	Urinalysis: Variable name appear in the column “Result” sometimes i.e. “Laboratory Test”, 
-•	Figures: the unit is missing in the X-axis title
-*/ 
+- Symptoms: medical coding and table per system organ class and preferred term?
+- Adverse events: idem and maybe one table of “at least one AE per patient” but let’s see if they request it
+- Vital signs: body temp has only the “N” line
+- Urinalysis: Variable name appear in the column “Result” sometimes i.e. “Laboratory Test”, 
+- Figures: the unit is missing in the X-axis title
 
-/* The entry "D" means "not done" and the entry "A" means "not applicable". Replace both by NA! /*
-
-/******************************************************************************/
-/*** Crypto-HIV phase II study  ***********************************************/
-/*** Armin Rauschenberger *****************************************************/
-/******************************************************************************/
+Armin
+- The entry "D" means "not done" and the entry "A" means "not applicable". Replace both by NA!
+- Data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
+/*
 
 /* 
 This SAS code is divided into four sections.
@@ -44,137 +46,20 @@ This SAS script requires three manual interventions:
 (3) Copy-and-paste tables and figure from the results viewer (or use SAS ODS).
 */
 
-/******************************************************************************/
-/*** Section 1: Setup *********************************************************/
-/******************************************************************************/
+%include "code/setup.sas";
+%include "code/macros.sas";
+%include "code/format.sas";
+%include "code/import.sas";
 
-/* clean workspace */
-
-/*
-proc datasets library=work kill;
-run;
-dm 'odsresults; clear';
-dm "log; clear; ";
-options nosource;
-options nonotes;
-*/
-
-proc datasets library=work kill nolist; run; quit;
-proc catalog catalog=work.formats kill nolist; run; quit;
-%symdel _all_ / nowarn;
-ods _all_ close;
-dm 'odsresults; clear';
-dm "log; clear;";
-options nosource nonotes;
-
-/* define paths */
-
-/* Specifying the paths to the input directories for the randomisation list (pathRand),
-the clinical data (pathClin), and the pharmacokinetic data (pathPhar),
-and specifying the path to the output directory for the tables and figures (pathOut).*/ 
-%let pathRand=C:\Users\arauschenberger\Desktop\Crypto-HIV;
-%let pathClin=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-Phase2 Study\4 - Data Management\7-Data transfers\Export files\30-Jul-2025_Franck;
-%let pathPhar=I:\Projects folder\CCMS\Crypto-HIV\DNDi-5FC-02-CM (fed study)\4 - Data Management\7-Data transfers\Import files\15032023_Pharmetheus\0131FRM18_DNDi-5FC-02-CM_PK_20230315\0131FRM18_DNDi-5FC-02-CM_PK_20230315;
-%let pathOut=C:\Users\arauschenberger\Desktop\Crypto-HIV\learning_SAS;
-
-
-
-
+%global table_n figure_n listing_n;
+%let table_n   = 0; %let figure_n  = 0; %let listing_n = 0; title;
+ods document name=tables(write); ods document close;
+ods document name=figures(write); ods document close;
+ods document name=listings(write); ods document close;
 
 /******************************************************************************/
 /*** Section 4: Analysis ******************************************************/
 /******************************************************************************/
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-/* * Subsection 4.1: import clinical data  * * * * * * * * * * * * * * * * * */
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
-%global table_n figure_n listing_n;
-%let table_n   = 0;
-%let figure_n  = 0;
-%let listing_n = 0;
-title;
-*ods proclabel ' ';
-
-proc import datafile="&pathRand.\randomisation_list.csv"
-		out=random
-		dbms=csv;
-run;
-
-data random;
-	set random;
-	if treatment=1 then
-		temp ='Sustained-Release (SR)';
-	else if treatment=2 then
-		temp='Immediate-Release (IR)';
-	else
-		put 'ERROR: invalid value for treatment';
-	drop treatment;
-	rename temp=treatment;
-run;
-
-
-/* Run the following code chunk to mask the treatment. */ 
-/*
-data random;
-	set random;
-	treatment = 'masked';
-run;
-*/
-
-%prepare;
-
-/* replace verbatim terms */ 
-
-%macro add_terms(path=,code=,file=);
-proc import datafile="&path.\&file."
-    out=verbatim
-    dbms=xlsx
-	REPLACE;
-run;
-%if &code.=CM or &code.=PM %then %do;
-	%let var_verb=CMTRT;
-%end;
-%else %if &code.=MH %then %do;
-	%let var_verb=MHTERMPREP;
-%end;
-%else %if &code.=AE %then %do;
-	%let var_verb=AETERM;
-%end;
-%else %do;
-	%put ERROR;
-%end;
-data verbatim;
-	set verbatim;
-	rename Verbatim = &var_verb.;
-	rename Patient_code = USUBJID;
-run;
-proc sort data=verbatim; by USUBJID &var_verb.; run;
-proc sort data=&code.; by USUBJID &var_verb.; run;
-data &code.;
-	merge &code. verbatim;
-	by USUBJID &var_verb.;
-run;
-%mend add_terms;
-
-%add_terms(path=&pathClin,code=MH,file=Verbatims_MedDra_20260511_MH.xlsx);
-%add_terms(path=&pathClin,code=AE,file=Verbatims_MedDra_20260805_AE.xlsx);
-%add_terms(path=&pathClin,code=CM,file=Verbatims_WHODRUG_20260513_CM.xlsx);
-%add_terms(path=&pathClin,code=PM,file=Verbatims_WHODRUG_20260513_PM.xlsx);
-
-%let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
-%let post_weeks='Week 4' 'Week 6' 'Week 10';
- 
-/*
-- data set PE variable PEORRES should have the possible values "Normal", Abnormal, NCS" and "Abnormal, CS" but also has the value "D".
-*/
-
-ods document name=tables(write);
-ods document close;
-ods document name=figures(write);
-ods document close;
-ods document name=listings(write);
-ods document close;
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 /* * Subsection 4.X: demographics  * * * * * * * * * * * * * * * * * * * * * */
