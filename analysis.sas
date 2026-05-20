@@ -74,7 +74,7 @@ ods document name=listings(write); ods document close;
 %include "code/tlf_lp.sas"; /* lumbar punctures */
 %include "code/tlf_lb.sas"; /* laboratory */
 %include "code/tlf_eg.sas"; /* electrocardiogram */
-%include "code/tlf_ranking.sas"; /* Rankin disability questionnaire */
+%include "code/tlf_rankin.sas"; /* Rankin disability questionnaire */
 %include "code/tlf_dd.sas"; /* death details */
 %include "code/tlf_pr.sas"; /* pregnancy */
 %include "code/tlf_eq.sas"; /* quality of life */
