@@ -17,10 +17,10 @@ This repository contains the SAS and R scripts for reproducing the results from 
 
 ## Reference
 
-"A 15 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis"
+"A 15 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis" (https://dndi.org/research-development/portfolio/5fc-cryptococcal-meningitis/)
 
 ## Disclaimer
 
-This repository is hosted on a personal GitHub account (https://github.com/rauschenberger/Crypto-HIV), but it has a mirror on an institutional GitLab account (https://gitlab.lih.lu/arauschenberger/Crypto-HIV).
+This repository is hosted on a personal GitHub account (https://github.com/rauschenberger/Crypto-HIV), but it has a mirror on an institutional GitLab account (https://gitlab.lih.lu/arauschenberger/Crypto-HIV). This SAS code is still under development and has not yet been reviewed.
 
-**Copyright** &copy; 2025 Armin Rauschenberger; Luxembourg Institute of Health (LIH), Department of Medical Informatics (DMI), Bioinformatics and Artificial Intelligence (BioAI) and Competence Centre for Methodology and Statistics (CCMS). **All rights reserved.** (The SAS code will have an open-source license at a later stage.)
+**Copyright** &copy; 2023 Armin Rauschenberger; Luxembourg Institute of Health (LIH), Department of Medical Informatics (DMI), Bioinformatics and Artificial Intelligence (BioAI) and Competence Centre for Methodology and Statistics (CCMS). **All rights reserved.** (The SAS code will have an open-source license at a later stage.)
