@@ -16,7 +16,7 @@ In addition, this repository also contains the SAS script for the randomisation 
 
 ## Reference
 
-"A 15 week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis" (https://dndi.org/research-development/portfolio/5fc-cryptococcal-meningitis/)
+"A 15-week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis." (https://dndi.org/research-development/portfolio/5fc-cryptococcal-meningitis/)
 
 ## Disclaimer
 
