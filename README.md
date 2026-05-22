@@ -1,9 +1,9 @@
 
-# Crypto-HIV
+# SAS code for Crypto-HIV phase 2
 
 ## Scope
 
-This repository contains the SAS script for the Crypto-HIV phase 2 study. The script in the file [analysis.sas](analysis.sas) calls multiple scripts:
+This repository contains the SAS code for the Crypto-HIV phase 2 study. The script in the file [analysis.sas](analysis.sas) calls multiple scripts:
 
 - file [setup.sas](code/setup.sas): defining paths
 - file [macros.sas](code/macros.sas): defining macros
