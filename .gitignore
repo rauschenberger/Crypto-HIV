@@ -8,16 +8,25 @@
 !.gitignore
 !CITATION.cff
 !LICENSE
+# Add here any other files to be tracked.
+# These files will be pushed to GitHub/GitLab.
 
-# allow specific file types (whitelist)
+# allow specific file types (allowlist)
+!*.sas
 !*.md
 !*.Rmd
-!*.sas
+# Add here any other file types to be tracked.
+# These file types will be pushed to GitHub/GitLab.
 
-# never allow specific file types (blacklist)
+# NEVER CHANGE ANYTHING BELOW THIS LINE!
+# THESE FILE TYPES CONTAIN SENSITIVE DATA
+# AND MUST NOT BE PUSHED TO GITHUB/GITLAB.
+
+# block specific file types (blocklist)
 *.pdf
 *.xlsx
 *.csv
+*.sas7bdat
 *.html
 *.Rhistory
 *.DS_Store
