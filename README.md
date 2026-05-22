@@ -20,7 +20,7 @@ In addition, this repository also contains the SAS script for the randomisation 
 
 ## Acknowledgement
 
-The developer is grateful to [Franck Ngangom](https://orcid.org/0000-0002-9988-8649) and [Michel Vaillant](https://orcid.org/0000-0003-4714-8128) for comments on the tables, listings, and figures. (Most changes have not yet been implemented.)
+The developer is grateful to Franck Ngangom [![FN](https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png)](https://orcid.org/0000-0002-9988-8649) and Michel Vaillant [![MV](https://info.orcid.org/wp-content/uploads/2019/11/orcid_16x16.png)](https://orcid.org/0000-0003-4714-8128) for comments on the tables, figures, and listings. (Most changes still need to be implemented.)
 
 ## Disclaimer
 
