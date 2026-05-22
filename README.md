@@ -18,6 +18,10 @@ In addition, this repository also contains the SAS script for the randomisation 
 
 "A 15-week, open-label, randomized, controlled parallel-group trial to evaluate the comparative bioavailability, efficacy and safety of sustained-release flucytosine versus immediate-release flucytosine in adults with cryptococcal meningitis." (https://dndi.org/research-development/portfolio/5fc-cryptococcal-meningitis/)
 
+## Acknowledgement
+
+The developer is grateful to [Franck Ngangom](https://orcid.org/0000-0002-9988-8649) and [Michel Vaillant](https://orcid.org/0000-0003-4714-8128) for comments on the tables, listings, and figures. (Most changes have not yet been implemented.)
+
 ## Disclaimer
 
 This repository is hosted on a personal GitHub account (https://github.com/rauschenberger/Crypto-HIV), but it has a mirror on an institutional GitLab account (https://gitlab.lih.lu/arauschenberger/Crypto-HIV).
