@@ -3,13 +3,13 @@
 
 ## Scope
 
-This repository contains the SAS script for the Crypto-HIV phase 2 study. The script in the file [analysis.sas](analysis.sas) calls scripts from multiple files:
+This repository contains the SAS script for the Crypto-HIV phase 2 study. The script in the file [analysis.sas](analysis.sas) calls multiple scripts:
 
-- [setup.sas](code/setup.sas): defining paths
-- [macros.sas](code/macros.sas): defining macros
-- [format.sas](code/format.sas): defining formats
-- [import.sas](code/import.sas): importing datasets
-- other files in [code](code): generating tables, figures, and listings
+- file [setup.sas](code/setup.sas): defining paths
+- file [macros.sas](code/macros.sas): defining macros
+- file [format.sas](code/format.sas): defining formats
+- file [import.sas](code/import.sas): importing datasets
+- other files in folder [code](code/README.md): generating tables, figures, and listings
 <!-- [devel.sas](code/devel.sas): code for PK analysis-->
 
 In addition, this repository also contains the SAS script for the randomisation ([randomisation](randomisation.sas)), a short presentation of the statistical analysis plan ([presentation.Rmd](presentation.Rmd)), and the SAS and R scripts for reproducing the results from the Crypto-HIV phase 1 study "fed" ([reproducibility.sas](reproducibility.sas) and [reproducibility.Rmd](reproducibility.Rmd)).
