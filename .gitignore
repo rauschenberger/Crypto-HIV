@@ -1,5 +1,21 @@
-*.Rhistory
+# ignore everything
+*
+
+# allow directories
+!*/
+
+# allow specific files
+!.gitignore
+
+# allow specific file types (whitelist)
+!*.md
+!*.Rmd
+!*.sas
+
+# never allow specific file types (blacklist)
 *.pdf
 *.xlsx
 *.csv
 *.html
+*.Rhistory
+*.DS_Store
