@@ -1,5 +1,5 @@
 
-# SAS code for Crypto-HIV phase 2
+# SAS code for Crypto-HIV study
 
 ## Scope
 
