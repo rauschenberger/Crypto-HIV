@@ -7,6 +7,7 @@
 # allow specific files
 !.gitignore
 !CITATION.cff
+!LICENSE
 
 # allow specific file types (whitelist)
 !*.md
