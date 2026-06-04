@@ -846,7 +846,7 @@ Plots the measurements against the visit names, with one line for each patient.
 		series x=visit y=mean / group=treatment markers markerattrs=(symbol=CircleFilled);
     	xaxis label='time';
     	yaxis label='value';
-    	keylegend / title='treatment';
+    	keylegend / title='Treatment:';
 		highlow x=visit low=lclm high=uclm / group=treatment;
 		scatter x=visit y=mean/yerrorlower=lclm yerrorupper=uclm group=treatment;
 	run;
