@@ -20,6 +20,8 @@ proc tabulate data=AE;
 	class treatment AETERM;
 	table AETERM='' * (n),
 		treatment all='Total';
+	/*table System_Organ_Class * PT * (n),
+		treatment all='Total';*/
 run;
 ods document close;
 
