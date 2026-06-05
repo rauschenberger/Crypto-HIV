@@ -768,7 +768,7 @@ Description: Summarises change with respect to pre-dose for each time point (row
 */ 
 
 /* plot trajectories */
-%macro plot_traject(code=,check_visit=,test=,position=);
+%macro plot_traject(code=,check_visit=,test=,position=,xlabel='Time (d)',ylabel='Value');
 	%local label var_test var_test_ state_by var_score var_judge var_judge_ var_unit ids_abnormal;
 	%getvars(code=&code.);
 	%extract_ids_abnormal(code=&code.,visit=&check_visit.,test=&test.,position=&position.);
@@ -795,11 +795,14 @@ Description: Summarises change with respect to pre-dose for each time point (row
 	run;
 	proc sgplot data=temp;
 		series x=VISIT y=&var_score. / group=USUBJID markers;
-    	%title(type="figure",label="Trajectories of %sysfunc(dequote(&test.))"); /*%sysfunc(dequote(&position.))*/
+		%let label = %sysfunc(dequote(&test.));
+		%let pos = %sysfunc(index(&label., %str(%()));
+		%let ylabel = Value %sysfunc(substr(&label., &pos.));
+    	%title(type="figure",label="Trajectories of &label."); /*%sysfunc(dequote(&test.))%sysfunc(dequote(&position.))*/
 		title2 '(for those abnormal at' &check_visit. ')';
-    	xaxis label='time'; 
-    	yaxis label='value';
-   		keylegend / title='Subject';
+    	xaxis label=&xlabel.; 
+    	yaxis label="&ylabel.";
+   		keylegend / title='Subject:';
 		%if %bquote(&test.)=%bquote("Systolic Blood Pressure (mmHg)") %then %do;
 			refline 90 140 / axis=y lineattrs=(thickness=2);
 		%end;
@@ -833,7 +836,7 @@ Plots the measurements against the visit names, with one line for each patient.
 */
 
 /* plot mean value or mean change */
-%macro plot_internal(title=,title2=);
+%macro plot_internal(title=,title2=,xlabel='Time (d)',ylabel='Value');
 	/*
 	data DATA_MEAN;
 		set DATA_MEAN;
@@ -844,8 +847,8 @@ Plots the measurements against the visit names, with one line for each patient.
 		%title(type="figure",label=&title.);
 		title2 &title2.;
 		series x=visit y=mean / group=treatment markers markerattrs=(symbol=CircleFilled);
-    	xaxis label='time';
-    	yaxis label='value';
+    	xaxis label=&xlabel.;
+    	yaxis label=&ylabel.;
     	keylegend / title='Treatment:';
 		highlow x=visit low=lclm high=uclm / group=treatment;
 		scatter x=visit y=mean/yerrorlower=lclm yerrorupper=uclm group=treatment;
@@ -868,7 +871,10 @@ Plots the measurements against the visit names, with one line for each patient.
 		class treatment visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(title="Mean %sysfunc(dequote(&test.))",title2='(by treatment)'); /*&position.*/
+	%let test = %sysfunc(dequote(&test.));
+	%let pos = %sysfunc(index(&test., %str(%()));
+	%let ylabel = Mean %sysfunc(substr(&test., &pos.));
+	%plot_internal(title="Mean &test.",title2='(by treatment)',ylabel="&ylabel."); /*&position.*/
 	proc datasets lib=work nolist;
         delete DATA_MEAN;
     quit;
@@ -888,7 +894,10 @@ Plots the measurements against the visit names, with one line for each patient.
 		class treatment visit;
 		output out=DATA_MEAN mean=mean lclm=lclm uclm=uclm;
 	run;
-	%plot_internal(title="Mean Change in %sysfunc(dequote(&test.))",title2='(with respect to the screening visit, by treatment)'); /*  &position. */ 
+	%let test = %sysfunc(dequote(&test.));
+	%let pos = %sysfunc(index(&test., %str(%()));
+	%let ylabel = Mean Change %sysfunc(substr(&test., &pos.));
+	%plot_internal(title="Mean Change in &test.",title2='(with respect to the screening visit, by treatment)',ylabel="&ylabel."); /*  &position. */ 
 	proc datasets lib=work nolist;
         delete DATA_MEAN;
     quit;
@@ -925,7 +934,7 @@ Description: Plots the mean values and the mean change.
 	%local i test;
 	%do i=1 %to %sysfunc(countw(&tests, |));
 	%let test = %scan(&tests, &i, |);
-		%plot_traject(code=&code.,check_visit=&check_visit.,test="&test",position=&position.);
+		%plot_traject(code=&code.,check_visit=&check_visit.,test="&test",position=&position.,ylabel="&test");
 	%end;
 %mend process_traject;
 /*
