@@ -18,10 +18,11 @@ Franck (2026-05-18):
 - Clinical chemistry (and others): Show unscheduled visit only if there is at least one non-missing value.
 
 Michel (2026-05-20):
-- Symptoms: medical coding and table per system organ class and preferred term?
-- Adverse events: idem and maybe one table of “at least one AE per patient” but let’s see if they request it
-- Vital signs: body temp has only the “N” line
-- Urinalysis: Variable name appear in the column “Result” sometimes i.e. “Laboratory Test”, 
+- Symptoms: medical coding and table per system organ class and preferred term? => added SOC and PT
+- Adverse events: idem => added SOC and PT
+  and maybe one table of “at least one AE per patient” but let’s see if they request it => NOT YET DONE
+- Vital signs: body temp has only the “N” line => The other lines are on the previous page.
+- Urinalysis: Variable name appear in the column “Result” sometimes i.e. “Laboratory Test”,  => I can't find any occurence in the current version.
 - Figures: the unit is missing in the X-axis title
 
 Armin:
@@ -33,6 +34,7 @@ Armin:
 - check NCS and CS in LB_LABORATORY
 - The dataset on drug accountability is empty. It does not contain any information on taken and remaining amounts.
 - QUEST: include this in report?
+- Trigger an error if randomised and actual treatment differs.
 */
 
 /*
@@ -42,6 +44,8 @@ This SAS script requires three manual interventions:
 	b) Then calculate the PK parameters in WinNonlin (see below '%put Note:')
 	c) Finally run the SAS script after the WinNonlin part.
 */
+
+x "cd C:\Users\arauschenberger\Desktop\Crypto-HIV\repository";
 
 %include "code/setup.sas";
 %include "code/macros.sas";
