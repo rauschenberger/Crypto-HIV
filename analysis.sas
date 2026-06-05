@@ -23,7 +23,7 @@ Michel (2026-05-20):
   and maybe one table of “at least one AE per patient” but let’s see if they request it => NOT YET DONE
 - Vital signs: body temp has only the “N” line => The other lines are on the previous page.
 - Urinalysis: Variable name appear in the column “Result” sometimes i.e. “Laboratory Test”,  => I can't find any occurence in the current version.
-- Figures: the unit is missing in the X-axis title
+- Figures: the unit is missing in the X-axis title => Added units to both axes.
 
 Armin:
 - The entry "D" means "not done" and the entry "A" means "not applicable". Replace both by NA!
@@ -88,7 +88,9 @@ ods document name=listings(write); ods document close;
 title ' ';
 options nodate nonumber;
 ods escapechar='^';
-ods pdf file="&pathOut.\\myfile.pdf" style=printer startpage=yes;
+%let date = %sysfunc(today(), yymmdd10.);
+%let filename = Crypto-HIV_&date.;
+ods pdf file="&pathOut.\\&filename..pdf" style=printer startpage=yes;
 ods pdf text="^S={just=c font_size=24pt font_weight=bold} ^10n 5FC HIV-Crypto";
 ods pdf text="^S={just=c font_size=24pt} ^1n Tables, Figures, and Listings";
 ods pdf text="^S={just=c font_size=14pt} ^10n Armin Rauschenberger";
