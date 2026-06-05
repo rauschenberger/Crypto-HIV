@@ -12,6 +12,8 @@ This repository contains the SAS code for the Crypto-HIV phase 2 study. The scri
 - other files in folder [code](code): generating tables, figures, and listings
 <!-- [devel.sas](code/devel.sas): code for PK analysis-->
 
+To generate the full report of all tables, figures, and listings (`Crypto-HIV_YYYY-MM-DD.pdf`), please submit the SAS code in the file [analysis.sas](analysis.sas).
+
 In addition, this repository also contains the SAS script for the randomisation ([randomisation](randomisation.sas)), a short presentation of the statistical analysis plan ([presentation.Rmd](presentation.Rmd)), and the SAS and R scripts for reproducing the results from the Crypto-HIV phase 1 study "fed" ([reproducibility.sas](reproducibility.sas) and [reproducibility.Rmd](reproducibility.Rmd)).
 
 ## Reference
