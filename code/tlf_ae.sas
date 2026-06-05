@@ -17,11 +17,12 @@ ods document name=tables(update);
 proc tabulate data=AE;
 	%title(type="table",label="Number Adverse Events");
 	title2 '(by type and treatment)';
-	class treatment AETERM;
+	/*class treatment AETERM;
 	table AETERM='' * (n),
-		treatment all='Total';
-	/*table System_Organ_Class * PT * (n),
 		treatment all='Total';*/
+	class treatment System_Organ_Class Preferred_Term;
+	table System_Organ_Class * Preferred_Term * (n),
+		treatment all='Total';
 run;
 ods document close;
 
