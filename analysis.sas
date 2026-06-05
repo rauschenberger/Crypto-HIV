@@ -35,6 +35,7 @@ Armin:
 - The dataset on drug accountability is empty. It does not contain any information on taken and remaining amounts.
 - QUEST: include this in report?
 - Trigger an error if randomised and actual treatment differs.
+- The warning "Argument 2 to function SUBSTR referenced by the %SYSFUNC or %QSYSFUNC macro function is out of range" should disappear once Leucocytes has units.
 */
 
 /*
