@@ -47,7 +47,7 @@ ods document close;
 
 ods document name=listings(update);
 %macro ae_report1;
-proc report data=AE spanrows style(report)=[width=100%] style(column)=[cellwidth=9.8%] style(header)=[cellwidth=9.8%];
+proc report data=AE spanrows style(column)=[cellwidth=9.8%] style(header)=[cellwidth=9.8%]; /* style(report)=[width=100%] */
 	%title(type="listing",label='All Adverse Events');
 	%color(name=AE);
 	%if &standardise. = True %then %do;
@@ -64,7 +64,7 @@ ods document close;
 
 ods document name=listings(update);
 %macro ae_report2;
-proc report data=AE spanrows style(report)=[width=100%] style(column)=[cellwidth=9.8%] style(header)=[cellwidth=9.8%];
+proc report data=AE spanrows style(column)=[cellwidth=9.8%] style(header)=[cellwidth=9.8%]; /* style(report)=[width=100%] */
 	where AESEV_ not in ('Mild','Moderate');
 	%title(type="listing",label='Severe or Life-Threatening Adverse Events');
 	%color(name=AE);
