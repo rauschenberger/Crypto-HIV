@@ -48,6 +48,8 @@ This SAS script requires three manual interventions:
 
 x "cd C:\Users\arauschenberger\Desktop\Crypto-HIV\repository";
 
+%let standardise = True; /* Set to False to use verbatim terms.*/ 
+
 %include "code/setup.sas";
 %include "code/macros.sas";
 %include "code/format.sas";

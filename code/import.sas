@@ -62,11 +62,16 @@ data &code.;
 run;
 %mend add_terms;
 
+%macro add_all_terms;
+%if &standardise. = True %then %do;
 %add_terms(path=&pathClin,code=MH,file=Verbatims_MedDra_20260511_MH.xlsx);
 %add_terms(path=&pathClin,code=AE,file=Verbatims_MedDra_20260805_AE.xlsx);
 %add_terms(path=&pathClin,code=CM,file=Verbatims_WHODRUG_20260513_CM.xlsx);
 %add_terms(path=&pathClin,code=PM,file=Verbatims_WHODRUG_20260513_PM.xlsx);
 %add_terms(path=&pathClin,code=CE,file=Verbatims_MedDra_20260521_CE.xlsx);
+%end;
+%mend add_all_terms;
+%add_all_terms;
 
 %let treat_days='Day 1' 'Day 2' 'Day 3' 'Day 4' 'Day 5' 'Day 6' 'Day 7' 'Day 15';
 %let post_weeks='Week 4' 'Week 6' 'Week 10';

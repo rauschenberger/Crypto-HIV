@@ -36,9 +36,17 @@ data PM;
 run;
 
 ods document name=listings(update);
+%macro pm_report;
 proc report data=PM spanrows;
 	%title(type="listing",label='Prior Medications');
-	column USUBJID CMTRT ATC_CLASSIFICATION_NAME Dosing CMINDCREF;
+	%if &standardise. = True %then %do;
+		column USUBJID CMTRT ATC_CLASSIFICATION_NAME Dosing CMINDCREF;
+	%end;
+	%else %do;
+		column USUBJID CMTRT Dosing CMINDCREF;
+	%end;
 	define USUBJID/order;
 run;
+%mend pm_report;
+%pm_report;
 ods document close;
