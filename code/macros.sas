@@ -199,7 +199,9 @@ NB: Consider adding the argument 'code' and call this macro once for each CDISC 
 			modify &code.;
 			label
 				VISIT = "Visit"
-				CETERM = "Clinical Event";
+				CETERM = "Clinical Event"
+				Primary_System_Organ_Class = "PSOC"
+				Preferred_term = "PT";
 		quit;
 	%end;
 	%else %if &code.=AE %then %do;
