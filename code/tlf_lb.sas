@@ -5,6 +5,13 @@
 
 %put --- laboratory ---;
 
+/*
+%prepare;
+
+proc report data=LB;
+run;
+*/
+
 data LB;
 	set LB;
 	length temp $60;
@@ -242,12 +249,11 @@ ods document name=tables(update);
 %process_table(code=LB,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
 ods document close;
 
-/* */ 
+/* figures: This triggers warnings because Leucocytes has no unit! */ 
 ods document name=figures(update);
 %process_trend(code=LB,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
 ods document close;
 
-/* */ 
 ods document name=figures(update);
 %process_traject(code=LB,check_visit=&treat_days.,tests=Haemoglobin (g/dL)|Leucocytes); /* per */
 ods document close;
