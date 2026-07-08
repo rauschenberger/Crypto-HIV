@@ -13,6 +13,7 @@ run;
 
 data LP;
 	set LP;
+	length LPORRES_numeric LPORRES_ordinal $200;
 	if LPORRES in ('1+') or LPTEST in ('CSF samples','Candida Spp','Cryptococcus neoformans','E. coli','Mycobacterium tuberculosis','Neisseria meningitidis','Streptococcus pneumoniae') then do;
 		LPORRES_numeric = '';
 		LPORRES_ordinal = LPORRES;

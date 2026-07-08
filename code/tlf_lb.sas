@@ -41,6 +41,7 @@ run;
 
 data LB;
 	set LB;
+	length LBORRES_numeric LBORRES_ordinal $200;
 	/*LBORRES_original = LBORRES;*/
 	if LBORRES in ('Negative','Positive','N','NEG','TRACE','<1.8','<2.0','>10','1+','2+','3+','4+','+','+++') then do;
 		LBORRES_numeric = '';
