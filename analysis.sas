@@ -36,6 +36,7 @@ Armin:
 - QUEST: include this in report?
 - Trigger an error if randomised and actual treatment differs.
 - The warning "Argument 2 to function SUBSTR referenced by the %SYSFUNC or %QSYSFUNC macro function is out of range" should disappear once Leucocytes has units.
+- Treatment exposure: Several times, a treatment dose is not indicated as administrated (i.e., EXTRTYN is empty), but there is a date and a time for the dose.
 */
 
 /*
