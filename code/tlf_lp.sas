@@ -69,3 +69,8 @@ run;
 ods document name=tables(update);
 %processLP(visits=Day 1|Day 3|Day 7|Day 15);
 ods document close;
+
+/*
+%process_traject(code=LP,check_visit=&treat_days.,tests=Quantitative culture (CFU/mL);
+does not work because variable for clinical significance is not specified
+*/
