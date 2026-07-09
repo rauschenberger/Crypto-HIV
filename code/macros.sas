@@ -179,7 +179,8 @@ NB: Consider adding the argument 'code' and call this macro once for each CDISC 
 				EXTRT = "Other Product"
 				EXSTDAT = "Date"
 				EXSTTIM = "Time"
-				EXROUTE = "Route";
+				EXROUTE = "Route"
+				EXTRTYN = "Administrated";
 		quit;
 	%end;
 	%else %if &code.=CM %then %do;

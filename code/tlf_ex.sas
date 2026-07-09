@@ -18,8 +18,8 @@ ods document name=tables(update);
 proc tabulate data=EX missing;
 	%title(type="table",label="Treatment Exposure");
 	title2 '(by visit and treatment)';
-	class VISIT dose treatment EXDOSNB EXTRT /order=internal;
-	table VISIT * (EXDOSNB * EXTRT) * (n), treatment;
+	class VISIT dose treatment EXDOSNB EXTRT EXTRTYN /order=internal;
+	table VISIT * (EXDOSNB * EXTRT) * EXTRTYN="Administrated" * (n), treatment;
 run;
 ods document close;
 
@@ -28,8 +28,8 @@ ods document close;
 %put WARNING: This script is using a dummy randomisation list!;
 
 data EX_sub;
-	retain USUBJID VISIT EXDOSNB EXTRT EXSTDAT EXSTTIM EXROUTE;
-	set EX(keep=USUBJID VISIT EXDOSNB EXTRT EXSTDAT EXSTTIM EXROUTE);
+	retain USUBJID VISIT EXDOSNB EXTRT EXSTDAT EXSTTIM EXROUTE EXTRTYN;
+	set EX(keep=USUBJID VISIT EXDOSNB EXTRT EXSTDAT EXSTTIM EXROUTE EXTRTYN);
 run;
 
 ods document name=listings(update);
